@@ -1,7 +1,8 @@
-export function generateRandomId() {
+export function generateRandomId(length = 8) {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
   let result = '';
-  for (let i = 0; i < 8; i++) {
+  const len = Math.max(4, Math.min(32, Number(length) || 8));
+  for (let i = 0; i < len; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return result;

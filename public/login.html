@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>登录 - 临时邮箱</title>
+    <script src="/mock.js"></script>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="shortcut icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="login.css" />
+  </head>
+  <body>
+    <div class="bg"></div>
+    <div class="center">
+      <div class="card">
+        <div class="logo">🔐</div>
+        <h1>请输入访问密码</h1>
+        <div id="err" class="err"></div>
+        <input id="pwd" class="input" type="password" placeholder="访问密码" />
+        <div style="font-size:12px;color:#64748b;margin-bottom:8px">提示：使用访客密码将进入观看模式，展示模拟数据，无法接收邮件。</div>
+        <button id="login" class="btn">登录</button>
+      </div>
+    </div>
+    <script src="login.js"></script>
+  </body>
+  </html>
+

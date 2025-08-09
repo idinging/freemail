@@ -1,1 +1,9 @@
 
+/tuchuang.js
+/tmp
+node_modules
+.wrangler
+/email-eam
+.env
+/.env
+/.idea
