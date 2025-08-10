@@ -124,6 +124,8 @@ wrangler secret put RESEND_API_KEY
 wrangler deploy
 ```
 
+> 提示：如需开启发件功能，还需在 Resend 完成发信域名验证并创建 API Key。不会配置？请查看《[Resend 密钥获取与配置教程](docs/resend.md)》。
+
 3) Cloudflare 连接github仓库部署
 - 如果使用 Git 集成而非 wrangler deploy，请在 Dashboard → Workers → Settings → Variables 中手动配置上述变量
 - `[assets]` 已指向 `public/`，静态页面由 Workers + Assets 提供
@@ -157,6 +159,8 @@ wrangler d1 execute TEMP_MAIL_DB --file=./d1-init-basic.sql
 | JWT_TOKEN / JWT_SECRET | JWT 签名密钥（二选一，推荐 `JWT_TOKEN`） | 是 |
 | RESEND_API_KEY | Resend 发件 API Key。使用发件功能需要配置 | 否 |
 | FORWARD_RULES | 邮件转发（转发到指定邮箱）。支持两种格式：`JSON 数组` 或 `逗号分隔 KV` | 否 |
+
+> 发件相关的域名验证与密钥创建步骤，请参考《[docs/resend.md](docs/resend.md)》；如果你不清楚如何配置，请直接按照教程一步步操作。
 ### FORWARD_RULES 示例
 > 说明：规则按前缀匹配，命中第一个前缀即转发；`*` 为兜底规则。未配置或设置为空/disabled/none 时不进行任何转发。
 
