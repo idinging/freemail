@@ -30,8 +30,12 @@ function normalizeSendPayload(payload){
     text,
   };
   // 支持自定义发件显示名：fromName + <from>
+  // 仅当 fromName 非空白时才拼接，避免产生 ` <email>` 导致 Resend 校验失败
   if (payload && typeof payload.fromName === 'string' && from){
-    body.from = `${payload.fromName} <${from}>`;
+    const displayName = payload.fromName.trim();
+    if (displayName) {
+      body.from = `${displayName} <${from}>`;
+    }
   }
   if (cc) body.cc = Array.isArray(cc) ? cc : [cc];
   if (bcc) body.bcc = Array.isArray(bcc) ? bcc : [bcc];
