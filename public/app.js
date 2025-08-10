@@ -48,6 +48,24 @@ async function mockApi(path, options){
     if (!window.__MOCK_STATE__.mailboxes.length) window.__MOCK_STATE__.mailboxes = mb;
     return new Response(JSON.stringify(mb.slice(0,10)), { headers: jsonHeaders });
   }
+
+  // create custom mailbox (demo mode): accept POST /api/create
+  if (url.pathname === '/api/create' && options && options.method === 'POST'){
+    try{
+      const bodyText = options.body || '{}';
+      const body = typeof bodyText === 'string' ? JSON.parse(bodyText || '{}') : (bodyText || {});
+      const local = String((body.local || '').trim());
+      if (!/^[A-Za-z0-9._-]{1,64}$/.test(local)){
+        return new Response('非法用户名', { status: 400 });
+      }
+      const domainIndex = Number(body.domainIndex || 0);
+      const domain = (window.__MOCK_STATE__.domains || ['example.com'])[isNaN(domainIndex)?0:Math.max(0, Math.min((window.__MOCK_STATE__.domains||['example.com']).length-1, domainIndex))] || 'example.com';
+      const email = `${local}@${domain}`;
+      const item = { address: email, created_at: new Date().toISOString().replace('T',' ').slice(0,19) };
+      window.__MOCK_STATE__.mailboxes.unshift(item);
+      return new Response(JSON.stringify({ email, expires: Date.now() + 3600000 }), { headers: jsonHeaders });
+    }catch(_){ return new Response('Bad Request', { status: 400 }); }
+  }
   // destructive operations in demo
   if ((url.pathname === '/api/emails' && (options?.method === 'DELETE')) ||
       (url.pathname.startsWith('/api/email/') && (options?.method === 'DELETE')) ||
@@ -353,7 +371,21 @@ async function loadDomains(){
       }
       if (els && els.email){
         els.email.classList.remove('has-email');
-        els.email.innerHTML = '<span class="placeholder-text">点击右侧生成按钮创建邮箱地址</span>';
+        // 保留覆盖层节点，仅更新文本占位
+        const t = document.getElementById('email-text');
+        if (t){
+          t.innerHTML = '<span class="placeholder-text">点击右侧生成按钮创建邮箱地址</span>';
+        } else {
+          // 兜底：若 email-text 丢失，则重建结构但不移除覆盖层
+          const overlay = els.customOverlay;
+          els.email.textContent = '';
+          const span = document.createElement('span');
+          span.id = 'email-text';
+          span.className = 'email-text';
+          span.innerHTML = '<span class="placeholder-text">点击右侧生成按钮创建邮箱地址</span>';
+          els.email.appendChild(span);
+          if (overlay && !overlay.isConnected){ els.email.appendChild(overlay); }
+        }
       }
     }
     // 现在再加载域名与历史邮箱（避免在演示模式下发起真实请求）
@@ -377,7 +409,8 @@ els.gen.onclick = async () => {
       if (opt) localStorage.setItem(STORAGE_KEYS.domain, opt.textContent || '');
     }catch(_){ }
     window.currentMailbox = data.email;
-    els.email.textContent = data.email;
+    const t = document.getElementById('email-text');
+    if (t) t.textContent = data.email; else els.email.textContent = data.email;
     els.email.classList.add('has-email');
     els.emailActions.style.display = 'flex';
     els.listCard.style.display = 'block';
