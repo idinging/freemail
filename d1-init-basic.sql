@@ -29,3 +29,19 @@ CREATE TABLE IF NOT EXISTS messages (
 CREATE INDEX IF NOT EXISTS idx_messages_mailbox_id ON messages(mailbox_id);
 CREATE INDEX IF NOT EXISTS idx_messages_received_at ON messages(received_at DESC);
 
+-- 发送记录表：sent_emails
+CREATE TABLE IF NOT EXISTS sent_emails (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  resend_id TEXT,
+  from_addr TEXT NOT NULL,
+  to_addrs TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  html_content TEXT,
+  text_content TEXT,
+  status TEXT DEFAULT 'queued',
+  scheduled_at TEXT,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_sent_emails_resend_id ON sent_emails(resend_id);
+

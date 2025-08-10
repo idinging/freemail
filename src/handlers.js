@@ -1,11 +1,13 @@
 import { extractEmail, generateRandomId } from './utils.js';
 import { buildMockEmails, buildMockMailboxes, buildMockEmailDetail } from './mock.js';
-import { getOrCreateMailboxId, getMailboxIdByAddress } from './db.js';
+import { getOrCreateMailboxId, getMailboxIdByAddress, recordSentEmail, updateSentEmail, ensureSentEmailsTable } from './db.js';
+import { sendEmailWithResend, sendBatchWithResend, getEmailFromResend, updateEmailInResend, cancelEmailInResend } from './sender.js';
 
-export async function handleApiRequest(request, db, mailDomains, options = { mockOnly: false }) {
+export async function handleApiRequest(request, db, mailDomains, options = { mockOnly: false, resendApiKey: '' }) {
   const url = new URL(request.url);
   const path = url.pathname;
   const isMock = !!options.mockOnly;
+  const RESEND_API_KEY = options.resendApiKey || '';
 
   // 返回域名列表给前端
   if (path === '/api/domains' && request.method === 'GET') {
@@ -25,6 +27,196 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
       try { await getOrCreateMailboxId(db, email); } catch (_) {}
     }
     return Response.json({ email, expires: Date.now() + 3600000 });
+  }
+
+  // 自定义创建邮箱：{ local, domainIndex }
+  if (path === '/api/create' && request.method === 'POST'){
+    if (isMock){
+      // demo 模式下仍然允许创建到 example.com（仅内存，不写库）
+      try{
+        const body = await request.json();
+        const local = String(body.local || '').trim().toLowerCase();
+        const valid = /^[a-z0-9._-]{1,64}$/i.test(local);
+        if (!valid) return new Response('非法用户名', { status: 400 });
+        const domains = Array.isArray(mailDomains) ? mailDomains : [(mailDomains || 'example.com')];
+        const domainIdx = Math.max(0, Math.min(domains.length - 1, Number(body.domainIndex || 0)));
+        const chosenDomain = domains[domainIdx] || domains[0];
+        const email = `${local}@${chosenDomain}`;
+        return Response.json({ email, expires: Date.now() + 3600000 });
+      }catch(_){ return new Response('Bad Request', { status: 400 }); }
+    }
+    try{
+      const body = await request.json();
+      const local = String(body.local || '').trim().toLowerCase();
+      const valid = /^[a-z0-9._-]{1,64}$/i.test(local);
+      if (!valid) return new Response('非法用户名', { status: 400 });
+      const domains = Array.isArray(mailDomains) ? mailDomains : [(mailDomains || 'temp.example.com')];
+      const domainIdx = Math.max(0, Math.min(domains.length - 1, Number(body.domainIndex || 0)));
+      const chosenDomain = domains[domainIdx] || domains[0];
+      const email = `${local}@${chosenDomain}`;
+      await getOrCreateMailboxId(db, email);
+      return Response.json({ email, expires: Date.now() + 3600000 });
+    }catch(e){ return new Response('创建失败', { status: 500 }); }
+  }
+
+  // 发件记录列表（按发件人地址过滤）
+  if (path === '/api/sent' && request.method === 'GET'){
+    if (isMock){
+      return Response.json([]);
+    }
+    const from = url.searchParams.get('from') || url.searchParams.get('mailbox') || '';
+    if (!from){ return new Response('缺少 from 参数', { status: 400 }); }
+    try{
+      await ensureSentEmailsTable(db);
+      const { results } = await db.prepare(`
+        SELECT id, resend_id, to_addrs as recipients, subject, created_at, status
+        FROM sent_emails
+        WHERE from_addr = ?
+        ORDER BY datetime(created_at) DESC
+        LIMIT 50
+      `).bind(String(from).trim().toLowerCase()).all();
+      return Response.json(results || []);
+    }catch(e){
+      console.error('查询发件记录失败:', e);
+      return new Response('查询发件记录失败', { status: 500 });
+    }
+  }
+
+  // 发件详情
+  if (request.method === 'GET' && path.startsWith('/api/sent/')){
+    if (isMock){ return new Response('演示模式不可查询真实发送', { status: 403 }); }
+    const id = path.split('/')[3];
+    try{
+      const { results } = await db.prepare(`
+        SELECT id, resend_id, from_addr, to_addrs as recipients, subject,
+               html_content, text_content, status, scheduled_at, created_at
+        FROM sent_emails WHERE id = ?
+      `).bind(id).all();
+      if (!results || !results.length) return new Response('未找到发件', { status: 404 });
+      return Response.json(results[0]);
+    }catch(e){
+      return new Response('查询失败', { status: 500 });
+    }
+  }
+
+  // 发送单封邮件
+  if (path === '/api/send' && request.method === 'POST'){
+    if (isMock) return new Response('演示模式不可发送', { status: 403 });
+    try{
+      if (!RESEND_API_KEY) return new Response('未配置 Resend API Key', { status: 500 });
+      const payload = await request.json();
+      const result = await sendEmailWithResend(RESEND_API_KEY, payload);
+      await ensureSentEmailsTable(db);
+      await recordSentEmail(db, {
+        resendId: result.id || null,
+        fromName: payload.fromName || null,
+        from: payload.from,
+        to: payload.to,
+        subject: payload.subject,
+        html: payload.html,
+        text: payload.text,
+        status: 'delivered',
+        scheduledAt: payload.scheduledAt || null
+      });
+      return Response.json({ success: true, id: result.id });
+    }catch(e){
+      return new Response('发送失败: ' + e.message, { status: 500 });
+    }
+  }
+
+  // 批量发送
+  if (path === '/api/send/batch' && request.method === 'POST'){
+    if (isMock) return new Response('演示模式不可发送', { status: 403 });
+    try{
+      if (!RESEND_API_KEY) return new Response('未配置 Resend API Key', { status: 500 });
+      const items = await request.json();
+      const result = await sendBatchWithResend(RESEND_API_KEY, items);
+      try{
+        await ensureSentEmailsTable(db);
+        // 尝试记录（如果返回结构包含 id 列表）
+        const arr = Array.isArray(result) ? result : [];
+        for (let i = 0; i < arr.length; i++){
+          const id = arr[i]?.id;
+          const payload = items[i] || {};
+          await recordSentEmail(db, {
+            resendId: id || null,
+            fromName: payload.fromName || null,
+            from: payload.from,
+            to: payload.to,
+            subject: payload.subject,
+            html: payload.html,
+            text: payload.text,
+            status: 'delivered',
+            scheduledAt: payload.scheduledAt || null
+          });
+        }
+      }catch(_){/* ignore */}
+      return Response.json({ success: true, result });
+    }catch(e){
+      return new Response('批量发送失败: ' + e.message, { status: 500 });
+    }
+  }
+
+  // 查询发送结果
+  if (path.startsWith('/api/send/') && request.method === 'GET'){
+    if (isMock) return new Response('演示模式不可查询真实发送', { status: 403 });
+    const id = path.split('/')[3];
+    try{
+      if (!RESEND_API_KEY) return new Response('未配置 Resend API Key', { status: 500 });
+      const data = await getEmailFromResend(RESEND_API_KEY, id);
+      return Response.json(data);
+    }catch(e){
+      return new Response('查询失败: ' + e.message, { status: 500 });
+    }
+  }
+
+  // 更新（修改定时/状态等）
+  if (path.startsWith('/api/send/') && request.method === 'PATCH'){
+    if (isMock) return new Response('演示模式不可操作', { status: 403 });
+    const id = path.split('/')[3];
+    try{
+      if (!RESEND_API_KEY) return new Response('未配置 Resend API Key', { status: 500 });
+      const body = await request.json();
+      let data = { ok: true };
+      // 如果只是更新本地状态，不必请求 Resend
+      if (body && typeof body.status === 'string'){
+        await updateSentEmail(db, id, { status: body.status });
+      }
+      // 更新定时设置时需要触达 Resend
+      if (body && body.scheduledAt){
+        data = await updateEmailInResend(RESEND_API_KEY, { id, scheduledAt: body.scheduledAt });
+        await updateSentEmail(db, id, { scheduled_at: body.scheduledAt });
+      }
+      return Response.json(data || { ok: true });
+    }catch(e){
+      return new Response('更新失败: ' + e.message, { status: 500 });
+    }
+  }
+
+  // 取消发送
+  if (path.startsWith('/api/send/') && path.endsWith('/cancel') && request.method === 'POST'){
+    if (isMock) return new Response('演示模式不可操作', { status: 403 });
+    const id = path.split('/')[3];
+    try{
+      if (!RESEND_API_KEY) return new Response('未配置 Resend API Key', { status: 500 });
+      const data = await cancelEmailInResend(RESEND_API_KEY, id);
+      await updateSentEmail(db, id, { status: 'canceled' });
+      return Response.json(data);
+    }catch(e){
+      return new Response('取消失败: ' + e.message, { status: 500 });
+    }
+  }
+
+  // 删除发件记录
+  if (request.method === 'DELETE' && path.startsWith('/api/sent/')){
+    if (isMock) return new Response('演示模式不可操作', { status: 403 });
+    const id = path.split('/')[3];
+    try{
+      await db.prepare('DELETE FROM sent_emails WHERE id = ?').bind(id).run();
+      return Response.json({ success: true });
+    }catch(e){
+      return new Response('删除发件记录失败: ' + e.message, { status: 500 });
+    }
   }
 
   if (path === '/api/emails' && request.method === 'GET') {

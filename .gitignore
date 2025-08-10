@@ -6,4 +6,5 @@ node_modules
 /email-eam
 .env
 /.env
+dd
 /.idea

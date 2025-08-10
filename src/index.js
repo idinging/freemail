@@ -19,6 +19,7 @@ export default {
     const ADMIN_PASSWORD = env.ADMIN_PASSWORD || env.ADMIN_PASS || '';
     const GUEST_PASSWORD = env.GUEST_PASSWORD || '';
     const JWT_TOKEN = env.JWT_TOKEN || env.JWT_SECRET || '';
+    const RESEND_API_KEY = env.RESEND_API_KEY || env.RESEND_TOKEN || env.RESEND || '';
 
     await initDatabase(DB);
 
@@ -64,9 +65,9 @@ export default {
       if (!payload) return new Response('Unauthorized', { status: 401 });
       // 访客只允许读取模拟数据
       if ((payload.role || 'admin') === 'guest') {
-        return handleApiRequest(request, DB, MAIL_DOMAINS, { mockOnly: true });
+        return handleApiRequest(request, DB, MAIL_DOMAINS, { mockOnly: true, resendApiKey: RESEND_API_KEY });
       }
-      return handleApiRequest(request, DB, MAIL_DOMAINS, { mockOnly: false });
+      return handleApiRequest(request, DB, MAIL_DOMAINS, { mockOnly: false, resendApiKey: RESEND_API_KEY });
     }
 
     if (request.method === 'POST' && url.pathname === '/receive') {

@@ -1,11 +1,13 @@
 # 临时邮箱 Cloudflare Worker（模块化结构）
 
+当前状态：V2 功能已完成
+
 一个基于 Cloudflare Workers 和 D1 数据库的临时邮箱服务。
 
 ## 📸 项目展示
-### 体验地址 https://mail.dinging.top/
+### 体验地址： https://mailexhibit.dinging.top/
 
-### 体验密码 admin
+### 体验密码： admin
 ### 首页
 ![首页展示](pic/shouye.png)
 
@@ -17,6 +19,12 @@
 
 ### 便捷复制验证码
 ![便捷复制验证码](pic/bianjiefuzhiyanzhengma.png)
+
+### 发件测试（发送弹窗）
+![发件测试-发件弹窗](pic/cesifajian.png)
+
+### 发件测试（收件结果）
+![发件测试-收件结果](pic/cesjieshoujiieguo.png)
 
 ## 功能特性
 
@@ -39,6 +47,20 @@
 - 📖 **详细查看**：优化的邮件详情显示，支持完整内容渲染
 - 📋 **一键复制**：智能识别验证码并优先复制，或复制完整邮件内容
 - 🗑️ **灵活删除**：支持删除单个邮件或清空整个邮箱
+- ✉️ **发件支持（Resend）**：已接入 Resend，可使用临时邮箱地址发送邮件并查看发件记录（发件箱），支持自定义发件显示名（`fromName`）与批量/定时/取消等能力。详情见《[Resend 密钥获取与配置教程](docs/resend.md)》
+
+## 版本与路线图
+
+### V1
+- 前后端基础功能与认证体系
+- 邮箱生成、历史记录、邮件列表与详情、清空/删除
+- 智能验证码提取与复制、一键复制邮件内容
+- 自动刷新与基本的 UI 交互
+
+### V2
+- [x] 前端模板解耦：将首页 UI 从 `public/app.js` 内联模板拆分为独立的 `public/templates/app.html`，降低耦合、便于维护
+- [x] 发件（Resend）与发件箱：支持通过 Resend 发送邮件、自定义发件显示名（`fromName`）
+
 
 ### 🔧 技术特性
 - ⚡ **基于 Cloudflare**：利用全球网络，访问速度快
@@ -77,6 +99,8 @@ database_id = "你的数据库ID"
 
 [vars]
 MAIL_DOMAIN = "你的域名.com，域名2.cn" #可以多个 以英文逗号分隔
+# （可选）如果需要发件：不在此处明文配置，将密钥以 Secret 方式注入
+# RESEND_API_KEY 在部署时通过 wrangler 或 Dashboard 设置
 ```
 
 ### 3. 本地与线上部署（推荐 wrangler）
@@ -94,6 +118,8 @@ wrangler dev
 # 设置敏感变量（Secret）
 wrangler secret put ADMIN_PASSWORD
 wrangler secret put JWT_TOKEN
+# （可选，如需发件）设置 Resend 密钥
+wrangler secret put RESEND_API_KEY
 # 非敏感变量可放在 wrangler.toml 的 [vars] 或控制台 Variables 中
 wrangler deploy
 ```
@@ -129,6 +155,7 @@ wrangler d1 execute TEMP_MAIL_DB --file=./d1-init-basic.sql
 | MAIL_DOMAIN | 用于生成临时邮箱的域名，支持多个，使用逗号或空格分隔（如 `iding.asia, example.com`） | 是 |
 | ADMIN_PASSWORD | 后台访问密码（登录页使用） | 是 |
 | JWT_TOKEN / JWT_SECRET | JWT 签名密钥（二选一，推荐 `JWT_TOKEN`） | 是 |
+| RESEND_API_KEY | Resend 发件 API Key。使用发件功能需要配置 | 否 |
 | FORWARD_RULES | 邮件转发（转发到指定邮箱）。支持两种格式：`JSON 数组` 或 `逗号分隔 KV` | 否 |
 ### FORWARD_RULES 示例
 > 说明：规则按前缀匹配，命中第一个前缀即转发；`*` 为兜底规则。未配置或设置为空/disabled/none 时不进行任何转发。
@@ -181,6 +208,37 @@ wrangler d1 execute TEMP_MAIL_DB --file=./d1-init-basic.sql
 - **邮件路由**：若需接收真实邮件，请正确配置 Cloudflare Email Routing（MX 记录、Catch‑all → 绑定到 Worker）。
 - **数据库与费用**：D1 有免费额度限制；建议定期清理过期邮件以节省存储空间与额度。
 - **安全**：务必在生产环境修改 `ADMIN_PASSWORD`、`JWT_TOKEN`，并限制仓库/项目的敏感信息暴露。
+
+## Resend 教程（发件）
+
+- 教程文档：请见《[Resend 密钥获取与配置教程](docs/resend.md)》。
+  - 覆盖域名验证、创建 API Key、在 Cloudflare Workers 设置 `RESEND_API_KEY` Secret 的完整流程
+  - 详细列出后端发件相关接口（`/api/send`、`/api/send/batch`、`/api/send/:id`、`/api/send/:id/cancel`、`/api/sent` 等）与示例
+  - 前端已集成“发件箱”，在生成/选择邮箱后可直接发信并查看记录；自定义发件显示名通过 `fromName` 字段传入
+
+### 发件相关 API（摘要）
+- `POST /api/send` 发送单封邮件（支持 `fromName` 自定义发件显示名）
+- `POST /api/send/batch` 批量发送
+- `GET /api/send/:id` 查询单封邮件发送状态
+- `PATCH /api/send/:id` 更新（如定时 `scheduledAt`）
+- `POST /api/send/:id/cancel` 取消发送
+- `GET /api/sent?from=xxx@domain` 获取发件记录列表
+- `GET /api/sent/:id` 获取发件详情
+- `DELETE /api/sent/:id` 删除发件记录
+
+完整用法与注意事项请参考《[docs/resend.md](docs/resend.md)》。
+
+## 变更日志（节选）
+
+- 前端模板外置（V2 里程碑之一）
+  - 将首页内联 HTML 从 `public/app.js` 抽离为 `public/templates/app.html`
+  - 将 `public/index.html` 的脚本标签改为模块：`<script type="module" src="app.js"></script>`
+  - 在 `public/app.js` 中使用顶层 `await` 动态加载模板并再执行 DOM 初始化/会话校验，初始化顺序更安全
+  - 影响范围：仅静态资源路径，需确保 `/templates/app.html` 可通过静态资源服务访问（默认 `public/` 下已生效）
+
+- 发件（Resend）支持与配置
+  - 新增后端发件能力与发件箱，支持 `fromName` 自定义发件显示名、批量/定时/取消
+  - 新增环境变量 `RESEND_API_KEY`（以 Secret 提供）。配置与用法详见《[docs/resend.md](docs/resend.md)》
 
 ## 自定义配置
 

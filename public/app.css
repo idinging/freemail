@@ -1,3 +1,19 @@
+.status-badge{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--card-glass);
+  border: 1px solid var(--border-glass);
+  color: var(--text-light);
+}
+.status-queued{ color: #946200; background: rgba(245, 158, 11, .12); border-color: rgba(245, 158, 11, .35); }
+.status-delivered{ color: #0f766e; background: rgba(16, 185, 129, .12); border-color: rgba(16, 185, 129, .35); }
+.status-failed{ color: #b91c1c; background: rgba(239, 68, 68, .12); border-color: rgba(239, 68, 68, .35); }
+.status-processing{ color: #1d4ed8; background: rgba(59, 130, 246, .12); border-color: rgba(59, 130, 246, .35); }
 :root{
   --surface: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 20%, #f1f5f9 100%);
   --surface-overlay: linear-gradient(135deg, rgba(248, 250, 252, 0.8) 0%, rgba(241, 245, 249, 0.9) 100%);
@@ -223,6 +239,33 @@ body::before{
 .inbox-card{
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(6, 182, 212, 0.05));
 }
+.listcard-header{
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+}
+.listcard-title{ 
+  margin: 0; display:flex; align-items:center; gap:8px; justify-self: start;
+}
+.view-switch{ 
+  justify-self: center; display: inline-flex; background: var(--card-glass); border:1px solid var(--border-glass); border-radius: 999px; overflow:hidden; box-shadow: var(--shadow-glass);
+}
+.seg-btn{
+  background: transparent; border:none; padding: 8px 16px; font-weight:600; color: var(--text-light); cursor:pointer; transition: var(--transition);
+}
+.seg-btn[aria-pressed="true"]{
+  background: var(--primary-light);
+  color: var(--primary);
+}
+.seg-btn:hover{ background: rgba(59,130,246,0.08); color: var(--primary); }
+
+.loading-indicator{ display:none; align-items:center; gap:8px; justify-self:end; color: var(--text-light); }
+.loading-indicator.show{ display:inline-flex; }
+.spinner{
+  width:16px; height:16px; border:2px solid rgba(59,130,246,0.2); border-top-color: var(--primary); border-radius:50%; animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg);} }
 
 .placeholder-text{
   color: var(--muted2);
@@ -398,6 +441,17 @@ body::before{
   justify-content: center;
 }
 
+.custom-overlay{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; gap:12px; background: rgba(255,255,255,0.75); backdrop-filter: blur(2px); padding:12px; }
+.custom-input{ min-width:280px; height:44px; padding:10px 14px; border:1px solid var(--border-glass); border-radius: var(--radius-sm); background: var(--card-glass); box-shadow: var(--shadow-glass); font-size:14px; }
+.custom-input::placeholder{ color: var(--muted2); }
+.custom-input:focus{ outline:none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,0.15); background:#fff; }
+/* 覆盖层内“创建”按钮：强制水平/垂直居中 */
+.custom-overlay .btn{ height:44px; padding:0 16px; justify-content:center; align-items:center; }
+
+/* 让切换自定义按钮与随机按钮同样大小 */
+.generate-action{ display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+.generate-action .btn{ height:52px; padding:0 20px; font-size:16px; border-radius: var(--radius-sm); flex:1 1 220px; justify-content:center; text-align:center; }
+
 .email-display.has-email{
   border-style: solid;
   border-color: var(--primary);
@@ -424,36 +478,33 @@ body::before{
 }
 
 .mailbox-actions{
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 12px;
   justify-content: center;
+  align-items: stretch;
   margin-top: 0;
   opacity: 1;
   transition: var(--transition);
 }
 
 .mailbox-actions .btn{
-  min-width: 120px;
+  width: 100%;
+  min-width: auto;
   height: 52px;
   font-size: 14px;
   font-weight: 600;
+  justify-content: center;
+  white-space: nowrap;
 }
 
 .mailbox-actions .btn-secondary{
-  min-width: 130px;
   background: rgba(255, 255, 255, 0.9);
   border-color: var(--primary);
   color: var(--primary);
 }
 
-.mailbox-actions .btn-danger{
-  min-width: 130px;
-}
-
-.mailbox-actions .btn-ghost{
-  min-width: 140px;
-}
+/* keep selectors grouped for specificity, no extra rules here */
 
 .mailbox-actions .btn-secondary:hover{
   background: var(--primary);
@@ -492,6 +543,8 @@ body::before{
   gap: 16px;
   height: 100%;
 }
+
+.config-item[style*="display: none"] + .config-item { margin-top: 0; }
 
 .config-item{
   display: flex;
@@ -922,8 +975,10 @@ select:disabled{
   border-bottom: 1px solid var(--border-light);
   font-weight: 700;
   font-size: 18px;
-  background: linear-gradient(135deg, var(--primary), #8b5cf6);
-  color: white;
+  background: linear-gradient(135deg, rgba(59,130,246,.14), rgba(139,92,246,.14));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: var(--text);
 }
 
 .modal-body{
@@ -932,19 +987,80 @@ select:disabled{
   max-height: calc(85vh - 80px);
 }
 
+/* 发件表单 */
+.compose-form{
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.field-group{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field-label{
+  font-weight: 600;
+  color: var(--text-light);
+  font-size: 14px;
+}
+
+.field-input,
+.field-textarea{
+  width: 100%;
+  background: var(--card-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-size: 14px;
+  color: var(--text);
+  box-shadow: var(--shadow-glass);
+}
+
+.field-input::placeholder,
+.field-textarea::placeholder{
+  color: var(--muted2);
+}
+
+.field-input:focus,
+.field-textarea:focus{
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.field-textarea{
+  min-height: 160px;
+  resize: vertical;
+}
+
+.field-hint{
+  font-size: 12px;
+  color: var(--muted2);
+}
+
+.compose-actions{
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
 .close{
   cursor: pointer;
   font-size: 24px;
   border: none;
   background: transparent;
-  color: white;
+  color: var(--text);
   padding: 8px;
   border-radius: var(--radius-sm);
   transition: var(--transition);
 }
 
 .close:hover{
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.06);
   transform: scale(1.1);
 }
 
@@ -1386,13 +1502,9 @@ select:disabled{
   }
   
   .mailbox-actions{
-    flex-direction: column;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 8px;
-  }
-  
-  .mailbox-actions .btn{
-    min-width: auto;
-    width: 100%;
   }
   
   .range-container{

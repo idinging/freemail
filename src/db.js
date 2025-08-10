@@ -9,6 +9,9 @@ export async function initDatabase(db) {
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_messages_mailbox_id ON messages(mailbox_id);`);
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_messages_received_at ON messages(received_at DESC);`);
 
+    // 发送记录表：用于记录通过 Resend 发出的邮件与状态
+    await ensureSentEmailsTable(db);
+
     // 兼容迁移：若存在旧表 emails 且新表 messages 为空，则尝试迁移数据
     const legacy = await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='emails'").all();
     const mc = await db.prepare('SELECT COUNT(1) as c FROM messages').all();
@@ -61,5 +64,71 @@ export async function getMailboxIdByAddress(db, address) {
   if (!normalized) return null;
   const res = await db.prepare('SELECT id FROM mailboxes WHERE address = ?').bind(normalized).all();
   return (res.results && res.results.length) ? res.results[0].id : null;
+}
+
+export async function recordSentEmail(db, { resendId, fromName, from, to, subject, html, text, status = 'queued', scheduledAt = null }){
+  const toAddrs = Array.isArray(to) ? to.join(',') : String(to || '');
+  try{
+    await db.prepare(`
+      INSERT INTO sent_emails (resend_id, from_name, from_addr, to_addrs, subject, html_content, text_content, status, scheduled_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(resendId || null, fromName || null, from, toAddrs, subject, html || null, text || null, status, scheduledAt || null).run();
+  } catch (e) {
+    // 如果表不存在，尝试即时创建并重试一次
+    if ((e?.message || '').toLowerCase().includes('no such table: sent_emails')){
+      try { await ensureSentEmailsTable(db); } catch(_){}
+      await db.prepare(`
+        INSERT INTO sent_emails (resend_id, from_name, from_addr, to_addrs, subject, html_content, text_content, status, scheduled_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(resendId || null, fromName || null, from, toAddrs, subject, html || null, text || null, status, scheduledAt || null).run();
+      return;
+    }
+    throw e;
+  }
+}
+
+export async function updateSentEmail(db, resendId, fields){
+  if (!resendId) return;
+  const allowed = ['status', 'scheduled_at'];
+  const setClauses = [];
+  const values = [];
+  for (const key of allowed){
+    if (key in (fields || {})){
+      setClauses.push(`${key} = ?`);
+      values.push(fields[key]);
+    }
+  }
+  if (!setClauses.length) return;
+  setClauses.push('updated_at = CURRENT_TIMESTAMP');
+  const sql = `UPDATE sent_emails SET ${setClauses.join(', ')} WHERE resend_id = ?`;
+  values.push(resendId);
+  await db.prepare(sql).bind(...values).run();
+}
+
+export async function ensureSentEmailsTable(db){
+  const createSql = 'CREATE TABLE IF NOT EXISTS sent_emails (' +
+    'id INTEGER PRIMARY KEY AUTOINCREMENT,' +
+    'resend_id TEXT,' +
+    'from_name TEXT,' +
+    'from_addr TEXT NOT NULL,' +
+    'to_addrs TEXT NOT NULL,' +
+    'subject TEXT NOT NULL,' +
+    'html_content TEXT,' +
+    'text_content TEXT,' +
+    "status TEXT DEFAULT 'queued'," +
+    'scheduled_at TEXT,' +
+    'created_at TEXT DEFAULT CURRENT_TIMESTAMP,' +
+    'updated_at TEXT DEFAULT CURRENT_TIMESTAMP' +
+  ')';
+  await db.exec(createSql);
+  await db.exec('CREATE INDEX IF NOT EXISTS idx_sent_emails_resend_id ON sent_emails(resend_id)');
+  // 迁移：若缺少 from_name 列，尝试增加
+  try {
+    const res = await db.prepare("PRAGMA table_info(sent_emails)").all();
+    const cols = (res?.results || []).map(r => (r.name || r?.['name']));
+    if (!cols.includes('from_name')){
+      await db.exec('ALTER TABLE sent_emails ADD COLUMN from_name TEXT');
+    }
+  } catch (_) {}
 }
 

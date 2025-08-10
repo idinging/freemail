@@ -128,190 +128,11 @@ function extractCode(text){
   return '';
 }
 
-// 页面加载即进行会话校验，未认证立即跳转登录页
-(async () => {
-  try {
-    const r = await fetch('/api/session');
-    if (!r.ok) { location.replace('/login.html'); return; }
-    const s = await r.json();
-    if (s.role === 'guest') {
-      window.__GUEST_MODE__ = true;
-      window.__MOCK_STATE__ = { domains: ['example.com'], mailboxes: [], emailsByMailbox: new Map() };
-      const bar = document.createElement('div');
-      bar.className = 'demo-banner';
-      bar.innerHTML = '👀 当前为 <strong>观看模式</strong>（模拟数据，仅演示）。要接收真实邮件，请自建部署或联系部署。';
-      document.body.prepend(bar);
-      // 强制 UI 仅显示 example.com
-      const exampleOnly = ['example.com'];
-      if (domainSelect){
-        domainSelect.innerHTML = exampleOnly.map((d,i)=>`<option value="${i}">${d}</option>`).join('');
-        domainSelect.selectedIndex = 0;
-        domainSelect.disabled = true; // 禁用下拉，避免看到真实域名
-      }
-      if (els && els.email){
-        els.email.classList.remove('has-email');
-        els.email.innerHTML = '<span class="placeholder-text">点击右侧生成按钮创建邮箱地址</span>';
-      }
-    }
-    // 现在再加载域名与历史邮箱（避免在演示模式下发起真实请求）
-    if (typeof loadDomains === 'function') await loadDomains();
-    if (typeof loadMailboxes === 'function') await loadMailboxes(false);
-  } catch (_) {
-    location.replace('/login.html');
-  }
-})();
+// 初始化流程将会在模板加载后进行（见 init()）
 
 const app = document.getElementById('app');
-app.innerHTML = `
-  <div class="topbar">
-    <div class="brand">
-      <span class="brand-icon">📧</span>
-      <span>iDing's临时邮箱</span>
-    </div>
-    <div class="nav-actions">
-      <a id="repo" class="btn btn-ghost" href="https://github.com/idinging/freemail" target="_blank" rel="noopener noreferrer" title="GitHub 开源仓库">
-        <span class="btn-icon">🔗</span>
-        <span>GitHub</span>
-      </a>
-      <button id="logout" class="btn btn-secondary" title="退出登录">
-        <span>退出登录</span>
-      </button>
-    </div>
-  </div>
-  <div class="toast" id="toast"></div>
-  <div class="container">
-    <div class="sidebar">
-      <h3>
-        <span class="sidebar-icon">📨</span>
-        历史邮箱
-      </h3>
-      <div id="mb-list"></div>
-      <div id="mb-more-wrap" style="margin-top:16px;text-align:center">
-        <button id="mb-more" class="btn btn-ghost btn-sm" style="width:100%">
-          <span>加载更多</span>
-        </button>
-      </div>
-    </div>
-    <div class="main">
-             <div class="card generate-card">
-         <h2>
-           <span class="card-icon">✨</span>
-           生成临时邮箱
-         </h2>
-         
-         <div class="mailbox-layout">
-           <!-- 左侧：邮箱地址展示 -->
-           <div class="mailbox-display-section">
-             <div class="mailbox-display-content">
-               <div class="section-header">
-                 <span class="section-icon">📧</span>
-                 <span class="section-title">当前邮箱</span>
-               </div>
-               <div id="email" class="email-display">
-                 <span class="placeholder-text">点击右侧生成按钮创建邮箱地址</span>
-               </div>
-             </div>
-             <div class="mailbox-actions" id="email-actions" style="display:none">
-               <button id="copy" class="btn btn-secondary">
-                 <span class="btn-icon">📋</span>
-                 <span>复制邮箱 ✨</span>
-               </button>
-               <button id="clear" class="btn btn-danger">
-                 <span class="btn-icon">🗑️</span>
-                 <span>清空邮件 💥</span>
-               </button>
-               <button id="refresh" class="btn btn-ghost">
-                 <span class="btn-icon">🔄</span>
-                 <span>刷新邮件 📬</span>
-               </button>
-             </div>
-           </div>
-           
-           <!-- 右侧：邮箱配置 -->
-           <div class="mailbox-config-section">
-             <div class="section-header">
-               <span class="section-icon">⚙️</span>
-               <span class="section-title">邮箱配置</span>
-             </div>
-             <div class="config-form">
-               <div class="config-item">
-                 <label class="config-label">
-                   <span class="label-icon">🌐</span>
-                   <span>邮箱后缀</span>
-                 </label>
-                 <select id="domain-select" class="select config-select"></select>
-               </div>
-               <div class="config-item">
-                 <label class="config-label">
-                   <span class="label-icon">📏</span>
-                   <span>用户名长度</span>
-                 </label>
-                 <div class="range-container">
-                   <input id="len-range" class="range" type="range" min="8" max="30" step="1" value="8" />
-                   <div class="range-display">
-                     <span id="len-val" class="len-value">8</span>
-                     <span class="len-unit">位</span>
-                   </div>
-                 </div>
-               </div>
-               <div class="generate-action">
-                 <button id="gen" class="btn btn-generate">
-                   <span class="btn-icon">🎲</span>
-                   <span>生成新邮箱</span>
-                 </button>
-               </div>
-             </div>
-           </div>
-         </div>
-       </div>
-      <div class="card inbox-card" id="list-card" style="display:none">
-        <h2>
-          <span class="card-icon">📬</span>
-          收件箱
-        </h2>
-        <div id="list" class="list"></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="footer">
-    <span>© 2025 iDing's 临时邮箱 - 简约而不简单</span>
-  </div>
-
-  <div class="modal" id="email-modal">
-    <div class="modal-card">
-      <div class="modal-header">
-        <div id="modal-subject">
-          <span class="modal-icon">📧</span>
-          <span>邮件详情</span>
-        </div>
-        <button id="modal-close" class="close">✕</button>
-      </div>
-      <div class="modal-body">
-        <div id="modal-content"></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal" id="confirm-modal">
-    <div class="modal-card confirm-card">
-      <div class="modal-header confirm-header">
-        <div>
-          <span class="modal-icon">⚠️</span>
-          <span>确认操作</span>
-        </div>
-        <button id="confirm-close" class="close">✕</button>
-      </div>
-      <div class="modal-body confirm-body">
-        <div id="confirm-message" class="confirm-message"></div>
-        <div class="confirm-actions">
-          <button id="confirm-cancel" class="btn btn-secondary">取消</button>
-          <button id="confirm-ok" class="btn btn-danger">确定</button>
-        </div>
-      </div>
-    </div>
-  </div>
-`;
+const __templateHtml = await (await fetch('/templates/app.html', { cache: 'no-cache' })).text();
+app.innerHTML = __templateHtml;
 
 const els = {
   email: document.getElementById('email'),
@@ -320,6 +141,10 @@ const els = {
   clear: document.getElementById('clear'),
   list: document.getElementById('list'),
   listCard: document.getElementById('list-card'),
+  tabInbox: document.getElementById('tab-inbox'),
+  tabSent: document.getElementById('tab-sent'),
+  boxTitle: document.getElementById('box-title'),
+  boxIcon: document.getElementById('box-icon'),
   refresh: document.getElementById('refresh'),
   logout: document.getElementById('logout'),
   modal: document.getElementById('email-modal'),
@@ -329,12 +154,26 @@ const els = {
   mbList: document.getElementById('mb-list'),
   toast: document.getElementById('toast'),
   mbMore: document.getElementById('mb-more'),
+  listLoading: document.getElementById('list-loading'),
   confirmModal: document.getElementById('confirm-modal'),
   confirmClose: document.getElementById('confirm-close'),
   confirmMessage: document.getElementById('confirm-message'),
   confirmCancel: document.getElementById('confirm-cancel'),
   confirmOk: document.getElementById('confirm-ok'),
-  emailActions: document.getElementById('email-actions')
+  emailActions: document.getElementById('email-actions'),
+  toggleCustom: document.getElementById('toggle-custom'),
+  customOverlay: document.getElementById('custom-overlay'),
+  customLocalOverlay: document.getElementById('custom-local-overlay'),
+  createCustomOverlay: document.getElementById('create-custom-overlay'),
+  compose: document.getElementById('compose'),
+  composeModal: document.getElementById('compose-modal'),
+  composeClose: document.getElementById('compose-close'),
+  composeTo: document.getElementById('compose-to'),
+  composeSubject: document.getElementById('compose-subject'),
+  composeHtml: (document.getElementById('compose-html') || document.getElementById('compose-body')),
+  composeFromName: document.getElementById('compose-from-name'),
+  composeCancel: document.getElementById('compose-cancel'),
+  composeSend: document.getElementById('compose-send')
 };
 function showToast(message, type='info'){
   const div = document.createElement('div');
@@ -384,6 +223,7 @@ function showConfirm(message, onConfirm, onCancel = null) {
 const lenRange = document.getElementById('len-range');
 const lenVal = document.getElementById('len-val');
 const domainSelect = document.getElementById('domain-select');
+// 右侧自定义已移除，保留覆盖层方式
 const STORAGE_KEYS = { domain: 'mailfree:lastDomain', length: 'mailfree:lastLen' };
 
 function updateRangeProgress(input){
@@ -393,6 +233,47 @@ function updateRangeProgress(input){
   const val = Number(input.value || min);
   const percent = ((val - min) * 100) / (max - min);
   input.style.background = `linear-gradient(to right, var(--primary) ${percent}%, var(--border-light) ${percent}%)`;
+}
+
+// 右侧自定义入口已移除
+
+// 切换自定义输入显隐
+if (els.toggleCustom){
+  els.toggleCustom.onclick = () => {
+    if (els.customOverlay){
+      // 始终允许展开/收起，与邮箱状态无关
+      const style = getComputedStyle(els.customOverlay);
+      const isVisible = style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+      els.customOverlay.style.display = isVisible ? 'none' : 'flex';
+      if (!isVisible) setTimeout(()=>els.customLocalOverlay?.focus(), 50);
+    }
+  };
+}
+
+// 覆盖层创建
+if (els.createCustomOverlay){
+  els.createCustomOverlay.onclick = async () => {
+    try{
+      const local = (els.customLocalOverlay?.value || '').trim();
+      if (!/^[A-Za-z0-9._-]{1,64}$/.test(local)) { showToast('用户名不合法，仅限字母/数字/._-', 'warn'); return; }
+      const domainIndex = Number(domainSelect?.value || 0);
+      const r = await api('/api/create', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ local, domainIndex }) });
+      if (!r.ok){ const t = await r.text(); throw new Error(t); }
+      const data = await r.json();
+      window.currentMailbox = data.email;
+      // 如果已显示在邮箱框中，更新文本节点
+      const t = document.getElementById('email-text');
+      if (t) t.textContent = data.email; else els.email.textContent = data.email;
+      els.email.classList.add('has-email');
+      els.emailActions.style.display = 'flex';
+      els.listCard.style.display = 'block';
+      showToast('已创建邮箱：' + data.email, 'success');
+      els.customOverlay.style.display = 'none';
+      // 重置历史分页偏移，确保显示最新的第一页
+      if (typeof mbOffset !== 'undefined') { mbOffset = 0; }
+      await loadMailboxes(false);
+    }catch(e){ showToast('创建失败：' + (e?.message || e), 'warn'); }
+  };
 }
 
 // 初始化长度：默认读取历史值（8-30 之间），否则为 8
@@ -450,6 +331,39 @@ async function loadDomains(){
 }
 // 延迟到会话判定后再加载域名，避免访客模式提前请求真实接口
 
+// 会话校验与访客模式处理（在模板装载并拿到 DOM 引用之后执行）
+(async () => {
+  try {
+    const r = await fetch('/api/session');
+    if (!r.ok) { location.replace('/login.html'); return; }
+    const s = await r.json();
+    if (s.role === 'guest') {
+      window.__GUEST_MODE__ = true;
+      window.__MOCK_STATE__ = { domains: ['example.com'], mailboxes: [], emailsByMailbox: new Map() };
+      const bar = document.createElement('div');
+      bar.className = 'demo-banner';
+      bar.innerHTML = '👀 当前为 <strong>观看模式</strong>（模拟数据，仅演示）。要接收真实邮件，请自建部署或联系部署。';
+      document.body.prepend(bar);
+      // 强制 UI 仅显示 example.com
+      const exampleOnly = ['example.com'];
+      if (domainSelect){
+        domainSelect.innerHTML = exampleOnly.map((d,i)=>`<option value="${i}">${d}</option>`).join('');
+        domainSelect.selectedIndex = 0;
+        domainSelect.disabled = true;
+      }
+      if (els && els.email){
+        els.email.classList.remove('has-email');
+        els.email.innerHTML = '<span class="placeholder-text">点击右侧生成按钮创建邮箱地址</span>';
+      }
+    }
+    // 现在再加载域名与历史邮箱（避免在演示模式下发起真实请求）
+    if (typeof loadDomains === 'function') await loadDomains();
+    if (typeof loadMailboxes === 'function') await loadMailboxes(false);
+  } catch (_) {
+    location.replace('/login.html');
+  }
+})();
+
 els.gen.onclick = async () => {
   try {
     const len = Number((lenRange && lenRange.value) || localStorage.getItem(STORAGE_KEYS.length) || 8);
@@ -472,6 +386,8 @@ els.gen.onclick = async () => {
     
     showToast('邮箱生成成功！', 'success');
     await refresh();
+    // 重置历史分页偏移，确保显示最新的第一页
+    if (typeof mbOffset !== 'undefined') { mbOffset = 0; }
     await loadMailboxes(false);
   } catch (e){ /* redirected */ }
 }
@@ -526,19 +442,27 @@ els.clear.onclick = async () => {
 
 // 简单的内存缓存：邮件详情
 const emailCache = new Map(); // id -> email json
+let isSentView = false; // false: 收件箱 true: 发件箱
 
 async function refresh(){
   if (!window.currentMailbox) return;
   try {
-    const r = await api(`/api/emails?mailbox=${encodeURIComponent(window.currentMailbox)}`);
-    const emails = await r.json();
+    if (els.listLoading) els.listLoading.classList.add('show');
+    let emails = [];
+    if (!isSentView){
+      const r = await api(`/api/emails?mailbox=${encodeURIComponent(window.currentMailbox)}`);
+      emails = await r.json();
+    } else {
+      const r = await api(`/api/sent?from=${encodeURIComponent(window.currentMailbox)}`);
+      emails = await r.json();
+    }
     if (!Array.isArray(emails) || emails.length===0) { 
       els.list.innerHTML = '<div style="text-align:center;color:#64748b">📭 暂无邮件</div>'; 
       return; 
     }
     els.list.innerHTML = emails.map(e => {
       // 智能内容预览处理
-      let rawContent = e.content || e.html_content || '';
+      let rawContent = isSentView ? (e.text_content || e.html_content || '') : (e.content || e.html_content || '');
       let preview = '';
       
       if (rawContent) {
@@ -560,15 +484,15 @@ async function refresh(){
       const hasContent = preview.length > 0;
       
       return `
-      <div class="email-item clickable" onclick="showEmail(${e.id})">
+      <div class="email-item clickable" onclick="${isSentView ? `showSentEmail(${e.id})` : `showEmail(${e.id})`}">
         <div class="email-meta">
           <div class="email-sender">
-            <span class="sender-icon">👤</span>
-            <span class="sender-name">${e.sender}</span>
+            <span class="sender-icon">${isSentView ? '📤' : '👤'}</span>
+            <span class="sender-name">${isSentView ? (Array.isArray(e.recipients)? e.recipients : e.recipients)?.toString() : e.sender}</span>
           </div>
           <span class="email-time">
             <span class="time-icon">🕐</span>
-            ${formatTs(e.received_at)}
+            ${formatTs(e.received_at || e.created_at)}
           </span>
         </div>
         <div class="email-content">
@@ -580,19 +504,27 @@ async function refresh(){
             ${hasContent ? `<div class="email-preview">${preview}${preview.length >= 120 ? '...' : ''}</div>` : ''}
           </div>
           <div class="email-actions">
-            <button class="btn btn-secondary btn-sm" onclick="copyEmailContent(${e.id});event.stopPropagation()" title="复制内容">
-              <span class="btn-icon">📋</span>
-            </button>
-            <button class="btn btn-danger btn-sm" onclick="deleteEmail(${e.id});event.stopPropagation()" title="删除邮件">
-              <span class="btn-icon">🗑️</span>
-            </button>
+            ${isSentView ? `
+              <span class="status-badge ${statusClass(e.status)}">${e.status || 'unknown'}</span>
+              <button class="btn btn-danger btn-sm" onclick="deleteSent(${e.id});event.stopPropagation()" title="删除记录">
+                <span class="btn-icon">🗑️</span>
+              </button>
+            ` : `
+              <button class="btn btn-secondary btn-sm" onclick="copyEmailContent(${e.id});event.stopPropagation()" title="复制内容">
+                <span class="btn-icon">📋</span>
+              </button>
+              <button class="btn btn-danger btn-sm" onclick="deleteEmail(${e.id});event.stopPropagation()" title="删除邮件">
+                <span class="btn-icon">🗑️</span>
+              </button>
+            `}
           </div>
         </div>
       </div>`;
     }).join('');
     // 预取前 5 封详情
-    prefetchTopEmails(emails);
+    if (!isSentView) prefetchTopEmails(emails);
   } catch (e){ /* redirected */ }
+  finally { if (els.listLoading) els.listLoading.classList.remove('show'); }
 }
 
 window.showEmail = async (id) => {
@@ -666,11 +598,16 @@ window.copyEmailContent = async (id) => {
   try{
     let email = emailCache.get(id);
     if (!email) {
-      const r = await api(`/api/email/${id}`);
-      email = await r.json();
+      if (!isSentView){
+        const r = await api(`/api/email/${id}`);
+        email = await r.json();
+      } else {
+        const r = await api(`/api/sent/${id}`);
+        email = await r.json();
+      }
       emailCache.set(id, email);
     }
-    const raw = email.html_content || email.content || '';
+    const raw = isSentView ? (email.html_content || email.text_content || '') : (email.html_content || email.content || '');
     // 去除 HTML 标签，并把主题也参与匹配（很多验证码在主题里）
     const text = `${email.subject || ''} ` + raw.replace(/<[^>]+>/g, ' ').replace(/\s+/g,' ').trim();
     const code = extractCode(text);
@@ -720,6 +657,54 @@ els.logout.onclick = async () => {
   location.replace('/login.html');
 }
 els.modalClose.onclick = () => els.modal.classList.remove('show');
+
+// 发信弹窗：在当前选中邮箱基础上发送
+function openCompose(){
+  if (!window.currentMailbox){ showToast('请先选择或生成邮箱', 'warn'); return; }
+  if (!els.composeModal) return;
+  els.composeTo.value = '';
+  els.composeSubject.value = '';
+  els.composeHtml.value = '';
+  els.composeModal.classList.add('show');
+}
+
+function closeCompose(){
+  els.composeModal?.classList.remove('show');
+}
+
+async function sendCompose(){
+  try{
+    if (!window.currentMailbox){ showToast('请先选择或生成邮箱', 'warn'); return; }
+    const payload = {
+      from: window.currentMailbox,
+      to: (els.composeTo.value||'').split(',').map(s=>s.trim()).filter(Boolean),
+      subject: (els.composeSubject.value||'').trim(),
+      html: els.composeHtml.value || '',
+      fromName: (els.composeFromName?.value || '').trim()
+    };
+    if (!payload.to.length){ showToast('请输入收件人', 'warn'); return; }
+    // 主题可为空
+    if (!payload.html){ showToast('请输入 HTML 内容', 'warn'); return; }
+    // 自动生成 text 版本，增强兼容性
+    try{
+      const text = payload.html.replace(/<[^>]+>/g, ' ').replace(/\s+/g,' ').trim();
+      if (text) payload.text = text;
+    }catch(_){ }
+    const r = await api('/api/send', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    if (!r.ok){ const t = await r.text(); throw new Error(t); }
+    const data = await r.json();
+    showToast('发送成功：' + (data.id || ''), 'success');
+    // 不再轮询状态；视为成功
+    // 切换到发件箱视图并刷新列表
+    switchToSent();
+    closeCompose();
+  }catch(e){ showToast('发送失败：' + (e?.message || e), 'warn'); }
+}
+
+if (els.compose){ els.compose.onclick = openCompose; }
+if (els.composeClose){ els.composeClose.onclick = closeCompose; }
+if (els.composeCancel){ els.composeCancel.onclick = closeCompose; }
+if (els.composeSend){ els.composeSend.onclick = sendCompose; }
 
 // 点击遮罩层（弹窗外区域）关闭；按下 Esc 键也可关闭
 if (els.modal){
@@ -778,11 +763,16 @@ async function loadMailboxes(isAppend = false){
 }
 
 window.selectMailbox = async (addr) => {
+  const now = Date.now();
+  if (window.__lastSelectClick && now - window.__lastSelectClick < 1000){ return; }
+  window.__lastSelectClick = now;
   window.currentMailbox = addr;
-  els.email.textContent = addr;
+  const t = document.getElementById('email-text');
+  if (t) t.textContent = addr; else els.email.textContent = addr;
   els.email.classList.add('has-email');
   els.emailActions.style.display = 'flex';
   els.listCard.style.display = 'block';
+  // 保持默认关闭，用户可点击按钮展开
   // 重启自动刷新
   startAutoRefresh();
   await refresh();
@@ -803,7 +793,7 @@ async function prefetchTopEmails(list){
   }catch(_){ }
 }
 
-async function deleteMailbox(ev, address){
+window.deleteMailbox = async (ev, address) => {
   ev.stopPropagation();
   
   const confirmed = await showConfirm(
@@ -905,4 +895,107 @@ document.addEventListener('visibilitychange', () => {
 
 // 启动自动刷新
 startAutoRefresh();
+
+// 切换收件箱/发件箱
+function switchToInbox(){
+  isSentView = false;
+  if (els.tabInbox) els.tabInbox.setAttribute('aria-pressed', 'true');
+  if (els.tabSent) els.tabSent.setAttribute('aria-pressed', 'false');
+  if (els.boxTitle) els.boxTitle.textContent = '收件箱';
+  if (els.boxIcon) els.boxIcon.textContent = '📬';
+  refresh();
+}
+function switchToSent(){
+  isSentView = true;
+  if (els.tabInbox) els.tabInbox.setAttribute('aria-pressed', 'false');
+  if (els.tabSent) els.tabSent.setAttribute('aria-pressed', 'true');
+  if (els.boxTitle) els.boxTitle.textContent = '发件箱';
+  if (els.boxIcon) els.boxIcon.textContent = '📤';
+  refresh();
+}
+if (els.tabInbox) els.tabInbox.onclick = switchToInbox;
+if (els.tabSent) els.tabSent.onclick = switchToSent;
+
+// 发件详情展示
+window.showSentEmail = async (id) => {
+  try {
+    const r = await api(`/api/sent/${id}`);
+    const email = await r.json();
+    els.modalSubject.innerHTML = `
+      <span class="modal-icon">📤</span>
+      <span>${email.subject || '(无主题)'}</span>
+    `;
+    const bodyHtml = (email.html_content || email.text_content || '').toString();
+    els.modalContent.innerHTML = `
+      <div class="email-detail-container">
+        <div class="email-meta-card">
+          <div class="meta-item">
+            <span class="meta-icon">📤</span>
+            <span class="meta-label">收件人</span>
+            <span class="meta-value">${email.recipients}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-icon">👤</span>
+            <span class="meta-label">发件人</span>
+            <span class="meta-value">${(email.from_name ? email.from_name + ' ' : '')}&lt;${window.currentMailbox}&gt;</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-icon">🕐</span>
+            <span class="meta-label">时间</span>
+            <span class="meta-value">${formatTs(email.created_at)}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-icon">📌</span>
+            <span class="meta-label">状态</span>
+            <span class="meta-value">${email.status || 'unknown'}</span>
+          </div>
+        </div>
+        <div class="email-content-area">
+          ${bodyHtml ? `<div class="email-content-text">${bodyHtml}</div>` : '<div class="email-no-content">暂无内容</div>'}
+        </div>
+      </div>
+    `;
+    els.modal.classList.add('show');
+  } catch (e) { }
+}
+
+// 计算状态样式
+function statusClass(status){
+  const s = String(status||'').toLowerCase();
+  if (s.includes('deliver')) return 'status-delivered';
+  if (s.includes('processing') || s.includes('send')) return 'status-processing';
+  if (s.includes('fail') || s.includes('bounce') || s.includes('error')) return 'status-failed';
+  return 'status-queued';
+}
+
+// 删除发件记录
+window.deleteSent = async (id) => {
+  try{
+    const confirmed = await showConfirm('确定删除该发件记录吗？');
+    if (!confirmed) return;
+    const r = await api(`/api/sent/${id}`, { method: 'DELETE' });
+    if (!r.ok){ const t = await r.text(); showToast('删除失败: ' + t, 'warn'); return; }
+    showToast('已删除发件记录', 'success');
+    refresh();
+  }catch(e){ showToast('删除失败', 'warn'); }
+}
+
+// 发送后轮询状态：在 sendCompose 成功后触发
+async function pollSentStatus(resendId, maxTries = 10){
+  try{
+    for (let i=0;i<maxTries;i++){
+      await new Promise(r=>setTimeout(r, 2000));
+      // 通过 /api/send/:id 查询最新状态
+      const r = await api(`/api/send/${resendId}`);
+      if (!r.ok) continue;
+      const data = await r.json();
+      const st = (data?.status || '').toLowerCase();
+      if (st.includes('deliver') || st.includes('fail') || st.includes('bounce') || st.includes('error')){
+        refresh();
+        break;
+      }
+      // 中间态继续轮询
+    }
+  }catch(_){ }
+}
 

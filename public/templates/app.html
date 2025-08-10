@@ -1,0 +1,206 @@
+<div class="topbar">
+  <div class="brand">
+    <span class="brand-icon">📧</span>
+    <span>iDing's临时邮箱</span>
+  </div>
+  <div class="nav-actions">
+    <a id="repo" class="btn btn-ghost" href="https://github.com/idinging/freemail" target="_blank" rel="noopener noreferrer" title="GitHub 开源仓库">
+      <span class="btn-icon">🔗</span>
+      <span>GitHub</span>
+    </a>
+    <button id="logout" class="btn btn-secondary" title="退出登录">
+      <span>退出登录</span>
+    </button>
+  </div>
+  </div>
+  <div class="toast" id="toast"></div>
+  <div class="container">
+    <div class="sidebar">
+      <h3>
+        <span class="sidebar-icon">📨</span>
+        历史邮箱
+      </h3>
+      <div id="mb-list"></div>
+      <div id="mb-more-wrap" style="margin-top:16px;text-align:center">
+        <button id="mb-more" class="btn btn-ghost btn-sm" style="width:100%">
+          <span>加载更多</span>
+        </button>
+      </div>
+    </div>
+    <div class="main">
+      <div class="card generate-card">
+        <h2>
+          <span class="card-icon">✨</span>
+          生成临时邮箱
+        </h2>
+        
+        <div class="mailbox-layout">
+          <!-- 左侧：邮箱地址展示 -->
+          <div class="mailbox-display-section">
+            <div class="mailbox-display-content">
+              <div class="section-header">
+                <span class="section-icon">📧</span>
+                <span class="section-title">当前邮箱</span>
+              </div>
+              <div id="email" class="email-display">
+                <span id="email-text" class="email-text"><span class="placeholder-text">点击右侧生成按钮创建邮箱地址</span></span>
+                <div id="custom-overlay" class="custom-overlay" style="display:none">
+                  <input id="custom-local-overlay" class="input custom-input" type="text" placeholder="仅限字母/数字/._-" />
+                  <button id="create-custom-overlay" class="btn btn-primary btn-sm">创建</button>
+                </div>
+              </div>
+            </div>
+            <div class="mailbox-actions" id="email-actions" style="display:none">
+              <button id="copy" class="btn btn-secondary" style="width:100%">
+                <span class="btn-icon">📋</span>
+                <span>复制邮箱 ✨</span>
+              </button>
+              <button id="compose" class="btn btn-primary" style="width:100%">
+                <span class="btn-icon">✉️</span>
+                <span>发邮件</span>
+              </button>
+              <button id="clear" class="btn btn-danger" style="width:100%">
+                <span class="btn-icon">🗑️</span>
+                <span>清空邮件 💥</span>
+              </button>
+              <button id="refresh" class="btn btn-ghost" style="width:100%">
+                <span class="btn-icon">🔄</span>
+                <span>刷新邮件 📬</span>
+              </button>
+            </div>
+          </div>
+          
+          <!-- 右侧：邮箱配置 -->
+          <div class="mailbox-config-section">
+            <div class="section-header">
+              <span class="section-icon">⚙️</span>
+              <span class="section-title">邮箱配置</span>
+            </div>
+            <div class="config-form">
+              <div class="config-item">
+                <label class="config-label">
+                  <span class="label-icon">🌐</span>
+                  <span>邮箱后缀</span>
+                </label>
+                <select id="domain-select" class="select config-select"></select>
+              </div>
+              <div class="config-item">
+                <label class="config-label">
+                  <span class="label-icon">📏</span>
+                  <span>用户名长度</span>
+                </label>
+                <div class="range-container">
+                  <input id="len-range" class="range" type="range" min="8" max="30" step="1" value="8" />
+                  <div class="range-display">
+                    <span id="len-val" class="len-value">8</span>
+                    <span class="len-unit">位</span>
+                  </div>
+                </div>
+              </div>
+               <div class="generate-action">
+                 <button id="gen" class="btn btn-generate">
+                   <span class="btn-icon">🎲</span>
+                   <span>随机生成</span>
+                 </button>
+                 <button id="toggle-custom" class="btn btn-secondary btn-sm" title="自定义邮箱">切换自定义</button>
+               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card inbox-card" id="list-card" style="display:none">
+        <div class="listcard-header">
+          <h2 class="listcard-title">
+            <span class="card-icon" id="box-icon">📬</span>
+            <span id="box-title">收件箱</span>
+          </h2>
+          <div class="view-switch">
+            <button id="tab-inbox" class="seg-btn" aria-pressed="true">收件箱</button>
+            <button id="tab-sent" class="seg-btn" aria-pressed="false">发件箱</button>
+          </div>
+          <div id="list-loading" class="loading-indicator">
+            <div class="spinner"></div>
+            <span>加载中…</span>
+          </div>
+        </div>
+        <div id="list" class="list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>© 2025 iDing's 临时邮箱 - 简约而不简单</span>
+  </div>
+
+  <div class="modal" id="email-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div id="modal-subject">
+          <span class="modal-icon">📧</span>
+          <span>邮件详情</span>
+        </div>
+        <button id="modal-close" class="close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="modal-content"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="confirm-modal">
+    <div class="modal-card confirm-card">
+      <div class="modal-header confirm-header">
+        <div>
+          <span class="modal-icon">⚠️</span>
+          <span>确认操作</span>
+        </div>
+        <button id="confirm-close" class="close">✕</button>
+      </div>
+      <div class="modal-body confirm-body">
+        <div id="confirm-message" class="confirm-message"></div>
+        <div class="confirm-actions">
+          <button id="confirm-cancel" class="btn btn-secondary">取消</button>
+          <button id="confirm-ok" class="btn btn-danger">确定</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="compose-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <span class="modal-icon">✉️</span>
+          <span>新邮件</span>
+        </div>
+        <button id="compose-close" class="close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="compose-form">
+          <div class="field-group">
+            <label class="field-label">收件人</label>
+            <input id="compose-to" class="input field-input" type="text" placeholder="foo@example.com, bar@example.com" />
+            <div class="field-hint">多个地址请以逗号分隔</div>
+          </div>
+          <div class="field-group">
+            <label class="field-label">发件名称（可选）</label>
+            <input id="compose-from-name" class="input field-input" type="text" placeholder="例如：Acme 支持团队" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">主题</label>
+            <input id="compose-subject" class="input field-input" type="text" placeholder="主题" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">内容</label>
+            <textarea id="compose-body" class="textarea field-textarea" rows="10" placeholder="请输入邮件内容"></textarea>
+          </div>
+          <div class="compose-actions">
+            <button id="compose-cancel" class="btn btn-secondary">取消</button>
+            <button id="compose-send" class="btn btn-primary">发送</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
