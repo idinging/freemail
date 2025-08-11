@@ -1,7 +1,7 @@
-import { extractEmail, generateRandomId } from './utils.js';
-import { buildMockEmails, buildMockMailboxes, buildMockEmailDetail } from './mock.js';
-import { getOrCreateMailboxId, getMailboxIdByAddress, recordSentEmail, updateSentEmail, ensureSentEmailsTable, toggleMailboxPin } from './db.js';
-import { sendEmailWithResend, sendBatchWithResend, getEmailFromResend, updateEmailInResend, cancelEmailInResend } from './sender.js';
+import { extractEmail, generateRandomId } from './commonUtils.js';
+import { buildMockEmails, buildMockMailboxes, buildMockEmailDetail } from './mockData.js';
+import { getOrCreateMailboxId, getMailboxIdByAddress, recordSentEmail, updateSentEmail, ensureSentEmailsTable, toggleMailboxPin } from './database.js';
+import { sendEmailWithResend, sendBatchWithResend, getEmailFromResend, updateEmailInResend, cancelEmailInResend } from './emailSender.js';
 
 export async function handleApiRequest(request, db, mailDomains, options = { mockOnly: false, resendApiKey: '' }) {
   const url = new URL(request.url);

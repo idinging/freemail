@@ -1,4 +1,4 @@
-import { generateRandomId } from './utils.js';
+import { generateRandomId } from './commonUtils.js';
 
 function formatTs(dateMs) {
   return new Date(dateMs).toISOString().replace('T', ' ').slice(0, 19);

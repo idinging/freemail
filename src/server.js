@@ -1,9 +1,9 @@
-import { initDatabase } from './db.js';
-import { handleApiRequest, handleEmailReceive } from './handlers.js';
-import { extractEmail } from './utils.js';
-import { forwardByLocalPart } from './forwarder.js';
+import { initDatabase } from './database.js';
+import { handleApiRequest, handleEmailReceive } from './apiHandlers.js';
+import { extractEmail } from './commonUtils.js';
+import { forwardByLocalPart } from './emailForwarder.js';
 import { parseEmailBody } from './emailParser.js';
-import { createJwt, verifyJwt, buildSessionCookie } from './auth.js';
+import { createJwt, verifyJwt, buildSessionCookie } from './authentication.js';
 
 export default {
   async fetch(request, env, ctx) {

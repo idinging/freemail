@@ -92,4 +92,4 @@ wrangler deploy
 - `GET /api/sent/:id` 获取发件详情
 - `DELETE /api/sent/:id` 删除发件记录
 
-以上接口由 `src/handlers.js` 与 `src/sender.js` 实现，调用 Resend REST API 完成发件/查询/取消等操作。
+以上接口由 `src/apiHandlers.js` 与 `src/emailSender.js` 实现，调用 Resend REST API 完成发件/查询/取消等操作。

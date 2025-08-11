@@ -349,7 +349,7 @@ function populateDomains(domains){
   }, { once: true });
 }
 
-// 拉取域名列表（后端在 index.js 解析自环境变量，前端通过一个轻量接口暴露）
+// 拉取域名列表（后端在 server.js 解析自环境变量，前端通过一个轻量接口暴露）
 async function loadDomains(){
   if (window.__GUEST_MODE__) {
     // 不发任何请求，直接使用 example.com 并且清空历史，避免旧域名显示

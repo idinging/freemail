@@ -90,7 +90,7 @@ wrangler d1 create temp-mail-db
 复制返回的数据库 ID，更新 `wrangler.toml` 文件：
 
 ```toml
-main = "src/index.js"
+main = "src/server.js"
 
 [[d1_databases]]
 binding = "TEMP_MAIL_DB"
