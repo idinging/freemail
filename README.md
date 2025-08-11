@@ -1,6 +1,6 @@
 # 临时邮箱 Cloudflare Worker（模块化结构）
 
-当前状态：V2 功能已完成
+当前状态：V2.1 添加邮箱置顶功能
 
 一个基于 Cloudflare Workers 和 D1 数据库的临时邮箱服务。
 
@@ -60,6 +60,7 @@
 ### V2
 - [x] 前端模板解耦：将首页 UI 从 `public/app.js` 内联模板拆分为独立的 `public/templates/app.html`，降低耦合、便于维护
 - [x] 发件（Resend）与发件箱：支持通过 Resend 发送邮件、自定义发件显示名（`fromName`）
+- [x] 加邮箱置顶功能，提升用户体验
 
 
 ### 🔧 技术特性
