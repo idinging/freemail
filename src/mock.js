@@ -38,6 +38,7 @@ export function buildMockMailboxes(limit = 10, offset = 0, mailDomains = []) {
   return Array.from({ length: size }).map((_, i) => ({
     address: `${generateRandomId(10)}@${domains.length ? domains[(offset + i) % domains.length] : 'example.com'}`,
     created_at: formatTs(now - (offset + i) * 3600000),
+    is_pinned: i < 2 ? 1 : 0, // 前两个邮箱设为置顶
   }));
 }
 

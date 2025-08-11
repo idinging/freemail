@@ -277,13 +277,91 @@ body::before{
   align-items: center;
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-sm);
-  padding: 12px 16px;
-  margin-bottom: 12px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
   cursor: pointer;
   background: var(--card-glass);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   transition: var(--transition);
+  position: relative;
+}
+
+.mailbox-item.pinned{
+  position: relative;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+.mailbox-item.pinned::before{
+  content: '📌';
+  position: absolute;
+  top: -8px;
+  left: 12px;
+  font-size: 12px;
+  background: var(--primary);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+}
+
+.mailbox-content{
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  gap: 1px;
+  margin-right: 8px;
+}
+
+.mailbox-item .mailbox-actions{
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  opacity: 0;
+  transition: var(--transition);
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.mailbox-item:hover .mailbox-actions{
+  opacity: 1 !important;
+  pointer-events: auto;
+}
+
+.mailbox-item:hover .mailbox-actions .pin,
+.mailbox-item:hover .mailbox-actions .del{
+  pointer-events: auto;
+}
+
+.mailbox-item .mailbox-actions .pin{
+  color: var(--primary);
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  height: 28px;
+  width: 28px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  border-radius: 6px;
+  min-width: 28px;
+  min-height: 28px;
+  pointer-events: none;
+}
+
+.mailbox-item .mailbox-actions .pin:hover{
+  background: rgba(59, 130, 246, 0.2);
+  transform: scale(1.05);
+}
+
+.mailbox-item .mailbox-actions .del:hover{
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  transform: scale(1.05);
 }
 
 .mailbox-item:hover{
@@ -300,31 +378,43 @@ body::before{
 
 .mailbox-item .address{
   min-width: 0;
-  flex: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   font-weight: 500;
   color: var(--text);
+  margin-bottom: 2px;
+  font-size: 14px;
 }
 
 .mailbox-item .time{
-  flex: 0 0 auto;
   color: var(--muted2);
-  font-size: 0.8em;
-  margin-left: 12px;
+  font-size: 11px;
   opacity: 0.8;
 }
 
-.mailbox-item .del{
-  flex: 0 0 auto;
-  margin-left: 12px;
+.mailbox-item .mailbox-actions .del{
   opacity: 0;
   transition: var(--transition);
+  height: 28px;
+  width: 28px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.05);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 6px;
+  min-width: 28px;
+  min-height: 28px;
+  pointer-events: none;
 }
 
-.mailbox-item:hover .del{
-  opacity: 1;
+.mailbox-item:hover .mailbox-actions .del{
+  opacity: 1 !important;
+  pointer-events: auto;
 }
 
 .main{
@@ -1587,5 +1677,38 @@ select:disabled{
   .code-highlight{
     font-size: 18px;
     padding: 12px 16px;
+  }
+  
+  /* 移动端置顶功能优化 */
+  .mailbox-item.pinned::before{
+    top: -6px;
+    left: 8px;
+    font-size: 10px;
+    padding: 1px 4px;
+  }
+  
+  .mailbox-actions{
+    gap: 4px;
+  }
+  
+  .mailbox-item .mailbox-actions .pin,
+  .mailbox-item .mailbox-actions .del{
+    height: 24px;
+    width: 24px;
+    font-size: 11px;
+  }
+  
+  .mailbox-item{
+    padding: 8px 12px;
+    margin-bottom: 6px;
+  }
+  
+  .mailbox-item .address{
+    font-size: 13px;
+    margin-bottom: 1px;
+  }
+  
+  .mailbox-item .time{
+    font-size: 10px;
   }
 }

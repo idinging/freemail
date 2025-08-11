@@ -1,6 +1,6 @@
 import { extractEmail, generateRandomId } from './utils.js';
 import { buildMockEmails, buildMockMailboxes, buildMockEmailDetail } from './mock.js';
-import { getOrCreateMailboxId, getMailboxIdByAddress, recordSentEmail, updateSentEmail, ensureSentEmailsTable } from './db.js';
+import { getOrCreateMailboxId, getMailboxIdByAddress, recordSentEmail, updateSentEmail, ensureSentEmailsTable, toggleMailboxPin } from './db.js';
 import { sendEmailWithResend, sendBatchWithResend, getEmailFromResend, updateEmailInResend, cancelEmailInResend } from './sender.js';
 
 export async function handleApiRequest(request, db, mailDomains, options = { mockOnly: false, resendApiKey: '' }) {
@@ -252,12 +252,25 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
       return Response.json(buildMockMailboxes(limit, offset, mailDomains));
     }
     const { results } = await db.prepare(`
-      SELECT address, created_at
+      SELECT address, created_at, is_pinned
       FROM mailboxes
-      ORDER BY datetime(created_at) DESC
+      ORDER BY is_pinned DESC, datetime(created_at) DESC
       LIMIT ? OFFSET ?
     `).bind(limit, offset).all();
     return Response.json(results || []);
+  }
+
+  // 切换邮箱置顶状态
+  if (path === '/api/mailboxes/pin' && request.method === 'POST') {
+    if (isMock) return new Response('演示模式不可操作', { status: 403 });
+    const address = url.searchParams.get('address');
+    if (!address) return new Response('缺少 address 参数', { status: 400 });
+    try {
+      const result = await toggleMailboxPin(db, address);
+      return Response.json({ success: true, ...result });
+    } catch (e) {
+      return new Response('操作失败: ' + e.message, { status: 500 });
+    }
   }
 
   // 删除邮箱（及其所有邮件）

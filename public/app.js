@@ -15,7 +15,7 @@ async function mockApi(path, options){
     const domain = window.__MOCK_STATE__.domains[Number(url.searchParams.get('domainIndex')||0)] || 'example.com';
     const email = `${id}@${domain}`;
     // 记录至内存历史
-    window.__MOCK_STATE__.mailboxes.unshift({ address: email, created_at: new Date().toISOString().replace('T',' ').slice(0,19) });
+    window.__MOCK_STATE__.mailboxes.unshift({ address: email, created_at: new Date().toISOString().replace('T',' ').slice(0,19), is_pinned: 0 });
     return new Response(JSON.stringify({ email, expires: Date.now() + 3600000 }), { headers: jsonHeaders });
   }
   // emails list
@@ -46,7 +46,32 @@ async function mockApi(path, options){
   if (url.pathname === '/api/mailboxes' && (!options || options.method === undefined || options.method === 'GET')){
     const mb = window.__MOCK_STATE__.mailboxes.length ? window.__MOCK_STATE__.mailboxes : (window.MockData?.buildMockMailboxes ? window.MockData.buildMockMailboxes(6,0,window.__MOCK_STATE__.domains) : []);
     if (!window.__MOCK_STATE__.mailboxes.length) window.__MOCK_STATE__.mailboxes = mb;
-    return new Response(JSON.stringify(mb.slice(0,10)), { headers: jsonHeaders });
+    
+    // 按置顶状态和时间排序
+    const sortedMailboxes = mb.sort((a, b) => {
+      // 首先按置顶状态排序（置顶的在前）
+      if (a.is_pinned !== b.is_pinned) {
+        return (b.is_pinned || 0) - (a.is_pinned || 0);
+      }
+      // 然后按创建时间排序（新的在前）
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
+    
+    return new Response(JSON.stringify(sortedMailboxes.slice(0,10)), { headers: jsonHeaders });
+  }
+
+  // toggle pin (demo mode)
+  if (url.pathname === '/api/mailboxes/pin' && options && options.method === 'POST'){
+    const address = url.searchParams.get('address');
+    if (!address) return new Response('缺少 address 参数', { status: 400 });
+    
+    // 在演示模式下，简单地切换置顶状态
+    const mailbox = window.__MOCK_STATE__.mailboxes.find(m => m.address === address);
+    if (mailbox) {
+      mailbox.is_pinned = mailbox.is_pinned ? 0 : 1;
+      return new Response(JSON.stringify({ success: true, is_pinned: mailbox.is_pinned }), { headers: jsonHeaders });
+    }
+    return new Response('邮箱不存在', { status: 404 });
   }
 
   // create custom mailbox (demo mode): accept POST /api/create
@@ -61,7 +86,7 @@ async function mockApi(path, options){
       const domainIndex = Number(body.domainIndex || 0);
       const domain = (window.__MOCK_STATE__.domains || ['example.com'])[isNaN(domainIndex)?0:Math.max(0, Math.min((window.__MOCK_STATE__.domains||['example.com']).length-1, domainIndex))] || 'example.com';
       const email = `${local}@${domain}`;
-      const item = { address: email, created_at: new Date().toISOString().replace('T',' ').slice(0,19) };
+      const item = { address: email, created_at: new Date().toISOString().replace('T',' ').slice(0,19), is_pinned: 0 };
       window.__MOCK_STATE__.mailboxes.unshift(item);
       return new Response(JSON.stringify({ email, expires: Date.now() + 3600000 }), { headers: jsonHeaders });
     }catch(_){ return new Response('Bad Request', { status: 400 }); }
@@ -778,10 +803,17 @@ async function loadMailboxes(isAppend = false){
     const r = await api(`/api/mailboxes?limit=${MB_PAGE_SIZE}&offset=${mbOffset}`);
     const items = await r.json();
     const html = (items||[]).map(x => (
-      `<div class="mailbox-item" onclick="selectMailbox('${x.address}')">
-        <span class="address">${x.address}</span>
-        <span class="time">${formatTs(x.created_at)}</span>
-        <button class="btn btn-ghost btn-sm del" onclick="deleteMailbox(event,'${x.address}')">删除</button>
+      `<div class="mailbox-item ${x.is_pinned ? 'pinned' : ''}" onclick="selectMailbox('${x.address}')">
+        <div class="mailbox-content">
+          <span class="address">${x.address}</span>
+          <span class="time">${formatTs(x.created_at)}</span>
+        </div>
+        <div class="mailbox-actions">
+          <button class="btn btn-ghost btn-sm pin" onclick="togglePin(event,'${x.address}')" title="${x.is_pinned ? '取消置顶' : '置顶'}">
+            ${x.is_pinned ? '📌' : '📍'}
+          </button>
+          <button class="btn btn-ghost btn-sm del" onclick="deleteMailbox(event,'${x.address}')" title="删除">🗑️</button>
+        </div>
       </div>`
     )).join('');
     if (isAppend) {
@@ -824,6 +856,29 @@ async function prefetchTopEmails(list){
       emailCache.set(e.id, full);
     }));
   }catch(_){ }
+}
+
+window.togglePin = async (ev, address) => {
+  ev.stopPropagation();
+  
+  try {
+    const response = await api(`/api/mailboxes/pin?address=${encodeURIComponent(address)}`, { 
+      method: 'POST' 
+    });
+    
+    if (response.ok) {
+      const result = await response.json();
+      showToast(result.is_pinned ? '📌 邮箱已置顶' : '📍 已取消置顶', 'success');
+      
+      // 重新加载邮箱列表以更新排序
+      await loadMailboxes();
+    } else {
+      const errorText = await response.text();
+      showToast(`操作失败: ${errorText}`, 'warn');
+    }
+  } catch (error) {
+    showToast('操作失败，请重试', 'warn');
+  }
 }
 
 window.deleteMailbox = async (ev, address) => {

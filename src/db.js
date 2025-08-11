@@ -2,8 +2,9 @@ export async function initDatabase(db) {
   try {
     // 新结构：mailboxes（地址历史） + messages（邮件）
     await db.exec(`PRAGMA foreign_keys = ON;`);
-    await db.exec("CREATE TABLE IF NOT EXISTS mailboxes (id INTEGER PRIMARY KEY AUTOINCREMENT, address TEXT NOT NULL UNIQUE, local_part TEXT NOT NULL, domain TEXT NOT NULL, created_at TEXT DEFAULT CURRENT_TIMESTAMP, last_accessed_at TEXT, expires_at TEXT);");
+    await db.exec("CREATE TABLE IF NOT EXISTS mailboxes (id INTEGER PRIMARY KEY AUTOINCREMENT, address TEXT NOT NULL UNIQUE, local_part TEXT NOT NULL, domain TEXT NOT NULL, created_at TEXT DEFAULT CURRENT_TIMESTAMP, last_accessed_at TEXT, expires_at TEXT, is_pinned INTEGER DEFAULT 0);");
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_mailboxes_address ON mailboxes(address);`);
+    await db.exec(`CREATE INDEX IF NOT EXISTS idx_mailboxes_is_pinned ON mailboxes(is_pinned DESC);`);
 
     await db.exec("CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, mailbox_id INTEGER NOT NULL, sender TEXT NOT NULL, subject TEXT NOT NULL, content TEXT NOT NULL, html_content TEXT, received_at TEXT DEFAULT CURRENT_TIMESTAMP, is_read INTEGER DEFAULT 0, FOREIGN KEY(mailbox_id) REFERENCES mailboxes(id));");
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_messages_mailbox_id ON messages(mailbox_id);`);
@@ -29,6 +30,16 @@ export async function initDatabase(db) {
         }
       }
     }
+
+    // 迁移：为现有邮箱添加 is_pinned 字段
+    try {
+      const res = await db.prepare("PRAGMA table_info(mailboxes)").all();
+      const cols = (res?.results || []).map(r => (r.name || r?.['name']));
+      if (!cols.includes('is_pinned')){
+        await db.exec('ALTER TABLE mailboxes ADD COLUMN is_pinned INTEGER DEFAULT 0');
+        await db.exec('CREATE INDEX IF NOT EXISTS idx_mailboxes_is_pinned ON mailboxes(is_pinned DESC)');
+      }
+    } catch (_) {}
   } catch (error) {
     console.error('数据库初始化失败:', error);
   }
@@ -64,6 +75,23 @@ export async function getMailboxIdByAddress(db, address) {
   if (!normalized) return null;
   const res = await db.prepare('SELECT id FROM mailboxes WHERE address = ?').bind(normalized).all();
   return (res.results && res.results.length) ? res.results[0].id : null;
+}
+
+export async function toggleMailboxPin(db, address) {
+  const normalized = String(address || '').trim().toLowerCase();
+  if (!normalized) throw new Error('无效的邮箱地址');
+  
+  const existing = await db.prepare('SELECT id, is_pinned FROM mailboxes WHERE address = ?').bind(normalized).all();
+  if (!existing.results || existing.results.length === 0) {
+    throw new Error('邮箱不存在');
+  }
+  
+  const currentPin = existing.results[0].is_pinned;
+  const newPin = currentPin ? 0 : 1;
+  
+  await db.prepare('UPDATE mailboxes SET is_pinned = ? WHERE address = ?').bind(newPin, normalized).run();
+  
+  return { is_pinned: newPin };
 }
 
 export async function recordSentEmail(db, { resendId, fromName, from, to, subject, html, text, status = 'queued', scheduledAt = null }){
