@@ -4,6 +4,17 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>登录 - 临时邮箱</title>
+    <script>
+      // 已登录用户访问登录页时直接跳转到首页（前端快速拦截，避免闪屏）
+      (async function(){
+        try{
+          const r = await fetch('/api/session', { headers: { 'Cache-Control': 'no-cache' } });
+          if (r.ok) {
+            location.replace('/');
+          }
+        }catch(_){ /* 网络错误时忽略，由后续流程处理 */ }
+      })();
+    </script>
     <script src="/mock.js"></script>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="shortcut icon" href="favicon.svg" type="image/svg+xml" />

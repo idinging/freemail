@@ -8,26 +8,13 @@
 ### 体验地址： https://mailexhibit.dinging.top/
 
 ### 体验密码： admin
-### 首页
-![首页展示](pic/shouye.png)
+### 页面展示
 
-### 登录/密码保护
-![登录/密码保护](pic/mimabaohu.png)
+#### 首页
+![首页展示](../pic/shouye.png)
+#### 更多展示点击查看
+[项目页面展示](docs/zhanshi.md)
 
-### 邮件内容查看（HTML 渲染）
-![邮件内容查看](pic/youjianneironchakan.png)
-
-### 便捷复制验证码
-![便捷复制验证码](pic/bianjiefuzhiyanzhengma.png)
-
-### 发件测试（发送弹窗）
-![发件测试-发件弹窗](pic/cesifajian.png)
-
-### 发件测试（收件结果）
-![发件测试-收件结果](pic/cesjieshoujiieguo.png)
-
-### 邮箱置顶-置顶效果
-![邮箱置顶-置顶效果](pic/zhiding.png)
 ## 功能特性
 
 ### 🎨 现代化界面

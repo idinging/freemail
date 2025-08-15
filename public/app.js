@@ -105,7 +105,10 @@ async function api(path, options){
   if (window.__GUEST_MODE__) return mockApi(path, options);
   const res = await fetch(path, options);
   if (res.status === 401) {
-    location.replace('/login.html');
+    // 避免重复跳转
+    if (location.pathname !== '/login.html') {
+      location.replace('/login.html');
+    }
     throw new Error('unauthorized');
   }
   return res;
@@ -378,7 +381,11 @@ async function loadDomains(){
 (async () => {
   try {
     const r = await fetch('/api/session');
-    if (!r.ok) { location.replace('/login.html'); return; }
+    if (!r.ok) { 
+      // 如果认证失败，跳转到登录页
+      location.replace('/login.html'); 
+      return; 
+    }
     const s = await r.json();
     if (s.role === 'guest') {
       window.__GUEST_MODE__ = true;
@@ -416,7 +423,9 @@ async function loadDomains(){
     // 现在再加载域名与历史邮箱（避免在演示模式下发起真实请求）
     if (typeof loadDomains === 'function') await loadDomains();
     if (typeof loadMailboxes === 'function') await loadMailboxes(false);
-  } catch (_) {
+  } catch (error) {
+    console.error('认证检查失败:', error);
+    // 如果认证检查失败，跳转到登录页
     location.replace('/login.html');
   }
 })();

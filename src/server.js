@@ -77,12 +77,21 @@ export default {
       return handleEmailReceive(request, DB);
     }
 
-    // 访问首页（/ 或 /index.html）时，未认证跳登录
+    // 访问首页（/ 或 /index.html）时，未认证跳转到入口页面
     if (url.pathname === '/' || url.pathname === '/index.html') {
       const isOk = JWT_TOKEN ? await verifyJwt(JWT_TOKEN, request.headers.get('Cookie') || '') : false;
       if (!isOk) {
-        const loginUrl = new URL('/login.html', url).toString();
-        return Response.redirect(loginUrl, 302);
+        const entryUrl = new URL('/entry.html', url).toString();
+        return Response.redirect(entryUrl, 302);
+      }
+    }
+
+    // 访问登录页（/login 或 /login.html）时，若已登录则跳转到首页
+    if (url.pathname === '/login' || url.pathname === '/login.html') {
+      const isOk = JWT_TOKEN ? await verifyJwt(JWT_TOKEN, request.headers.get('Cookie') || '') : false;
+      if (isOk) {
+        const homeUrl = new URL('/', url).toString();
+        return Response.redirect(homeUrl, 302);
       }
     }
 
