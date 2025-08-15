@@ -278,6 +278,10 @@ wrangler d1 execute TEMP_MAIL_DB --file=./d1-init-basic.sql
 - 使用浏览器开发者工具检查网络请求
 - 检查 D1 数据库中的数据：`wrangler d1 execute TEMP_MAIL_DB --command "SELECT * FROM mailboxes LIMIT 10"`
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=idinging/freemail&type=Date)](https://www.star-history.com/#idinging/freemail&Date)
+
 ## 联系方式
 
 - 微信：`iYear1213`
