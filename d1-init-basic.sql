@@ -47,3 +47,27 @@ CREATE TABLE IF NOT EXISTS sent_emails (
 );
 CREATE INDEX IF NOT EXISTS idx_sent_emails_resend_id ON sent_emails(resend_id);
 
+
+-- 用户与授权表
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  username TEXT NOT NULL UNIQUE,
+  password_hash TEXT,
+  role TEXT NOT NULL DEFAULT 'user',
+  can_send INTEGER NOT NULL DEFAULT 0,
+  mailbox_limit INTEGER NOT NULL DEFAULT 10,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+
+CREATE TABLE IF NOT EXISTS user_mailboxes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  mailbox_id INTEGER NOT NULL,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, mailbox_id),
+  FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY(mailbox_id) REFERENCES mailboxes(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_user_mailboxes_user ON user_mailboxes(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_mailboxes_mailbox ON user_mailboxes(mailbox_id);

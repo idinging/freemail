@@ -141,6 +141,12 @@ body::before{
   animation: iconPulse 2s ease-in-out infinite;
 }
 
+/* 角色徽章 */
+.role-badge{ margin-left: 12px; padding: 6px 12px; border-radius: 999px; font-weight: 700; font-size: 14px; letter-spacing: .5px; }
+.role-user{ color:#1e293b; background: linear-gradient(135deg,#e2e8f0,#f8fafc); border:1px solid rgba(148,163,184,.5); box-shadow: inset 0 0 0 1px rgba(255,255,255,.6); }
+.role-admin{ color:#0f766e; background: linear-gradient(135deg, rgba(16,185,129,.15), rgba(6,182,212,.15)); border:1px solid rgba(16,185,129,.35); box-shadow: 0 4px 12px rgba(16,185,129,.25); }
+.role-super{ color:#fff; background: linear-gradient(135deg,#6366f1,#8b5cf6); box-shadow: 0 6px 16px rgba(99,102,241,.4), inset 0 0 12px rgba(255,255,255,.2); text-shadow: 0 1px 1px rgba(0,0,0,.15); }
+
 @keyframes iconPulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.1); }
@@ -963,69 +969,6 @@ select:disabled{
 }
 
 
-
-/* Toast */
-.toast{
-  position: fixed;
-  top: 24px;
-  left: 24px;
-  z-index: 2000;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  max-width: 400px;
-}
-
-.toast-item{
-  background: rgba(17, 24, 39, 0.95);
-  backdrop-filter: blur(20px);
-  color: #fff;
-  border-radius: var(--radius);
-  padding: 16px 20px;
-  box-shadow: var(--shadow-lg);
-  min-width: 280px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  transform: translateX(-100%);
-  animation: slideInLeft 0.3s ease-out forwards;
-  position: relative;
-  overflow: hidden;
-}
-
-.toast-item::before{
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  background: var(--primary);
-}
-
-.toast-item.success{
-  background: rgba(16, 185, 129, 0.95);
-}
-
-.toast-item.success::before{
-  background: var(--success);
-}
-
-.toast-item.warn{
-  background: rgba(245, 158, 11, 0.95);
-}
-
-.toast-item.warn::before{
-  background: var(--warning);
-}
-
-.toast-item.info{
-  background: rgba(59, 130, 246, 0.95);
-}
-
-@keyframes slideInLeft {
-  from { transform: translateX(-100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
-}
-
 /* Modal */
 .modal{
   display: none;
@@ -1618,11 +1561,7 @@ select:disabled{
     flex-direction: column;
   }
   
-  .toast{
-    left: 12px;
-    right: 12px;
-    top: 12px;
-  }
+  /* Toast 响应式规则已随模板迁移 */
   
   .modal{
     padding: 12px;

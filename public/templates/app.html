@@ -3,10 +3,15 @@
     <span class="brand-icon">📧</span>
     <span>iDing's临时邮箱</span>
   </div>
+  <div id="role-badge" class="role-badge" title="欢迎用户："></div>
   <div class="nav-actions">
     <a id="repo" class="btn btn-ghost" href="https://github.com/idinging/freemail" target="_blank" rel="noopener noreferrer" title="GitHub 开源仓库">
       <span class="btn-icon">🔗</span>
       <span>GitHub</span>
+    </a>
+    <a id="admin" class="btn btn-ghost" href="/templates/loading.html?redirect=%2Fadmin.html&status=%E6%AD%A3%E5%9C%A8%E6%A0%A1%E9%AA%8C%E6%9D%83%E9%99%90%E2%80%A6" title="用户管理" style="display:none">
+      <span class="btn-icon">🛠️</span>
+      <span>用户管理</span>
     </a>
     <button id="logout" class="btn btn-secondary" title="退出登录">
       <span>退出登录</span>
@@ -19,11 +24,13 @@
       <h3>
         <span class="sidebar-icon">📨</span>
         历史邮箱
+        <span id="quota" style="float:right;font-size:14px;color:#64748b"></span>
       </h3>
       <div id="mb-list"></div>
-      <div id="mb-more-wrap" style="margin-top:16px;text-align:center">
+      <div id="mb-loading" style="margin-top:12px"></div>
+      <div id="mb-more-wrap" style="margin-top:16px;text-align:center;display:none">
         <button id="mb-more" class="btn btn-ghost btn-sm" style="width:100%">
-          <span>加载更多</span>
+          <span id="mb-more-text">加载更多</span>
         </button>
       </div>
     </div>
@@ -128,9 +135,7 @@
     </div>
   </div>
 
-  <div class="footer">
-    <span>© 2025 iDing's 临时邮箱 - 简约而不简单</span>
-  </div>
+  <div id="footer-slot"></div>
 
   <div class="modal" id="email-modal">
     <div class="modal-card">
@@ -202,5 +207,7 @@
       </div>
     </div>
   </div>
+
+  
 
 

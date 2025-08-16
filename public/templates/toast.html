@@ -1,0 +1,57 @@
+<style id="toast-style">
+.toast{
+  position: fixed;
+  top: 24px;
+  left: 24px;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 400px;
+}
+
+.toast-item{
+  background: rgba(17, 24, 39, 0.95);
+  backdrop-filter: blur(20px);
+  color: #fff;
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  box-shadow: var(--shadow-lg);
+  min-width: 280px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transform: translateX(-100%);
+  animation: slideInLeft 0.3s ease-out forwards;
+  position: relative;
+  overflow: hidden;
+}
+
+.toast-item::before{
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--primary);
+}
+
+.toast-item.success{ background: rgba(16, 185, 129, 0.95); }
+.toast-item.success::before{ background: var(--success); }
+
+.toast-item.warn{ background: rgba(245, 158, 11, 0.95); }
+.toast-item.warn::before{ background: var(--warning); }
+
+.toast-item.info{ background: rgba(59, 130, 246, 0.95); }
+
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@media (max-width: 768px){
+  .toast{ left: 12px; right: 12px; top: 12px; }
+}
+</style>
+<div class="toast-item {{type}}">
+	<span class="toast-message">{{message}}</span>
+</div>

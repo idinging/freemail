@@ -6,25 +6,31 @@
     <title>临时邮箱</title>
     <!-- 运行时注入域名列表（从 env.MAIL_DOMAIN 解析），用于前端域名选择 -->
     <meta name="mail-domains" content="">
+    <link rel="preload" href="/templates/app.html" as="fetch" crossorigin>
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="shortcut icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="app.css" />
     <script src="/mock.js"></script>
+    <script src="/route-guard.js"></script>
   </head>
   <body>
     <div id="app"></div>
-    <script type="module" src="app.js"></script>
     <script>
-      // 防止页面泄露：检查认证状态
+      // 防止页面泄露 + 平滑首屏：如果不是通过认证页进入，重定向到 loading 模板
       (function() {
-        // 如果当前页面不是通过认证流程访问的，则跳转到入口页面
         if (!sessionStorage.getItem('auth_checked')) {
-          window.location.replace('/entry.html');
+          window.RouteGuard ? window.RouteGuard.goLoading('/', '正在校验会话…') : window.location.replace('/templates/loading.html?status=' + encodeURIComponent('正在校验会话…'));
           return;
         }
-        
-        // 清除认证检查标记
         sessionStorage.removeItem('auth_checked');
+        // 通过认证页进入后再加载主应用，避免首屏闪现
+        var s = document.createElement('script');
+        s.type = 'module';
+        s.src = 'app.js';
+        document.body.appendChild(s);
       })();
     </script>
   </body>

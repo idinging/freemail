@@ -10,6 +10,9 @@ export async function initDatabase(db) {
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_messages_mailbox_id ON messages(mailbox_id);`);
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_messages_received_at ON messages(received_at DESC);`);
 
+    // 用户与授权关系表
+    await ensureUsersTables(db);
+
     // 发送记录表：用于记录通过 Resend 发出的邮件与状态
     await ensureSentEmailsTable(db);
 
@@ -77,20 +80,33 @@ export async function getMailboxIdByAddress(db, address) {
   return (res.results && res.results.length) ? res.results[0].id : null;
 }
 
-export async function toggleMailboxPin(db, address) {
+export async function toggleMailboxPin(db, address, userId) {
   const normalized = String(address || '').trim().toLowerCase();
   if (!normalized) throw new Error('无效的邮箱地址');
-  
-  const existing = await db.prepare('SELECT id, is_pinned FROM mailboxes WHERE address = ?').bind(normalized).all();
-  if (!existing.results || existing.results.length === 0) {
+  const uid = Number(userId || 0);
+  if (!uid) throw new Error('未登录');
+
+  // 获取邮箱 ID
+  const mbRes = await db.prepare('SELECT id FROM mailboxes WHERE address = ?').bind(normalized).all();
+  if (!mbRes.results || mbRes.results.length === 0){
     throw new Error('邮箱不存在');
   }
-  
-  const currentPin = existing.results[0].is_pinned;
+  const mailboxId = mbRes.results[0].id;
+
+  // 检查该邮箱是否属于该用户
+  const umRes = await db.prepare('SELECT id, is_pinned FROM user_mailboxes WHERE user_id = ? AND mailbox_id = ?')
+    .bind(uid, mailboxId).all();
+  if (!umRes.results || umRes.results.length === 0){
+    // 若尚未存在关联记录（例如严格管理员未分配该邮箱），则创建一条仅用于个人置顶的关联
+    await db.prepare('INSERT INTO user_mailboxes (user_id, mailbox_id, is_pinned) VALUES (?, ?, 1)')
+      .bind(uid, mailboxId).run();
+    return { is_pinned: 1 };
+  }
+
+  const currentPin = umRes.results[0].is_pinned ? 1 : 0;
   const newPin = currentPin ? 0 : 1;
-  
-  await db.prepare('UPDATE mailboxes SET is_pinned = ? WHERE address = ?').bind(newPin, normalized).run();
-  
+  await db.prepare('UPDATE user_mailboxes SET is_pinned = ? WHERE user_id = ? AND mailbox_id = ?')
+    .bind(newPin, uid, mailboxId).run();
   return { is_pinned: newPin };
 }
 
@@ -158,5 +174,142 @@ export async function ensureSentEmailsTable(db){
       await db.exec('ALTER TABLE sent_emails ADD COLUMN from_name TEXT');
     }
   } catch (_) {}
+}
+
+// ============== 用户与授权相关 ==============
+export async function ensureUsersTables(db){
+  // 用户表：默认邮箱上限 10
+  await db.exec(
+    "CREATE TABLE IF NOT EXISTS users (" +
+    "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+    "username TEXT NOT NULL UNIQUE," +
+    "password_hash TEXT," +
+    "role TEXT NOT NULL DEFAULT 'user'," +
+    "can_send INTEGER NOT NULL DEFAULT 0," +
+    "mailbox_limit INTEGER NOT NULL DEFAULT 10," +
+    "created_at TEXT DEFAULT CURRENT_TIMESTAMP" +
+    ")"
+  );
+  await db.exec('CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)');
+
+  // 迁移：若缺少 can_send 列，补齐
+  try{
+    const res = await db.prepare("PRAGMA table_info(users)").all();
+    const cols = (res?.results || []).map(r => (r.name || r?.['name']));
+    if (!cols.includes('can_send')){
+      await db.exec('ALTER TABLE users ADD COLUMN can_send INTEGER NOT NULL DEFAULT 0');
+    }
+  }catch(_){ }
+
+  // 用户-邮箱 关联表
+  await db.exec(
+    "CREATE TABLE IF NOT EXISTS user_mailboxes (" +
+    "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+    "user_id INTEGER NOT NULL," +
+    "mailbox_id INTEGER NOT NULL," +
+    "created_at TEXT DEFAULT CURRENT_TIMESTAMP," +
+    "is_pinned INTEGER NOT NULL DEFAULT 0," +
+    "UNIQUE(user_id, mailbox_id)," +
+    "FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE," +
+    "FOREIGN KEY(mailbox_id) REFERENCES mailboxes(id) ON DELETE CASCADE" +
+    ")"
+  );
+  await db.exec('CREATE INDEX IF NOT EXISTS idx_user_mailboxes_user ON user_mailboxes(user_id)');
+  await db.exec('CREATE INDEX IF NOT EXISTS idx_user_mailboxes_mailbox ON user_mailboxes(mailbox_id)');
+
+  // 迁移：若缺少 is_pinned 列，则添加
+  try {
+    const um = await db.prepare("PRAGMA table_info(user_mailboxes)").all();
+    const cols = (um?.results || []).map(r => (r.name || r?.['name']));
+    if (!cols.includes('is_pinned')){
+      await db.exec('ALTER TABLE user_mailboxes ADD COLUMN is_pinned INTEGER NOT NULL DEFAULT 0');
+    }
+  } catch (_){ }
+}
+
+export async function createUser(db, { username, passwordHash = null, role = 'user', mailboxLimit = 10 }){
+  const uname = String(username || '').trim().toLowerCase();
+  if (!uname) throw new Error('用户名不能为空');
+  const r = await db.prepare('INSERT INTO users (username, password_hash, role, mailbox_limit) VALUES (?, ?, ?, ?)')
+    .bind(uname, passwordHash, role, Math.max(0, Number(mailboxLimit || 10))).run();
+  const res = await db.prepare('SELECT id, username, role, mailbox_limit, created_at FROM users WHERE username = ?')
+    .bind(uname).all();
+  return res?.results?.[0];
+}
+
+export async function updateUser(db, userId, fields){
+  const allowed = ['role', 'mailbox_limit', 'password_hash', 'can_send'];
+  const setClauses = [];
+  const values = [];
+  for (const key of allowed){
+    if (key in (fields || {})){
+      setClauses.push(`${key} = ?`);
+      values.push(fields[key]);
+    }
+  }
+  if (!setClauses.length) return;
+  const sql = `UPDATE users SET ${setClauses.join(', ')} WHERE id = ?`;
+  values.push(userId);
+  await db.prepare(sql).bind(...values).run();
+}
+
+export async function deleteUser(db, userId){
+  // 关联表启用 ON DELETE CASCADE
+  await db.prepare('DELETE FROM users WHERE id = ?').bind(userId).run();
+}
+
+export async function listUsersWithCounts(db, { limit = 50, offset = 0 } = {}){
+  const sql = `
+    SELECT u.id, u.username, u.role, u.mailbox_limit, u.can_send, u.created_at,
+           COALESCE(cnt.c, 0) AS mailbox_count
+    FROM users u
+    LEFT JOIN (
+      SELECT user_id, COUNT(1) AS c FROM user_mailboxes GROUP BY user_id
+    ) cnt ON cnt.user_id = u.id
+    ORDER BY datetime(u.created_at) DESC
+    LIMIT ? OFFSET ?
+  `;
+  const { results } = await db.prepare(sql).bind(Math.max(1, Math.min(100, Number(limit) || 50)), Math.max(0, Number(offset) || 0)).all();
+  return results || [];
+}
+
+export async function assignMailboxToUser(db, { userId = null, username = null, address }){
+  const normalized = String(address || '').trim().toLowerCase();
+  if (!normalized) throw new Error('邮箱地址无效');
+  // 查询或创建邮箱
+  const mailboxId = await getOrCreateMailboxId(db, normalized);
+
+  // 获取用户 ID
+  let uid = userId;
+  if (!uid){
+    const uname = String(username || '').trim().toLowerCase();
+    if (!uname) throw new Error('缺少用户标识');
+    const r = await db.prepare('SELECT id FROM users WHERE username = ?').bind(uname).all();
+    if (!r.results || !r.results.length) throw new Error('用户不存在');
+    uid = r.results[0].id;
+  }
+
+  // 校验上限
+  const ures = await db.prepare('SELECT mailbox_limit FROM users WHERE id = ?').bind(uid).all();
+  const limit = ures?.results?.[0]?.mailbox_limit ?? 10;
+  const cres = await db.prepare('SELECT COUNT(1) AS c FROM user_mailboxes WHERE user_id = ?').bind(uid).all();
+  const count = cres?.results?.[0]?.c || 0;
+  if (count >= limit) throw new Error('已达到邮箱上限');
+
+  // 绑定（唯一约束避免重复）
+  await db.prepare('INSERT OR IGNORE INTO user_mailboxes (user_id, mailbox_id) VALUES (?, ?)').bind(uid, mailboxId).run();
+  return { success: true };
+}
+
+export async function getUserMailboxes(db, userId){
+  const sql = `
+    SELECT m.address, m.created_at, um.is_pinned
+    FROM user_mailboxes um
+    JOIN mailboxes m ON m.id = um.mailbox_id
+    WHERE um.user_id = ?
+    ORDER BY um.is_pinned DESC, datetime(m.created_at) DESC
+  `;
+  const { results } = await db.prepare(sql).bind(userId).all();
+  return results || [];
 }
 
