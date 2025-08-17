@@ -151,8 +151,8 @@ export default {
         loading.searchParams.set('redirect', '/admin.html');
         return Response.redirect(loading.toString(), 302);
       }
-      const isAdmin = (payload.role === 'admin');
-      if (!isAdmin) {
+      const isAllowed = (payload.role === 'admin' || payload.role === 'guest');
+      if (!isAllowed) {
         // 已登录但权限不足：引导回首页，防止管理页直出
         return Response.redirect(new URL('/', url).toString(), 302);
       }
@@ -226,8 +226,8 @@ export default {
           const loadingReq = new Request(new URL('/templates/loading.html?redirect=%2Fadmin.html', url).toString(), request);
           return env.ASSETS.fetch(loadingReq);
         }
-        const isAdmin = (payload.role === 'admin');
-        if (!isAdmin) {
+        const isAllowed = (payload.role === 'admin' || payload.role === 'guest');
+        if (!isAllowed) {
           // 返回首页
           return Response.redirect(new URL('/', url).toString(), 302);
         }

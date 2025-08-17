@@ -22,7 +22,7 @@
         fetch('/api/session', { headers: { 'Cache-Control': 'no-cache' } })
           .then(r => r.ok ? r.json() : Promise.reject('unauth'))
           .then(s => {
-            if (s && (s.role === 'admin' || s.strictAdmin)){
+            if (s && (s.role === 'admin' || s.role === 'guest' || s.strictAdmin)){
               try{ document.documentElement.classList.remove('precheck-hide'); }catch(_){ }
               return;
             }
