@@ -263,13 +263,21 @@ async function showToast(message, type='info'){
     const html = tpl.replace('{{type}}', String(type||'info')).replace('{{message}}', String(message||''));
     const wrapper = document.createElement('div');
     wrapper.innerHTML = html;
-    const node = wrapper.firstElementChild;
-    els.toast.appendChild(node);
-    setTimeout(()=>{
-      node.style.transition = 'opacity .3s ease';
-      node.style.opacity = '0';
-      setTimeout(()=>node.remove(), 300);
-    }, 2000);
+    // 注入样式（仅一次）
+    const styleEl = wrapper.querySelector('#toast-style');
+    if (styleEl && !document.getElementById('toast-style')){
+      document.head.appendChild(styleEl);
+    }
+    // 插入 toast 元素
+    const toastEl = wrapper.querySelector('.toast-item');
+    if (toastEl){
+      els.toast.appendChild(toastEl);
+      setTimeout(()=>{
+        toastEl.style.transition = 'opacity .3s ease';
+        toastEl.style.opacity = '0';
+        setTimeout(()=>toastEl.remove(), 300);
+      }, 2000);
+    }
   }catch(_){
     // 回退：若模板加载失败，使用最简文本提示
     const div = document.createElement('div');

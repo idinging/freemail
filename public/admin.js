@@ -68,9 +68,19 @@ async function showToast(message, type='info'){
     const html = tpl.replace('{{type}}', String(type||'info')).replace('{{message}}', String(message||''));
     const wrapper = document.createElement('div');
     wrapper.innerHTML = html;
-    const node = wrapper.firstElementChild;
-    els.toast.appendChild(node);
-    setTimeout(()=>{ node.style.transition='opacity .3s'; node.style.opacity='0'; setTimeout(()=>node.remove(),300); }, 1600);
+    const styleEl = wrapper.querySelector('#toast-style');
+    if (styleEl && !document.getElementById('toast-style')){
+      document.head.appendChild(styleEl);
+    }
+    const toastEl = wrapper.querySelector('.toast-item');
+    if (toastEl){
+      els.toast.appendChild(toastEl);
+      setTimeout(()=>{ 
+        toastEl.style.transition='opacity .3s'; 
+        toastEl.style.opacity='0'; 
+        setTimeout(()=>toastEl.remove(),300); 
+      }, 1600);
+    }
   }catch(_){
     const div = document.createElement('div');
     div.className = `toast-item ${type}`;

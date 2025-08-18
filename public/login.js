@@ -23,9 +23,19 @@ async function showToast(message, type='info'){
     const html = tpl.replace('{{type}}', String(type||'info')).replace('{{message}}', String(message||''));
     const wrap = document.createElement('div');
     wrap.innerHTML = html;
-    const node = wrap.firstElementChild;
-    ensureToastContainer().appendChild(node);
-    setTimeout(()=>{ node.style.transition='opacity .3s'; node.style.opacity='0'; setTimeout(()=>node.remove(),300); }, 2000);
+    const styleEl = wrap.querySelector('#toast-style');
+    if (styleEl && !document.getElementById('toast-style')){
+      document.head.appendChild(styleEl);
+    }
+    const toastEl = wrap.querySelector('.toast-item');
+    if (toastEl){
+      ensureToastContainer().appendChild(toastEl);
+      setTimeout(()=>{ 
+        toastEl.style.transition='opacity .3s'; 
+        toastEl.style.opacity='0'; 
+        setTimeout(()=>toastEl.remove(),300); 
+      }, 2000);
+    }
   }catch(_){
     const div = document.createElement('div');
     div.className = `toast-item ${type}`;
@@ -57,7 +67,7 @@ async function doLogin(){
     if (r.ok){
       await showToast('登录成功','success');
       // 进入加载页做预取与跳转
-      location.replace('/templates/loading.html?redirect=%2F&status=' + encodeURIComponent('正在登录…'));
+      location.replace('/templates/loading.html?redirect=%2F&status=' + encodeURIComponent('正在检验会话'));
       return;
     }
     const msg = (await r.text()) || '用户名或密码错误';
