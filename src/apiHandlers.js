@@ -502,7 +502,9 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
         return Response.json(buildMockEmails(6));
       }
       const normalized = extractEmail(mailbox).trim().toLowerCase();
-      const mailboxId = await getOrCreateMailboxId(db, normalized);
+      // 纯读：不存在则返回空数组，不创建
+      const mailboxId = await getMailboxIdByAddress(db, normalized);
+      if (!mailboxId) return Response.json([]);
       const { results } = await db.prepare(`
         SELECT id, sender, subject, received_at, is_read 
         FROM messages 
@@ -534,7 +536,7 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
           SELECT m.address, m.created_at, COALESCE(um.is_pinned, 0) AS is_pinned
           FROM mailboxes m
           LEFT JOIN user_mailboxes um ON um.mailbox_id = m.id AND um.user_id = ?
-          ORDER BY is_pinned DESC, datetime(m.created_at) DESC
+          ORDER BY is_pinned DESC, m.created_at DESC
           LIMIT ? OFFSET ?
         `).bind(adminUid || 0, limit, offset).all();
         return Response.json(results || []);
@@ -547,7 +549,7 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
         FROM user_mailboxes um
         JOIN mailboxes m ON m.id = um.mailbox_id
         WHERE um.user_id = ?
-        ORDER BY um.is_pinned DESC, datetime(m.created_at) DESC
+        ORDER BY um.is_pinned DESC, m.created_at DESC
         LIMIT ? OFFSET ?
       `).bind(uid, limit, offset).all();
       return Response.json(results || []);
@@ -590,11 +592,13 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
   // 删除邮箱（及其所有邮件）
   if (path === '/api/mailboxes' && request.method === 'DELETE') {
     if (isMock) return new Response('演示模式不可删除', { status: 403 });
-    const address = url.searchParams.get('address');
-    if (!address) return new Response('缺少 address 参数', { status: 400 });
+    const raw = url.searchParams.get('address');
+    if (!raw) return new Response('缺少 address 参数', { status: 400 });
+    const normalized = String(raw || '').trim().toLowerCase();
     try {
-      const mailboxId = await getMailboxIdByAddress(db, address);
-      if (!mailboxId) return Response.json({ success: true });
+      const mailboxId = await getMailboxIdByAddress(db, normalized);
+      // 未找到则明确返回 404，避免前端误判为成功
+      if (!mailboxId) return new Response(JSON.stringify({ success: false, message: '邮箱不存在' }), { status: 404 });
       if (!isStrictAdmin()){
         // 二级管理员（数据库中的 admin 角色）仅能删除自己绑定的邮箱
         const payload = getJwtPayload();
@@ -603,10 +607,18 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
           .bind(Number(payload.userId), mailboxId).all();
         if (!own?.results?.length) return new Response('Forbidden', { status: 403 });
       }
+      // 简易事务，降低并发插入导致的外键失败概率
+      try { await db.exec('BEGIN'); } catch(_) {}
       await db.prepare('DELETE FROM messages WHERE mailbox_id = ?').bind(mailboxId).run();
       await db.prepare('DELETE FROM mailboxes WHERE id = ?').bind(mailboxId).run();
-      return Response.json({ success: true });
+      try { await db.exec('COMMIT'); } catch(_) {}
+
+      // 确认删除结果
+      const verify = await db.prepare('SELECT COUNT(1) AS c FROM mailboxes WHERE id = ?').bind(mailboxId).all();
+      const deleted = (verify?.results?.[0]?.c || 0) === 0;
+      return Response.json({ success: deleted, deleted });
     } catch (e) {
+      try { await db.exec('ROLLBACK'); } catch(_) {}
       return new Response('删除失败', { status: 500 });
     }
   }
@@ -672,7 +684,11 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
     }
     try {
       const normalized = extractEmail(mailbox).trim().toLowerCase();
-      const mailboxId = await getOrCreateMailboxId(db, normalized);
+      // 仅当邮箱已存在时才执行清空操作；不存在则直接返回 0 删除
+      const mailboxId = await getMailboxIdByAddress(db, normalized);
+      if (!mailboxId) {
+        return Response.json({ success: true, deletedCount: 0, previousCount: 0 });
+      }
       
       // 先查询当前有多少邮件
       const countBeforeResult = await db.prepare(`SELECT COUNT(*) as count FROM messages WHERE mailbox_id = ?`).bind(mailboxId).all();

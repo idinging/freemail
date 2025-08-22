@@ -567,6 +567,8 @@ els.gen.onclick = async () => {
     startAutoRefresh();
     
     showToast('邮箱生成成功！', 'success');
+    // 成功后尽早复位按钮，避免后续刷新异常导致按钮卡在加载态
+    try { restoreButton(els.gen); } catch(_) {}
     await refresh();
     // 重置历史分页偏移，确保显示最新的第一页
     if (typeof mbOffset !== 'undefined') { mbOffset = 0; }
@@ -1165,42 +1167,46 @@ window.deleteMailbox = async (ev, address) => {
   if (!confirmed) return;
   
   try{
-    const response = await api(`/api/mailboxes?address=${encodeURIComponent(address)}`, { 
-      method:'DELETE' 
-    });
+    const response = await api(`/api/mailboxes?address=${encodeURIComponent(address)}`, { method:'DELETE' });
     
     if (response.ok) {
-      showToast('邮箱已成功删除', 'success');
-      
-      // 立即从DOM中移除该邮箱项
-      const mailboxItems = els.mbList.querySelectorAll('.mailbox-item');
-      mailboxItems.forEach(item => {
-        const addressSpan = item.querySelector('.address');
-        if (addressSpan && addressSpan.textContent === address) {
-          item.remove();
+      let result = {};
+      try { result = await response.json(); } catch(_) { result = {}; }
+      if (result && (result.success || result.deleted)){
+        showToast('邮箱已成功删除', 'success');
+        
+        // 立即从DOM中移除该邮箱项
+        const mailboxItems = els.mbList.querySelectorAll('.mailbox-item');
+        mailboxItems.forEach(item => {
+          const addressSpan = item.querySelector('.address');
+          if (addressSpan && addressSpan.textContent === address) {
+            item.remove();
+          }
+        });
+        
+        // 如果删除的是当前选中的邮箱，清空相关状态
+        if (window.currentMailbox === address){
+          els.list.innerHTML = '<div style="text-align:center;color:#64748b">📭 暂无邮件</div>';
+          els.email.innerHTML = '<span class="placeholder-text">点击右侧生成按钮创建邮箱地址</span>';
+          els.email.classList.remove('has-email');
+          els.emailActions.style.display = 'none';
+          els.listCard.style.display = 'none';
+          window.currentMailbox = '';
+          // 停止自动刷新
+          stopAutoRefresh();
         }
-      });
-      
-      // 如果删除的是当前选中的邮箱，清空相关状态
-      if (window.currentMailbox === address){
-        els.list.innerHTML = '<div style="text-align:center;color:#64748b">📭 暂无邮件</div>';
-        els.email.innerHTML = '<span class="placeholder-text">点击右侧生成按钮创建邮箱地址</span>';
-        els.email.classList.remove('has-email');
-        els.emailActions.style.display = 'none';
-        els.listCard.style.display = 'none';
-        window.currentMailbox = '';
-        // 停止自动刷新
-        stopAutoRefresh();
-      }
-      
-      // 检查是否还有邮箱项，如果没有显示提示
-      const remainingItems = els.mbList.querySelectorAll('.mailbox-item');
-      if (remainingItems.length === 0) {
-        els.mbList.innerHTML = '<div style="color:#94a3b8">暂无历史邮箱</div>';
+        
+        // 强制刷新历史邮箱列表，避免假阳性
+        if (typeof mbOffset !== 'undefined') { mbOffset = 0; }
+        await loadMailboxes(false);
+      } else {
+        showToast(result?.message ? `删除失败: ${result.message}` : '删除失败', 'warn');
       }
     } else {
       if (response.status === 403) {
         showToast('没权限删除', 'warn');
+      } else if (response.status === 404) {
+        showToast('邮箱不存在或已被删除', 'warn');
       } else {
         const errorText = await response.text();
         showToast(`删除失败: ${errorText}`, 'warn');
