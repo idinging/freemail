@@ -1273,7 +1273,7 @@ select:disabled{
   cursor: pointer;
 }
 
-.email-meta{
+.email-meta{  
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1282,8 +1282,8 @@ select:disabled{
   font-size: 14px;
 }
 .email-meta{ /* 统一左对齐布局：发件人标签/发件人内容/时间 */
-  display: grid;
-  grid-template-columns: 56px 1fr 120px; /* 为时间分配固定宽度120px */
+  display: grid; 
+  grid-template-columns: 1fr auto; /* 左侧内容自适应，右侧时间固定自动宽度 */
   gap: 12px;
   align-items: center;
 }

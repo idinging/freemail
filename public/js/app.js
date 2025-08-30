@@ -838,13 +838,27 @@ async function refresh(){
       const listCode = (e.verification_code || '').toString().trim() || extractCode(rawContent || '');
       const escapeHtml = (s)=>String(s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]||c));
       const senderText = escapeHtml(e.sender || '');
+      // 发件箱：显示收件人（最多2个，多余以“等N人”提示）
+      let recipientsDisplay = '';
+      if (isSentView){
+        const raw = (e.recipients || e.to_addrs || '').toString();
+        const arr = raw.split(',').map(s=>s.trim()).filter(Boolean);
+        if (arr.length){
+          recipientsDisplay = arr.slice(0,2).join(', ');
+          if (arr.length > 2) recipientsDisplay += ` 等${arr.length}人`;
+        } else {
+          recipientsDisplay = raw;
+        }
+      }
       const subjectText = escapeHtml(e.subject || '(无主题)');
       const previewText = escapeHtml(preview);
+      const metaLabel = isSentView ? '收件人' : '发件人';
+      const metaText = isSentView ? escapeHtml(recipientsDisplay) : senderText;
       
       return `
        <div class="email-item clickable" onclick="${isSentView ? `showSentEmail(${e.id})` : `showEmail(${e.id})`}">
          <div class="email-meta">
-           <span class="meta-from"><span class="meta-label">发件人</span><span class="meta-from-text">${senderText}</span></span>
+           <span class="meta-from"><span class="meta-label">${metaLabel}</span><span class="meta-from-text">${metaText}</span></span>
            <span class="email-time">
              <span class="time-icon">🕐</span>
              ${window.matchMedia && window.matchMedia('(max-width: 900px)').matches ? formatTsMobile(e.received_at || e.created_at) : formatTs(e.received_at || e.created_at)}
