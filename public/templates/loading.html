@@ -44,7 +44,7 @@
       <div class="progress"><div class="progress-bar"></div></div>
     </div>
     <div id="footer-slot"></div>
-    <script src="/route-guard.js" data-autorun="loading"></script>
+    <script src="/js/auth-guard.js" data-autorun="loading"></script>
     <script>
       document.addEventListener('DOMContentLoaded', () => {
         // 根据 URL 查询参数自定义状态文案：?status=...
@@ -55,7 +55,7 @@
             const el = document.querySelector('.status');
             if (el) el.textContent = s;
           }
-        } catch(_){}
+        } catch(_){ }
         (async function(){
           try{
             const res = await fetch('/templates/footer.html', { cache: 'no-cache' });
@@ -64,6 +64,24 @@
             if (slot){ slot.outerHTML = html; setTimeout(()=>{ const y=document.getElementById('footer-year'); if (y) y.textContent = new Date().getFullYear(); },0); }
           }catch(_){ }
         })();
+        // 预加载首页关键资源（模板和脚本），认证后可无缝切换
+        try{ fetch('/templates/app.html', { cache: 'force-cache' }); }catch(_){ }
+        try{
+          const link = document.createElement('link');
+          link.rel = 'preload';
+          link.as = 'script';
+          link.href = '/app.js';
+          document.head.appendChild(link);
+        }catch(_){ }
+        // 已认证用户兜底重定向：检测 Cookie 则确保跳往目标（更短延时）
+        try{
+          var hasToken = document.cookie.split(';').some(function(c){ return c.trim().indexOf('mailfree-session=') === 0; });
+          if (hasToken){
+            var target = (function(){ try{ var u=new URL(location.href); return u.searchParams.get('redirect')||'/'; }catch(_){ return '/'; }})();
+            // 减少延时时间
+            setTimeout(function(){ try{ location.replace(target); }catch(_){ location.replace('/'); } }, 100);
+          }
+        }catch(_){ }
       });
     </script>
   </body>

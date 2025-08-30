@@ -2,9 +2,10 @@ import { extractEmail, generateRandomId } from './commonUtils.js';
 import { buildMockEmails, buildMockMailboxes, buildMockEmailDetail } from './mockData.js';
 import { getOrCreateMailboxId, getMailboxIdByAddress, recordSentEmail, updateSentEmail, ensureSentEmailsTable, toggleMailboxPin, 
   listUsersWithCounts, createUser, updateUser, deleteUser, assignMailboxToUser, getUserMailboxes } from './database.js';
+import { parseEmailBody, extractVerificationCode } from './emailParser.js';
 import { sendEmailWithResend, sendBatchWithResend, getEmailFromResend, updateEmailInResend, cancelEmailInResend } from './emailSender.js';
 
-export async function handleApiRequest(request, db, mailDomains, options = { mockOnly: false, resendApiKey: '', adminName: '' }) {
+export async function handleApiRequest(request, db, mailDomains, options = { mockOnly: false, resendApiKey: '', adminName: '', r2: null }) {
   const url = new URL(request.url);
   const path = url.pathname;
   const isMock = !!options.mockOnly;
@@ -505,17 +506,63 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
       // 纯读：不存在则返回空数组，不创建
       const mailboxId = await getMailboxIdByAddress(db, normalized);
       if (!mailboxId) return Response.json([]);
-      const { results } = await db.prepare(`
-        SELECT id, sender, subject, received_at, is_read 
-        FROM messages 
-        WHERE mailbox_id = ? 
-        ORDER BY received_at DESC 
-        LIMIT 50
-      `).bind(mailboxId).all();
-      return Response.json(results);
+      try{
+        const { results } = await db.prepare(`
+          SELECT id, sender, subject, received_at, is_read, preview, verification_code
+          FROM messages 
+          WHERE mailbox_id = ? 
+          ORDER BY received_at DESC 
+          LIMIT 50
+        `).bind(mailboxId).all();
+        return Response.json(results);
+      }catch(e){
+        // 旧结构降级查询：从 content/html_content 计算 preview
+        const { results } = await db.prepare(`
+          SELECT id, sender, subject, received_at, is_read,
+                 CASE WHEN content IS NOT NULL AND content <> ''
+                      THEN SUBSTR(content, 1, 120)
+                      ELSE SUBSTR(COALESCE(html_content, ''), 1, 120)
+                 END AS preview
+          FROM messages 
+          WHERE mailbox_id = ? 
+          ORDER BY received_at DESC 
+          LIMIT 50
+        `).bind(mailboxId).all();
+        return Response.json(results);
+      }
     } catch (e) {
       console.error('查询邮件失败:', e);
       return new Response('查询邮件失败', { status: 500 });
+    }
+  }
+
+  // 批量查询邮件详情，减少前端 N+1 请求
+  if (path === '/api/emails/batch' && request.method === 'GET'){
+    try{
+      const idsParam = String(url.searchParams.get('ids') || '').trim();
+      if (!idsParam) return Response.json([]);
+      const ids = idsParam.split(',').map(s=>parseInt(s,10)).filter(n=>Number.isInteger(n) && n>0);
+      if (!ids.length) return Response.json([]);
+      if (isMock){
+        const arr = ids.map(id => buildMockEmailDetail(id));
+        return Response.json(arr);
+      }
+      const placeholders = ids.map(()=>'?').join(',');
+      try{
+        const { results } = await db.prepare(`
+          SELECT id, sender, to_addrs, subject, verification_code, preview, r2_bucket, r2_object_key, received_at, is_read
+          FROM messages WHERE id IN (${placeholders})
+        `).bind(...ids).all();
+        return Response.json(results || []);
+      }catch(e){
+        const { results } = await db.prepare(`
+          SELECT id, sender, subject, content, html_content, received_at, is_read
+          FROM messages WHERE id IN (${placeholders})
+        `).bind(...ids).all();
+        return Response.json(results || []);
+      }
+    }catch(e){
+      return new Response('批量查询失败', { status: 500 });
     }
   }
 
@@ -623,21 +670,77 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
     }
   }
 
+  // 下载 EML（从 R2 获取）- 必须在通用邮件详情处理器之前
+  if (request.method === 'GET' && path.startsWith('/api/email/') && path.endsWith('/download')){
+    if (options.mockOnly) return new Response('演示模式不可下载', { status: 403 });
+    const id = path.split('/')[3];
+    const { results } = await db.prepare('SELECT r2_bucket, r2_object_key FROM messages WHERE id = ?').bind(id).all();
+    const row = (results||[])[0];
+    if (!row || !row.r2_object_key) return new Response('未找到对象', { status: 404 });
+    try{
+      const r2 = options.r2;
+      if (!r2) return new Response('R2 未绑定', { status: 500 });
+      const obj = await r2.get(row.r2_object_key);
+      if (!obj) return new Response('对象不存在', { status: 404 });
+      const headers = new Headers({ 'Content-Type': 'message/rfc822' });
+      headers.set('Content-Disposition', `attachment; filename="${String(row.r2_object_key).split('/').pop()}"`);
+      return new Response(obj.body, { headers });
+    }catch(e){
+      return new Response('下载失败', { status: 500 });
+    }
+  }
+
   if (request.method === 'GET' && path.startsWith('/api/email/')) {
     const emailId = path.split('/')[3];
     if (isMock) {
       return Response.json(buildMockEmailDetail(emailId));
     }
-    const { results } = await db.prepare(`
-      SELECT * FROM messages WHERE id = ?
-    `).bind(emailId).all();
-    if (results.length === 0) {
-      return new Response('未找到邮件', { status: 404 });
+    try{
+      const { results } = await db.prepare(`
+        SELECT id, sender, to_addrs, subject, verification_code, preview, r2_bucket, r2_object_key, received_at, is_read
+        FROM messages WHERE id = ?
+      `).bind(emailId).all();
+      if (results.length === 0) return new Response('未找到邮件', { status: 404 });
+      await db.prepare(`UPDATE messages SET is_read = 1 WHERE id = ?`).bind(emailId).run();
+      const row = results[0];
+      let content = '';
+      let html_content = '';
+      // 若存在 R2 对象，尝试解析正文并返回兼容字段
+      try{
+        if (row.r2_object_key && options.r2){
+          const obj = await options.r2.get(row.r2_object_key);
+          if (obj){
+            let raw = '';
+            if (typeof obj.text === 'function') raw = await obj.text();
+            else if (typeof obj.arrayBuffer === 'function') raw = await new Response(await obj.arrayBuffer()).text();
+            else raw = await new Response(obj.body).text();
+            const parsed = parseEmailBody(raw || '');
+            content = parsed.text || '';
+            html_content = parsed.html || '';
+          }
+        }
+      }catch(_){ }
+
+      // 当未绑定 R2 或解析结果为空时，回退读取数据库中的 content/html_content（兼容旧数据/无 R2 环境）
+      if ((!content && !html_content)){
+        try{
+          const fallback = await db.prepare('SELECT content, html_content FROM messages WHERE id = ?').bind(emailId).all();
+          const fr = (fallback?.results || [])[0] || {};
+          content = content || fr.content || '';
+          html_content = html_content || fr.html_content || '';
+        }catch(_){ /* 忽略：旧表可能缺少字段 */ }
+      }
+
+      return Response.json({ ...row, content, html_content, download: row.r2_object_key ? `/api/email/${emailId}/download` : '' });
+    }catch(e){
+      const { results } = await db.prepare(`
+        SELECT id, sender, subject, content, html_content, received_at, is_read
+        FROM messages WHERE id = ?
+      `).bind(emailId).all();
+      if (!results || !results.length) return new Response('未找到邮件', { status: 404 });
+      await db.prepare(`UPDATE messages SET is_read = 1 WHERE id = ?`).bind(emailId).run();
+      return Response.json(results[0]);
     }
-    await db.prepare(`
-      UPDATE messages SET is_read = 1 WHERE id = ?
-    `).bind(emailId).run();
-    return Response.json(results[0]);
   }
 
   if (request.method === 'DELETE' && path.startsWith('/api/email/')) {
@@ -717,16 +820,109 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
   return new Response('未找到 API 路径', { status: 404 });
 }
 
-export async function handleEmailReceive(request, db) {
+export async function handleEmailReceive(request, db, env) {
   try {
     const emailData = await request.json();
-    const { to, from, subject, text, html } = emailData;
+    const to = String(emailData?.to || '');
+    const from = String(emailData?.from || '');
+    const subject = String(emailData?.subject || '(无主题)');
+    const text = String(emailData?.text || '');
+    const html = String(emailData?.html || '');
+
     const mailbox = extractEmail(to);
     const sender = extractEmail(from);
-    await db.prepare(`
-      INSERT INTO emails (mailbox, sender, subject, content, html_content)
-      VALUES (?, ?, ?, ?, ?)
-    `).bind(mailbox, sender, subject || '(无主题)', text || '', html || '').run();
+    const mailboxId = await getOrCreateMailboxId(db, mailbox);
+
+    // 构造简易 EML 并写入 R2（即便没有原始 raw 也生成便于详情查看）
+    const now = new Date();
+    const dateStr = now.toUTCString();
+    const boundary = 'mf-' + (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2));
+    let eml = '';
+    if (html) {
+      eml = [
+        `From: <${sender}>`,
+        `To: <${mailbox}>`,
+        `Subject: ${subject}`,
+        `Date: ${dateStr}`,
+        'MIME-Version: 1.0',
+        `Content-Type: multipart/alternative; boundary="${boundary}"`,
+        '',
+        `--${boundary}`,
+        'Content-Type: text/plain; charset="utf-8"',
+        'Content-Transfer-Encoding: 8bit',
+        '',
+        text || '',
+        `--${boundary}`,
+        'Content-Type: text/html; charset="utf-8"',
+        'Content-Transfer-Encoding: 8bit',
+        '',
+        html,
+        `--${boundary}--`,
+        ''
+      ].join('\r\n');
+    } else {
+      eml = [
+        `From: <${sender}>`,
+        `To: <${mailbox}>`,
+        `Subject: ${subject}`,
+        `Date: ${dateStr}`,
+        'MIME-Version: 1.0',
+        'Content-Type: text/plain; charset="utf-8"',
+        'Content-Transfer-Encoding: 8bit',
+        '',
+        text || '',
+        ''
+      ].join('\r\n');
+    }
+
+    let objectKey = '';
+    try {
+      const r2 = env?.MAIL_EML;
+      if (r2) {
+        const y = now.getUTCFullYear();
+        const m = String(now.getUTCMonth() + 1).padStart(2, '0');
+        const d = String(now.getUTCDate()).padStart(2, '0');
+        const hh = String(now.getUTCHours()).padStart(2, '0');
+        const mm = String(now.getUTCMinutes()).padStart(2, '0');
+        const ss = String(now.getUTCSeconds()).padStart(2, '0');
+        const keyId = (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+        const safeMailbox = (mailbox || 'unknown').toLowerCase().replace(/[^a-z0-9@._-]/g, '_');
+        objectKey = `${y}/${m}/${d}/${safeMailbox}/${hh}${mm}${ss}-${keyId}.eml`;
+        await r2.put(objectKey, eml, { httpMetadata: { contentType: 'message/rfc822' } });
+      }
+    } catch (_) { objectKey = ''; }
+
+    const previewBase = (text || html.replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
+    const preview = String(previewBase || '').slice(0, 120);
+    let verificationCode = '';
+    try {
+      verificationCode = extractVerificationCode({ subject, text, html });
+    } catch (_) {}
+
+    // 动态列检测，兼容旧表
+    let cols = [];
+    try {
+      const info = await db.prepare('PRAGMA table_info(messages)').all();
+      cols = (info?.results || []).map(r => ({ name: (r.name || r['name']), notnull: r.notnull ? 1 : 0 }));
+    } catch (_) {}
+    const colSet = new Set(cols.map(c => c.name));
+    const requiresContent = cols.some(c => c.name === 'content' && c.notnull === 1);
+
+    const insertCols = ['mailbox_id', 'sender'];
+    const values = [mailboxId, sender];
+    if (colSet.has('to_addrs')) { insertCols.push('to_addrs'); values.push(String(to || '')); }
+    insertCols.push('subject'); values.push(subject || '(无主题)');
+    if (colSet.has('verification_code')) { insertCols.push('verification_code'); values.push(verificationCode || null); }
+    if (colSet.has('preview')) { insertCols.push('preview'); values.push(preview || null); }
+    if (colSet.has('r2_bucket')) { insertCols.push('r2_bucket'); values.push('mail-eml'); }
+    if (colSet.has('r2_object_key')) { insertCols.push('r2_object_key'); values.push(objectKey || ''); }
+    if (requiresContent || colSet.has('content')) { insertCols.push('content'); values.push(text || html || subject || '(无内容)'); }
+    if (colSet.has('html_content')) { insertCols.push('html_content'); values.push(html || null); }
+
+    const placeholders = insertCols.map(()=>'?').join(', ');
+    const sql = `INSERT INTO messages (${insertCols.join(', ')}) VALUES (${placeholders})`;
+    await db.prepare(sql).bind(...values).run();
+
     return Response.json({ success: true });
   } catch (error) {
     console.error('处理邮件时出错:', error);

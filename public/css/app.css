@@ -109,7 +109,7 @@ body::before{
   border-bottom: 1px solid var(--border-glass);
   display: flex;
   align-items: center;
-  max-width: 1200px;
+  max-width: 1200px; /* 头部基准宽度 */
   margin: 0 auto;
   padding: 16px 32px;
   gap: 20px;
@@ -174,7 +174,7 @@ body::before{
 }
 
 .container{
-  max-width: 1200px;
+  max-width: 1200px; /* 与头部对齐 */
   margin: 0 auto;
   padding: 32px;
   display: grid;
@@ -194,7 +194,9 @@ body::before{
   border: 1px solid var(--border-glass);
   box-shadow: var(--shadow-glass);
   padding: 24px;
-  transition: var(--transition);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  width: auto;
+  min-width: 280px;
 }
 
 .sidebar:hover{
@@ -202,29 +204,393 @@ body::before{
   transform: translateY(-2px);
 }
 
-.sidebar h3{
-  margin: 0 0 20px 0;
+/* 侧板头部布局 */
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.sidebar h3 {
+  margin: 0;
   font-size: 18px;
   font-weight: 600;
   color: var(--text);
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 1;
 }
 
-.sidebar h3::before{
-  content: '';
+.sidebar-title {
+  transition: var(--transition);
 }
 
-.sidebar-icon{
+.sidebar-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.quota-display {
+  font-size: 12px;
+  color: var(--muted);
+  background: var(--card-glass);
+  padding: 4px 8px;
+  border-radius: 12px;
+  border: 1px solid var(--border-light);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  min-width: 50px;
+  text-align: center;
+  transition: var(--transition);
+}
+
+.sidebar-icon {
   font-size: 20px;
-  margin-right: 4px;
   animation: iconFloat 3s ease-in-out infinite;
+  transition: var(--transition);
 }
 
 @keyframes iconFloat {
   0%, 100% { transform: translateY(0px); }
   50% { transform: translateY(-2px); }
+}
+
+/* 侧板收起/展开按钮样式 */
+.sidebar-toggle-btn {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.sidebar-toggle-btn:hover {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+}
+
+.sidebar-toggle-btn:active {
+  transform: scale(0.95);
+}
+
+.sidebar-toggle-btn span {
+  font-size: 14px;
+  font-weight: bold;
+  transition: var(--transition);
+  color: var(--text);
+}
+
+.sidebar-toggle-btn:hover span {
+  color: white;
+}
+
+/* 侧板收起状态 */
+.sidebar.collapsed {
+  width: 60px;
+  padding: 16px 8px;
+  overflow: hidden;
+}
+
+.sidebar.collapsed .sidebar-header {
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.sidebar.collapsed h3 {
+  writing-mode: horizontal-tb;
+  text-orientation: initial;
+  height: auto;
+  margin: 0;
+  justify-content: center;
+  font-size: 14px;
+  white-space: nowrap;
+  flex: none;
+}
+
+.sidebar.collapsed .sidebar-title {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+}
+
+.sidebar.collapsed .sidebar-icon {
+  margin: 0;
+  transform: none;
+  font-size: 16px;
+}
+
+.sidebar.collapsed .sidebar-header-actions {
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+
+.sidebar.collapsed .quota-display {
+  writing-mode: horizontal-tb;
+  text-orientation: initial;
+  height: auto;
+  width: auto;
+  padding: 4px 6px;
+  font-size: 10px;
+  min-width: auto;
+}
+
+.sidebar.collapsed .sidebar-toggle-btn {
+  width: 28px;
+  height: 28px;
+}
+
+.sidebar.collapsed .sidebar-toggle-btn span {
+  font-size: 12px;
+}
+
+.sidebar.collapsed #mb-list,
+.sidebar.collapsed #mb-loading,
+.sidebar.collapsed #mb-more-wrap {
+  display: none;
+}
+
+/* 容器布局调整 */
+.container.sidebar-collapsed .sidebar {
+  width: 60px;
+  min-width: 60px;
+}
+
+/* 侧板收起时的布局优化 */
+.container.sidebar-collapsed .main {
+  transform: translateX(-200px);
+  width: calc(100% + 200px); /* 向左位移同等宽度，消除右侧空白 */
+  max-width: none;
+  padding-right: 0;
+  overflow: hidden;
+}
+
+.container.sidebar-collapsed .mailbox-layout {
+  grid-template-columns: 1fr 1.1fr;
+  gap: 32px;
+  max-width: 1400px; /* 收起后容纳左移扩展后的主列 */
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.container.sidebar-collapsed .mailbox-display-section {
+  min-width: 340px;
+  max-width: 440px;
+}
+
+.container.sidebar-collapsed .mailbox-config-section {
+  min-width: 360px;
+  max-width: 420px;
+}
+
+/* 侧板收起时的邮箱显示区域优化 */
+.container.sidebar-collapsed .mailbox-display-content {
+  padding: 28px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(240,253,250,0.9) 100%);
+  border-radius: var(--radius);
+  border: 1px solid rgba(16, 185, 129, 0.08);
+  box-shadow: 0 8px 32px rgba(16, 185, 129, 0.1);
+}
+
+.container.sidebar-collapsed .email-display {
+  min-height: 80px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(248,250,252,0.6) 100%);
+  border: 2px solid rgba(16, 185, 129, 0.15);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.container.sidebar-collapsed .email-display:hover {
+  border-color: rgba(16, 185, 129, 0.3);
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.15);
+}
+
+.container.sidebar-collapsed .mailbox-actions {
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.container.sidebar-collapsed .mailbox-actions .btn {
+  padding: 12px 18px;
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.container.sidebar-collapsed .mailbox-actions .btn:hover {
+  transform: translateY(-2px);
+}
+
+/* 侧板收起时的配置项优化 */
+.container.sidebar-collapsed .config-form {
+  padding: 24px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(248,250,252,0.8) 100%);
+  border-radius: var(--radius);
+  border: 1px solid rgba(59, 130, 246, 0.08);
+  box-shadow: 0 8px 32px rgba(59, 130, 246, 0.1);
+}
+
+.container.sidebar-collapsed .generate-action {
+  margin-top: 24px;
+  gap: 12px;
+}
+
+.container.sidebar-collapsed .btn-generate {
+  padding: 14px 28px;
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+  transform: translateY(0);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.container.sidebar-collapsed .btn-generate:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 35px rgba(59, 130, 246, 0.4);
+}
+
+/* 侧板收起时的卡片样式优化 */
+.container.sidebar-collapsed .generate-card {
+  box-shadow: var(--shadow-lg);
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  background: linear-gradient(135deg, var(--card) 0%, rgba(248, 250, 252, 0.95) 100%);
+}
+
+.container.sidebar-collapsed .inbox-card {
+  box-shadow: var(--shadow-lg);
+  border: 1px solid rgba(16, 185, 129, 0.1);
+  background: linear-gradient(135deg, var(--card) 0%, rgba(240, 253, 250, 0.95) 100%);
+  transform: translateY(0);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.container.sidebar-collapsed .inbox-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px rgba(16, 185, 129, 0.15);
+}
+
+/* 侧板收起时的整体容器动画 */
+.container.sidebar-collapsed {
+  animation: expandLayout 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes expandLayout {
+  0% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* 侧板收起时的内容淡入效果 */
+.container.sidebar-collapsed .mailbox-layout > * {
+  animation: fadeInUp 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 移动端响应式调整 */
+@media (max-width: 768px) {
+  .sidebar {
+    min-width: 260px;
+  }
+  
+  .sidebar.collapsed {
+    width: 50px;
+    padding: 12px 4px;
+  }
+  
+  .sidebar.collapsed h3 {
+    font-size: 12px;
+    height: 80px;
+  }
+  
+  .sidebar.collapsed .quota-display {
+    height: 30px;
+    width: 18px;
+  }
+  
+  .sidebar.collapsed .sidebar-toggle-btn {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .sidebar.collapsed .sidebar-toggle-btn span {
+    font-size: 10px;
+  }
+  
+  .container.sidebar-collapsed .sidebar {
+    width: 50px;
+    min-width: 50px;
+  }
+  
+  .container.sidebar-collapsed .main {
+    transform: none;
+    width: 100%;
+    padding-right: 0;
+    margin-left: 0;
+  }
+  
+  /* 移动端侧板收起时的布局调整 */
+  .container.sidebar-collapsed .mailbox-layout {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    max-width: none;
+    margin: 0;
+  }
+  
+  .container.sidebar-collapsed .mailbox-display-section,
+  .container.sidebar-collapsed .mailbox-config-section {
+    min-width: auto;
+    max-width: none;
+  }
+  
+  .container.sidebar-collapsed .generate-card,
+  .container.sidebar-collapsed .inbox-card {
+    background: var(--card);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-glass);
+  }
+  
+  /* 移动端：保留用于折叠/展开的小按钮（用于历史邮箱/配置区） */
+  #sidebar-toggle{ display:none; } /* 仅隐藏主侧栏的开关 */
+  #config-toggle{ display:inline-flex; width:28px; height:28px; }
+  #mb-toggle{ display:inline-flex; }
+}
+
+/* 桌面端隐藏手机专用开关 */
+@media (min-width: 769px) {
+  #mb-toggle{ display:none; }
+  #config-toggle{ display:none; }
 }
 
 .card-icon{
@@ -427,6 +793,7 @@ body::before{
   grid-column: 2;
   display: flex;
   flex-direction: column;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   gap: 24px;
 }
 
@@ -477,6 +844,7 @@ body::before{
   grid-template-columns: 1fr 1fr;
   gap: 24px;
   align-items: start;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .mailbox-display-section{
@@ -522,7 +890,7 @@ body::before{
   background: linear-gradient(135deg, #f8fafc, #e2e8f0);
   border: 2px dashed var(--border);
   border-radius: var(--radius-sm);
-  padding: 20px;
+  padding: 16px;
   font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
   font-size: 16px;
   font-weight: 500;
@@ -845,21 +1213,37 @@ select:disabled{
 .list{
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 8px;
+  /* 防止内部卡片溢出重叠 */
+  overflow: visible;
 }
+
+.pager{
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.pager .btn{ min-width: 90px; }
+.pager .muted{ color: var(--muted); font-size: 13px; }
 
 .email-item{
   border: 1px solid var(--border-glass);
   border-radius: var(--radius);
-  padding: 20px;
+  padding: 12px 14px;
   background: var(--card-glass);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   box-shadow: var(--shadow-glass);
   transition: var(--transition);
   position: relative;
+  z-index: 0;
   overflow: hidden;
 }
+.email-item{ display:grid; grid-template-columns: 1fr auto; gap: 10px 12px; }
+.email-item .email-actions{ grid-column: 2; align-self: center; }
+.email-item .email-content{ grid-column: 1 / span 1; }
 
 .email-item::before{
   content: '';
@@ -878,9 +1262,11 @@ select:disabled{
 }
 
 .email-item:hover{
-  transform: translateY(-4px);
+  /* 去除向上位移，避免与上一条重叠 */
+  transform: none;
   box-shadow: var(--shadow-lg);
   border-color: var(--primary);
+  z-index: 2;
 }
 
 .email-item.clickable{
@@ -891,15 +1277,48 @@ select:disabled{
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 6px;
   color: var(--muted);
   font-size: 14px;
 }
-
+.email-meta{ /* 统一左对齐布局：发件人标签/发件人内容/时间 */
+  display: grid;
+  grid-template-columns: 56px 1fr 120px; /* 为时间分配固定宽度120px */
+  gap: 12px;
+  align-items: center;
+}
+.email-meta .meta-from{ 
+  display: flex; 
+  align-items: center; 
+  gap: 6px; 
+  min-width: 0; /* 允许收缩 */
+  overflow: hidden; /* 防止内容溢出 */
+}
+.email-meta .meta-label{ 
+  font-size: 12px; 
+  color: var(--text-light); 
+  background: var(--card-glass); 
+  border: 1px solid var(--border-glass); 
+  border-radius: 999px; 
+  padding: 2px 8px;
+  white-space: nowrap;
+  flex-shrink: 0; /* 标签不收缩 */
+}
+.email-meta .meta-from-text{ 
+  color: var(--text); 
+  font-weight: 600; 
+  white-space: nowrap; 
+  overflow: hidden; 
+  text-overflow: ellipsis;
+  min-width: 0; /* 允许收缩 */
+}
 .email-time{
   color: var(--muted2);
   font-size: 0.85em;
   font-weight: 500;
+  justify-self: end; /* 时间右对齐 */
+  text-align: right;
+  white-space: nowrap; /* 防止时间换行 */
 }
 
 .email-actions{
@@ -909,9 +1328,7 @@ select:disabled{
   transition: var(--transition);
 }
 
-.email-item:hover .email-actions{
-  opacity: 1;
-}
+.email-item:hover .email-actions{ opacity: 1; }
 
 .email-sender{
   display: flex;
@@ -931,10 +1348,10 @@ select:disabled{
 }
 
 .email-content{
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
+  gap: 12px;
 }
 
 .email-main{
@@ -961,9 +1378,51 @@ select:disabled{
   color: var(--text-light);
   font-size: 14px;
   line-height: 1.5;
+  display: block; /* 配合左对齐布局，避免高度不一导致错位 */
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* 列表三行布局：发件人/主题/内容 - 与meta区域对齐 */
+.email-line{ 
+  display: grid; 
+  grid-template-columns: 56px 1fr; /* 与email-meta的第一列和第二列宽度对应 */
+  align-items: center; 
+  gap: 12px; 
+  margin: 2px 0; 
+  min-width: 0; 
+}
+.label-chip{ 
+  width: 56px; 
+  justify-self: start; 
+  text-align: center; 
+  padding: 2px 8px; 
+  font-size: 12px; 
+  color: var(--text-light); 
+  background: var(--card-glass); 
+  border: 1px solid var(--border-glass); 
+  border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.value-text{ 
+  min-width: 0; 
+  overflow: hidden; 
+  text-overflow: ellipsis;
+  word-break: break-word; /* 允许长单词换行 */
+}
+.value-text.from{ color: var(--text); font-weight: 600; }
+.value-text.subject{ 
+  color: var(--text); 
+  font-weight: 700; 
+  white-space: nowrap; /* 主题保持单行 */
+}
+/* 内容预览允许多行显示 */
+.email-preview.value-text{
+  white-space: normal;
+  line-height: 1.4;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
+  -webkit-line-clamp: 2; /* 最多显示2行 */
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -1171,6 +1630,33 @@ select:disabled{
   -webkit-backdrop-filter: blur(8px);
   border-radius: var(--radius);
   border: 1px solid var(--border-glass);
+}
+
+/* 轻量信息条：与全站玻璃/圆角风格一致 */
+.email-meta-inline{
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 10px;
+  padding: 10px 12px;
+  margin: 6px 0 12px 0;
+  background: var(--card-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-glass);
+}
+.email-meta-inline span{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.8);
+  border: 1px solid var(--border-light);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .email-actions-bar .btn{
@@ -1507,7 +1993,10 @@ select:disabled{
   .container{
     grid-template-columns: 1fr;
     gap: 20px;
-    padding: 20px;
+    padding: 12px 12px 20px;
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
   }
   
   .sidebar{
@@ -1518,16 +2007,30 @@ select:disabled{
   .topbar{
     padding: 12px 20px;
   }
+  /* 顶栏：移动端仅显示图标 */
+  .brand-text{ display:none; }
+  .nav-actions .btn .btn-text{ display:none; }
+  .nav-actions .btn{ padding-left: 10px; padding-right: 10px; }
   
-  .card{
-    padding: 24px;
-  }
+  .card{ padding: 16px; }
   
   /* 邮箱布局响应式 */
   .mailbox-layout{
     grid-template-columns: 1fr;
     gap: 24px;
   }
+  /* 主区域在移动端占据第一列，避免残留第二列引起的水平滚动 */
+  .main{ grid-column: 1; }
+
+  /* 配置区默认折叠，点击标题展开 */
+  .mailbox-config-section.collapsed .config-form{ display:none; }
+  .mailbox-config-section .section-header{ cursor: pointer; }
+
+  /* 历史邮箱列表默认折叠（侧栏未完全收起时） */
+  .sidebar.list-collapsed #mb-list,
+  .sidebar.list-collapsed #mb-loading,
+  .sidebar.list-collapsed #mb-more-wrap{ display:none; }
+  .sidebar .sidebar-header{ cursor: pointer; }
   
   .mailbox-display-section,
   .mailbox-config-section{
@@ -1560,6 +2063,8 @@ select:disabled{
   .btn-group{
     flex-direction: column;
   }
+  /* 移动端常显列表操作按钮，避免悬停触发不便 */
+  .email-item .email-actions{ opacity: 1; }
   
   /* Toast 响应式规则已随模板迁移 */
   
@@ -1650,4 +2155,23 @@ select:disabled{
   .mailbox-item .time{
     font-size: 10px;
   }
+}
+
+/* 横屏优化：当设备较矮（≤480px 高）并且较窄（≤900px 宽）时应用 */
+@media (max-width: 900px) and (max-height: 480px) and (orientation: landscape) {
+  .topbar{ padding: 8px 12px; }
+  .container{
+    grid-template-columns: 60px 1fr; /* 保留窄侧栏使历史邮箱横向出现 */
+    gap: 12px;
+    padding: 8px 10px 12px;
+  }
+  .sidebar{ display: block; width: 60px; min-width: 60px; }
+  .container.sidebar-collapsed .sidebar{ width: 60px; min-width: 60px; }
+  .sidebar.collapsed{ width: 60px; }
+  .main{ grid-column: 2; }
+  .card{ padding: 12px; }
+  .mailbox-layout{ grid-template-columns: 1fr 1fr; gap: 12px; }
+  .mailbox-actions .btn{ height: 44px; font-size: 13px; }
+  .email-display{ padding: 12px; font-size: 14px; }
+  .list-viewport{ max-height: calc(100vh - 260px); overflow: auto; }
 }

@@ -8,14 +8,14 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     <noscript>
-      <meta http-equiv="refresh" content="0; url=/templates/loading.html?redirect=%2Fadmin.html" />
+      <meta http-equiv="refresh" content="0; url=/templates/loading.html?redirect=%2Fhtml%2Fadmin.html" />
     </noscript>
     <style>.precheck-hide body{ visibility: hidden !important; }</style>
-    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-    <link rel="shortcut icon" href="favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="app.css" />
-    <link rel="stylesheet" href="admin.css" />
-    <script src="/route-guard.js" defer></script>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="shortcut icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/css/app.css" />
+    <link rel="stylesheet" href="/css/admin.css" />
+    <script src="/js/auth-guard.js" defer></script>
     <script>
       // 访问管理页先做前端快速鉴权，避免内容闪现；未登录或权限不足均进入 loading 或回首页
       (function(){
@@ -31,8 +31,8 @@
           })
           .catch(() => {
             // 未登录：进入加载页做鉴权
-            if (window.RouteGuard) { window.RouteGuard.goLoading('/admin.html', '正在校验权限…'); }
-            else { location.replace('/templates/loading.html?redirect=%2Fadmin.html&status=' + encodeURIComponent('正在校验权限…')); }
+            if (window.AuthGuard) { window.AuthGuard.goLoading('/html/admin.html', '正在校验权限…'); }
+            else { location.replace('/templates/loading.html?redirect=%2Fhtml%2Fadmin.html&status=' + encodeURIComponent('正在校验权限…')); }
           });
       })();
     </script>
@@ -204,7 +204,7 @@
       </div>
     </div>
     <div id="footer-slot"></div>
-    <script type="module" src="admin.js"></script>
+    <script type="module" src="/js/admin.js"></script>
     <script>
       // 动态加载公共 footer 模板，并在宿主页面设置年份，确保执行
       (async function(){

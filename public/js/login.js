@@ -58,28 +58,67 @@ async function doLogin(){
   btn.textContent = '正在登录…';
 
   try{
-    const r = await fetch('/api/login', {
+    // 目标页：优先使用登录页上的 redirect 参数
+    const target = (function(){
+      try{ const u=new URL(location.href); const t=(u.searchParams.get('redirect')||'').trim(); return t || '/'; }catch(_){ return '/'; }
+    })();
+    
+    // 等待登录请求完成，提高成功率
+    const response = await fetch('/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: user, password }),
-      keepalive: true
+      body: JSON.stringify({ username: user, password })
     });
-    if (r.ok){
-      await showToast('登录成功','success');
-      // 进入加载页做预取与跳转
-      location.replace('/templates/loading.html?redirect=%2F&status=' + encodeURIComponent('正在检验会话'));
+    
+    if (response.ok) {
+      // 登录成功，直接跳转到目标页面，避免loading页面
+      const result = await response.json();
+      if (result.success) {
+        // 显示成功提示
+        await showToast('登录成功，正在跳转...', 'success');
+        // 延时确保toast显示和cookie设置生效
+        setTimeout(() => {
+          location.replace(target);
+        }, 1200);
+        return;
+      }
+    } else {
+      // 登录失败，显示错误信息
+      const errorText = await response.text();
+      err.textContent = errorText || '登录失败';
+      await showToast(errorText || '登录失败', 'warn');
+      // 恢复按钮状态
+      isSubmitting = false;
+      btn.disabled = false;
+      btn.textContent = original;
       return;
     }
-    const msg = (await r.text()) || '用户名或密码错误';
-    err.textContent = '登录失败：' + msg;
-    await showToast('登录失败：' + msg, 'warn');
+    
+    // 兜底：进入 loading 页面轮询
+    if (window.AuthGuard && window.AuthGuard.goLoading){
+      window.AuthGuard.goLoading(target, '正在登录…', { force: true });
+    }else{
+      location.replace('/templates/loading.html?redirect=' + encodeURIComponent(target) + '&status=' + encodeURIComponent('正在登录…') + '&force=1');
+    }
+    return;
   }catch(e){
-    err.textContent = '网络错误，请稍后重试';
-    await showToast('网络错误，请稍后重试', 'warn');
-  }finally{
+    // 网络错误或其他异常，显示错误并进入 loading
+    err.textContent = '网络错误，请重试';
+    await showToast('网络连接失败，请检查网络后重试', 'warn');
+    // 恢复按钮状态
     isSubmitting = false;
     btn.disabled = false;
     btn.textContent = original;
+    // 仍然进入 loading 作为兜底
+    location.replace('/templates/loading.html?status=' + encodeURIComponent('正在登录…') + '&force=1');
+    return;
+  }finally{
+    // 确保按钮状态恢复（防止某些异常情况）
+    if (isSubmitting) {
+      isSubmitting = false;
+      btn.disabled = false;
+      btn.textContent = original;
+    }
   }
 }
 

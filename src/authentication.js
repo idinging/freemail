@@ -42,8 +42,15 @@ export async function verifyJwt(secret, cookieHeader) {
   }
 }
 
-export function buildSessionCookie(token) {
-  return `${COOKIE_NAME}=${token}; HttpOnly; Secure; Path=/; SameSite=Strict; Max-Age=86400`;
+export function buildSessionCookie(token, reqUrl = '') {
+  try{
+    const u = new URL(reqUrl || 'http://localhost/');
+    const isHttps = (u.protocol === 'https:');
+    const secureFlag = isHttps ? ' Secure;' : '';
+    return `${COOKIE_NAME}=${token}; HttpOnly;${secureFlag} Path=/; SameSite=Strict; Max-Age=86400`;
+  }catch(_){
+    return `${COOKIE_NAME}=${token}; HttpOnly; Path=/; SameSite=Strict; Max-Age=86400`;
+  }
 }
 
 function base64UrlEncode(data) {

@@ -1,0 +1,259 @@
+/* 移动端样式拆分 */
+
+@media (max-width: 900px) {
+  /* 手机端 - 生成与配置重新编排 */
+  body.is-mobile .mailbox-layout{ grid-template-columns: 1fr; gap: 12px; }
+  body.is-mobile .mailbox-display-section{ order:1; }
+  body.is-mobile .mailbox-config-section{ order:2; }
+  body.is-mobile .mailbox-config-section .config-form{ padding: 8px 10px; background: rgba(255,255,255,.6); border-radius: 10px; }
+  body.is-mobile .generate-action{ position: sticky; bottom: 8px; z-index: 10; }
+  /* 卡片与控件紧凑化 */
+  body.is-mobile .card{ padding: 12px; }
+  body.is-mobile .mailbox-config-section .section-header{ margin-bottom: 8px; }
+  body.is-mobile .mailbox-config-section .config-item{ margin: 8px 0; }
+  body.is-mobile .range-container{ gap: 8px; }
+  body.is-mobile .mailbox-actions{ gap: 6px !important; }
+  body.is-mobile .mailbox-actions .btn{ height: 44px; }
+  body.is-mobile .email-display{ padding: 12px; min-height: 64px; }
+  /* 主功能切换条（历史/生成） */
+  body.is-mobile #mobile-main-switch{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 6px 0 10px 0;
+    padding: 6px;
+    background: var(--card-glass);
+    border: 1px solid var(--border-glass);
+    border-radius: 999px;
+    box-shadow: var(--shadow-glass);
+    position: sticky;
+    top: 6px;
+    z-index: 8;
+  }
+  body.is-mobile #mobile-main-switch .seg-btn{ min-width: 110px; padding: 8px 16px; }
+  .container{
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 12px 12px 20px;
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+  .sidebar{ position: relative; top: auto; }
+  /* 历史邮箱内联展示样式 */
+  .sidebar.history-inline{
+    width: 100%;
+    min-width: 0;
+    padding: 12px 12px 14px;
+    border-radius: 14px;
+    box-shadow: var(--shadow-glass);
+  }
+  .sidebar.history-inline .sidebar-header{ margin-bottom: 10px; }
+  .sidebar.history-inline #mb-list .mailbox-item{ border-radius: 12px; }
+  .sidebar.history-inline #mb-more-wrap{ margin-top: 12px; }
+  /* 移动端彻底隐藏历史邮箱折叠按钮 */
+  #mb-toggle{ display:none !important; }
+  /* 列表加载提示不挤压布局：改为绝对定位到标题右侧 */
+  #list-loading{ position: relative; }
+  @media (max-width: 900px){
+    #list-card .listcard-header{ position: relative; }
+    #list-card #list-loading{ position: absolute; right: 52px; top: 50%; transform: translateY(-50%); margin: 0; pointer-events: none; z-index: 1; }
+    #list-card #list-loading span{ display: none; }
+    #m-refresh-icon{ margin-left: 6px; }
+  }
+  .topbar{ padding: 12px 20px; }
+  .brand-text{ display:none; }
+  .nav-actions .btn .btn-text{ display:none; }
+  .nav-actions .btn{ padding-left: 10px; padding-right: 10px; }
+  
+  /* 移动端角色徽章样式调整 */
+  #role-badge{
+    font-size: 0.8rem;
+    padding: 4px 8px;
+    border-radius: 8px;
+    flex-shrink: 0;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .card{ padding: 16px; }
+  .mailbox-layout{ grid-template-columns: 1fr; gap: 24px; }
+  .main{ grid-column: 1; }
+  .mailbox-config-section.collapsed .config-form{ display:none; }
+  .mailbox-config-section .section-header{ cursor: pointer; }
+  .sidebar.list-collapsed #mb-list,
+  .sidebar.list-collapsed #mb-loading,
+  .sidebar.list-collapsed #mb-more-wrap{ display:none; }
+  .sidebar .sidebar-header{ cursor: pointer; }
+  .mailbox-display-section,
+  .mailbox-config-section{ min-height: auto; }
+  .mailbox-actions{ display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px; align-items: stretch; }
+  .mailbox-actions .btn{ width: 100%; height: 48px; }
+  .range-container{ flex-direction: column; align-items: stretch; gap: 12px; }
+  .range-display{ justify-content: center; min-width: auto; }
+  .control-row{ flex-direction: column; align-items: stretch; gap: 12px; }
+  .btn-group{ flex-direction: column; }
+  .email-item .email-actions{ opacity: 1; }
+  
+  /* 移动端邮件列表布局全面重构 */
+  .email-meta{
+    display: grid;
+    grid-template-columns: 1fr 88px;
+    gap: 8px;
+    align-items: start;
+    margin-bottom: 8px;
+  }
+  
+  .email-meta .meta-from{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+  
+  .email-meta .meta-label{
+    font-size: 11px;
+    color: var(--text-light);
+    background: var(--card-glass);
+    border: 1px solid var(--border-glass);
+    border-radius: 12px;
+    padding: 2px 6px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  
+  .email-meta .meta-from-text{
+    color: var(--text);
+    font-weight: 600;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+    max-width: calc(100vw - 148px);
+  }
+  
+  .email-time{
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    font-size: 11px;
+    color: var(--muted2);
+    line-height: 1.1;
+    text-align: right;
+    gap: 1px;
+  }
+  
+  .email-time .time-icon{
+    display: none;
+  }
+  
+  /* 移动端邮件项整体布局优化 */
+  .email-item{
+    display: block;
+    padding: 10px 12px;
+  }
+  
+  .email-content{
+    margin-top: 0;
+  }
+  
+  .email-main{
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .email-line{
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 0;
+    min-height: 20px;
+  }
+  
+  .email-line:last-child{
+    margin-bottom: 0;
+  }
+  
+  /* 统一的标签样式 */
+  .label-chip{
+    font-size: 10px;
+    color: var(--text-light);
+    background: var(--card-glass);
+    border: 1px solid var(--border-glass);
+    border-radius: 10px;
+    padding: 1px 6px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    width: 32px;
+    text-align: center;
+    line-height: 1.4;
+  }
+  
+  /* 统一的内容文本样式 */
+  .value-text{
+    font-size: 13px;
+    line-height: 1.4;
+    min-width: 0;
+    flex: 1;
+  }
+  
+  .subject{
+    font-weight: 600;
+    color: var(--text);
+  }
+  
+  .email-preview{
+    color: var(--text-light);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .modal{ padding: 12px; }
+  .modal-header{ padding: 16px 20px; }
+  .modal-body{ padding: 20px; }
+  .email-meta-card{ padding: 16px; gap: 12px; }
+  .meta-item{ flex-direction: column; align-items: flex-start; gap: 6px; padding: 6px 0; }
+  .meta-label{ font-size: 12px; min-width: auto; }
+  .meta-value{ width: 100%; padding: 8px 12px; }
+  .email-actions-bar{ flex-direction: column; gap: 8px; }
+  .email-actions-bar .btn{ width: 100%; min-width: auto; justify-content: center; }
+  .email-content-text{ padding: 16px; }
+  .code-highlight{ font-size: 18px; padding: 12px 16px; }
+  .mailbox-item.pinned::before{ top: -6px; left: 8px; font-size: 10px; padding: 1px 4px; }
+  .mailbox-actions{ gap: 4px; }
+  .mailbox-item .mailbox-actions .pin,
+  .mailbox-item .mailbox-actions .del{ height: 24px; width: 24px; font-size: 11px; }
+  /* 仅隐藏主侧栏的开关，保留局部开关 */
+  #sidebar-toggle{ display:none; }
+  #config-toggle{ display:inline-flex; width:28px; height:28px; }
+}
+
+/* 二级页操作条（移动端） */
+@media (max-width: 900px){
+  /* 移动端二级页操作条：只保留发送/清空（刷新隐藏成右上角图标） */
+  .mail-actions-mobile{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:8px; margin: 10px 0 6px; position: sticky; top: 6px; z-index: 6; }
+  .mail-actions-mobile .btn{ width:100%; }
+}
+
+/* 横屏优化 */
+@media (max-width: 900px) and (max-height: 480px) and (orientation: landscape) {
+  .topbar{ padding: 8px 12px; }
+  .container{ grid-template-columns: 60px 1fr; gap: 12px; padding: 8px 10px 12px; }
+  .sidebar{ display: block; width: 60px; min-width: 60px; }
+  .container.sidebar-collapsed .sidebar{ width: 60px; min-width: 60px; }
+  .sidebar.collapsed{ width: 60px; }
+  .main{ grid-column: 2; }
+  .card{ padding: 12px; }
+  .mailbox-layout{ grid-template-columns: 1fr 1fr; gap: 12px; }
+  .mailbox-actions .btn{ height: 44px; font-size: 13px; }
+  .email-display{ padding: 12px; font-size: 14px; }
+  .list-viewport{ max-height: calc(100vh - 260px); overflow: auto; }
+}
+
+

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>登录 - 临时邮箱</title>
+    <style>.precheck-hide body{ visibility: hidden; }</style>
+    <script>
+      // 立即检查登录状态（在任何其他脚本之前）
+      (function(){
+        try{
+          var hasToken = document.cookie.split(';').some(function(c){ 
+            return c.trim().indexOf('mailfree-session=') === 0; 
+          });
+          if (hasToken){
+            // 立即重定向，阻止页面渲染
+            location.replace('/');
+            return;
+          }
+          
+          // 即使没有cookie，也做一次网络检查（可能cookie刚设置还没生效）
+          fetch('/api/session', { 
+            method: 'GET', 
+            headers: { 'Cache-Control': 'no-cache' },
+            credentials: 'include'
+          }).then(function(r){
+            if (r && r.ok){
+              location.replace('/');
+            }
+          }).catch(function(){ 
+            // 会话检查失败，保持在登录页面
+          });
+        }catch(_){ 
+          // 错误处理，保持在登录页面
+        }
+      })();
+    </script>
+    <script src="/js/auth-guard.js"></script>
+    <script>
+      // 已登录访问登录页时直接回首页；登出场景跳过检查
+      (function(){
+        try{ document.documentElement.classList.add('precheck-hide'); }catch(_){ }
+        try{
+          var u = new URL(location.href);
+          var fromLogout = (u.searchParams.get('from') === 'logout') || (sessionStorage.getItem('mf:just_logged_out') === '1');
+          if (fromLogout){
+            sessionStorage.removeItem('mf:just_logged_out');
+            document.documentElement.classList.remove('precheck-hide');
+            return;
+          }
+        }catch(_){ }
+        // Cookie检查已在页面顶部执行，这里跳过重复检查
+        // 2) 网络兜底，短超时
+        try{
+          var controller = new AbortController();
+          var tid = setTimeout(function(){ try{ controller.abort(); }catch(_){ } }, 500);
+          fetch('/api/session', { headers: { 'Cache-Control': 'no-cache' }, signal: controller.signal })
+            .then(function(r){
+              clearTimeout(tid);
+              if (r && r.ok){ location.replace('/'); return; }
+              document.documentElement.classList.remove('precheck-hide');
+            })
+            .catch(function(){ try{ document.documentElement.classList.remove('precheck-hide'); }catch(_){ } });
+        }catch(_){ try{ document.documentElement.classList.remove('precheck-hide'); }catch(_){ } }
+        // 最长 1s 兜底显示
+        setTimeout(function(){ try{ document.documentElement.classList.remove('precheck-hide'); }catch(_){ } }, 1000);
+      })();
+    </script>
+    
+    <script src="/js/mock.js"></script>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="shortcut icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/css/login.css" />
+  </head>
+  <body>
+    <div class="bg"></div>
+    <div class="center">
+      <div class="card">
+        <div class="logo">🔐</div>
+        <h1>登录到临时邮箱</h1>
+        <div id="err" class="err"></div>
+        <input id="username" class="input" type="text" placeholder="用户名" />
+        <input id="pwd" class="input" type="password" placeholder="密码" />
+        <div style="font-size:12px;color:#64748b;margin-bottom:8px">
+          账号：guest，密码： admin，将进入观看模式。
+        </div>
+        <button id="login" class="btn">登录</button>
+      </div>
+    </div>
+    <script src="/js/login.js"></script>
+  </body>
+  </html>
+

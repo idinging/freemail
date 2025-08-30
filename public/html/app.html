@@ -1,31 +1,42 @@
 <div class="topbar">
   <div class="brand">
     <span class="brand-icon">📧</span>
-    <span>iDing's临时邮箱</span>
+    <span class="brand-text">iDing's临时邮箱</span>
   </div>
   <div id="role-badge" class="role-badge" title="欢迎用户："></div>
   <div class="nav-actions">
     <a id="repo" class="btn btn-ghost" href="https://github.com/idinging/freemail" target="_blank" rel="noopener noreferrer" title="GitHub 开源仓库">
       <span class="btn-icon">🔗</span>
-      <span>GitHub</span>
+      <span class="btn-text">GitHub</span>
     </a>
     <a id="admin" class="btn btn-ghost" href="/templates/loading.html?redirect=%2Fadmin.html&status=%E6%AD%A3%E5%9C%A8%E6%A0%A1%E9%AA%8C%E6%9D%83%E9%99%90%E2%80%A6" title="用户管理" style="display:none">
       <span class="btn-icon">🛠️</span>
-      <span>用户管理</span>
+      <span class="btn-text">用户管理</span>
     </a>
     <button id="logout" class="btn btn-secondary" title="退出登录">
-      <span>退出登录</span>
+      <span class="btn-icon">🚪</span>
+      <span class="btn-text">退出登录</span>
     </button>
   </div>
   </div>
   <div class="toast" id="toast"></div>
   <div class="container">
     <div class="sidebar">
-      <h3>
-        <span class="sidebar-icon">📨</span>
-        历史邮箱
-        <span id="quota" style="float:right;font-size:14px;color:#64748b"></span>
-      </h3>
+      <div class="sidebar-header">
+        <h3>
+          <span class="sidebar-icon">📨</span>
+          <span class="sidebar-title">历史邮箱</span>
+        </h3>
+        <div class="sidebar-header-actions">
+          <span id="quota" class="quota-display"></span>
+          <button id="sidebar-toggle" class="sidebar-toggle-btn" title="收起侧板">
+            <span id="sidebar-toggle-icon">◀</span>
+          </button>
+          <button id="mb-toggle" class="sidebar-toggle-btn" title="展开/收起历史邮箱">
+            <span id="mb-toggle-icon">▾</span>
+          </button>
+        </div>
+      </div>
       <div id="mb-list"></div>
       <div id="mb-loading" style="margin-top:12px"></div>
       <div id="mb-more-wrap" style="margin-top:16px;text-align:center;display:none">
@@ -82,6 +93,9 @@
             <div class="section-header">
               <span class="section-icon">⚙️</span>
               <span class="section-title">邮箱配置</span>
+              <button id="config-toggle" class="sidebar-toggle-btn" title="展开/收起配置">
+                <span id="config-toggle-icon">▾</span>
+              </button>
             </div>
             <div class="config-form">
               <div class="config-item">
@@ -125,12 +139,19 @@
             <button id="tab-inbox" class="seg-btn" aria-pressed="true">收件箱</button>
             <button id="tab-sent" class="seg-btn" aria-pressed="false">发件箱</button>
           </div>
-          <div id="list-loading" class="loading-indicator">
+          <div id="list-loading" class="loading-indicator" style="pointer-events:none" role="status" aria-live="polite">
             <div class="spinner"></div>
             <span>加载中…</span>
           </div>
         </div>
-        <div id="list" class="list"></div>
+        <div class="list-viewport" style="position:relative;contain:layout paint;isolation:isolate;">
+          <div id="list" class="list"></div>
+          <div id="list-pager" class="pager" style="display:none">
+            <button id="prev-page" class="btn btn-ghost btn-sm">上一页</button>
+            <span id="page-info" class="muted" style="min-width:100px;text-align:center"></span>
+            <button id="next-page" class="btn btn-ghost btn-sm">下一页</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>

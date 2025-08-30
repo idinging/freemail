@@ -117,7 +117,7 @@ function openAdminConfirm(message, onOk){
 
 async function api(path, options){
   const r = await fetch(path, options);
-  if (r.status === 401){ location.replace('/login.html'); throw new Error('unauthorized'); }
+  if (r.status === 401){ location.replace('/html/login.html'); throw new Error('unauthorized'); }
   return r;
 }
 
@@ -313,7 +313,7 @@ els.back.onclick = () => { location.replace('/templates/loading.html?redirect=%2
 els.logout.onclick = async () => { 
   try{ fetch('/api/logout', { method:'POST', keepalive: true }); }catch{}
   try{ sessionStorage.setItem('mf:just_logged_out', '1'); }catch(_){ }
-  location.replace('/login.html?from=logout');
+  location.replace('/html/login.html?from=logout');
 };
 
 // 加载

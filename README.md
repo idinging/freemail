@@ -1,6 +1,6 @@
 # 临时邮箱 Cloudflare Worker（模块化结构）
 
-当前状态：V3 用户体系与管理后台改版 
+当前状态：V3.5 性能优化以及手机端专门适配 
 
 一个基于 Cloudflare Workers 和 D1 数据库的临时邮箱服务。
 
@@ -15,8 +15,13 @@
 ![登陆页面](pic/dlu.png)
 #### 首页
 ![首页展示](pic/shouye.png)
-#### 用户管理页面
-![用户管理-首页](pic/v3/yonghuguanli.png)
+
+### 手机端生成与历史
+<div style="display: flex; gap: 20px; justify-content: center; margin: 20px 0;">
+  <img src="./pic/phone/shouye.png" alt="手机端生成邮箱" style="height: 400px;" />
+  <img src="./pic/phone/lishi.png" alt="手机端历史邮箱" style="height: 400px;" />
+</div>
+
 #### [更多展示点击查看](docs/zhanshi.md)
 
 ## 功能特性
@@ -74,7 +79,7 @@
 - [X] 新增登录系统与三层权限：超级管理员（Strict Admin）/ 高级用户（Admin）/ 普通用户（User）。
 - [X] 默认严格管理员用户名来自 `ADMIN_NAME`（默认 `admin`），密码来自 `ADMIN_PASSWORD`。
 #### 管理后台（用户管理）
-- [X] 入口：登录后右上角“用户管理”（严格管理员和演示模式默认显示）。
+- [X] 入口：登录后右上角"用户管理"（严格管理员和演示模式默认显示）。
 - [X] 查看用户列表（用户名、角色、是否可发件、邮箱上限/已用、创建时间）。
 - [X] 查看某个用户的邮箱列表。
 - [X] 创建用户（用户名/密码/角色）。
@@ -90,6 +95,21 @@
 - [X] 前端路由守卫 `public/route-guard.js`：
   - [X] `RouteGuard.goLoading(target)` 可显式跳到加载页并指定回落目标；
   - [X] 对非法路径在服务端 302 到加载页，由前端依据会话再落到首页/登录。
+
+### V3.5
+
+#### 性能优化
+- [X] **极大提升响应速度**：优化数据库查询效率，减少延迟，显著改善用户体验
+- [X] **前端资源优化**：减少静态资源加载时间，提升页面渲染速度
+
+#### 存储增强
+- [X] **R2 存储原邮件**：新增 Cloudflare R2 对象存储支持，用于保存邮件原始内容
+- [X] **混合存储策略**：D1 数据库存储邮件元数据，R2 存储完整邮件内容，优化存储成本
+
+#### 移动端适配
+- [X] **手机端完美适配**：全面优化移动设备体验，响应式设计更加流畅
+- [X] **移动端专属界面**：针对手机屏幕优化的界面布局和交互方式
+- [X] **触控优化**：优化触屏操作体验，支持手势操作
 ## API 文档
 
 完整接口说明已迁移至独立文档，包含登录认证、邮箱与邮件、发件（Resend）以及“用户管理”相关接口。
@@ -122,17 +142,31 @@ wrangler login
 wrangler d1 create temp-mail-db
 ```
 
-### 2. 配置 wrangler.toml（已改为模块化入口）
+### 2. 创建 R2 存储桶（用于保存邮件原文）
+
+```bash
+# 创建 R2 存储桶（用于存储完整的 EML 邮件文件）
+wrangler r2 bucket create mail-eml
+```
+
+### 3. 配置 wrangler.toml（已改为模块化入口）
 
 复制返回的数据库 ID，更新 `wrangler.toml` 文件：
 
 ```toml
 main = "src/server.js"
 
+# D1 数据库绑定
 [[d1_databases]]
 binding = "TEMP_MAIL_DB"
 database_name = "temp-mail-db"
 database_id = "你的数据库ID"
+
+# R2 存储桶绑定（用于保存完整 EML 内容）
+[[r2_buckets]]
+binding = "MAIL_EML"
+bucket_name = "你的R2存储桶名称"
+
 # 环境变量
 [vars]
 MAIL_DOMAIN = "你的域名.com，域名2.cn" #可以多个 以英文逗号分隔
@@ -142,7 +176,7 @@ JWT_TOKEN = "token" # 随便一串字符串
 # RESEND_API_KEY  # 发送邮件需要配置
 ```
 
-### 3. 本地与线上部署（推荐 wrangler）
+### 4. 本地与线上部署（推荐 wrangler）
 
 1) 本地开发
 ```bash
@@ -169,14 +203,14 @@ wrangler deploy
 - 如果使用 Git 集成而非 wrangler deploy，请在 Dashboard → Workers → Settings → Variables 中手动配置上述变量
 - `[assets]` 已指向 `public/`，静态页面由 Workers + Assets 提供
 
-### 3.5 初始化 D1 表结构（首次部署）
+### 4.5 初始化 D1 表结构（首次部署）
 只要绑定了d1 默认可以自行创建，如果不能自动创建再手动创建
 ```bash
 # 方式一：表结构
 wrangler d1 execute TEMP_MAIL_DB --file=./d1-init-basic.sql
 ```
 
-### 4. 配置邮件路由（必需用于收取真实邮件）
+### 5. 配置邮件路由（必需用于收取真实邮件）
 
 如果需要接收真实邮件，需要在 Cloudflare 控制台配置邮件路由：
 
@@ -184,7 +218,7 @@ wrangler d1 execute TEMP_MAIL_DB --file=./d1-init-basic.sql
 2. 添加 Catch-all 规则
 3. 目标设置为 Worker: `temp-mail-worker`
 
-### 5. 设置自定义域名（可选）
+### 6. 设置自定义域名（可选）
 
 在 Worker 设置中添加自定义域名，或使用 workers.dev 子域名。
 
@@ -193,6 +227,7 @@ wrangler d1 execute TEMP_MAIL_DB --file=./d1-init-basic.sql
 | 变量名 | 说明 | 必需 |
 |--------|------|------|
 | TEMP_MAIL_DB | D1 数据库绑定 | 是 |
+| MAIL_EML | R2 存储桶绑定，用于保存完整的邮件 EML 文件 | 是 |
 | MAIL_DOMAIN | 用于生成临时邮箱的域名，支持多个，使用逗号或空格分隔（如 `iding.asia, example.com`） | 是 |
 | ADMIN_PASSWORD | 后台访问密码（严格管理员登录） | 是 |
 | ADMIN_NAME | 严格管理员用户名（默认 `admin`） | 否 |
@@ -220,6 +255,7 @@ wrangler d1 execute TEMP_MAIL_DB --file=./d1-init-basic.sql
 - **静态资源缓存**：Workers + Assets 对静态文件可能有缓存。更新 `index.html` 后如未生效，请在 Cloudflare 控制台进行 `Purge Everything`，并在浏览器执行强制刷新（Ctrl/Cmd+F5）。
 - **图标路径**：favicon 建议使用相对路径（例如 `favicon.svg`），避免挂在子路径时 404。
 - **邮件路由**：若需接收真实邮件，请正确配置 Cloudflare Email Routing（MX 记录、Catch‑all → 绑定到 Worker）。
+- **R2 存储**：R2 用于保存完整的邮件 EML 文件，支持邮件下载功能。R2 有免费额度限制，建议定期清理过期邮件。
 - **数据库与费用**：D1 有免费额度限制；建议定期清理过期邮件以节省存储空间与额度。
 - **安全**：务必在生产环境修改 `ADMIN_PASSWORD`、`JWT_TOKEN`，并限制仓库/项目的敏感信息暴露。
 

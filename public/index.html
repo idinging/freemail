@@ -6,31 +6,134 @@
     <title>临时邮箱</title>
     <!-- 运行时注入域名列表（从 env.MAIL_DOMAIN 解析），用于前端域名选择 -->
     <meta name="mail-domains" content="">
-    <link rel="preload" href="/templates/app.html" as="fetch" crossorigin>
+    <link rel="preload" href="/html/app.html" as="fetch" crossorigin>
     <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="shortcut icon" href="favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="app.css" />
-    <script src="/mock.js"></script>
-    <script src="/route-guard.js"></script>
+    <link rel="stylesheet" href="/css/app.css" />
+    <link rel="stylesheet" href="/css/app-mobile.css" media="(max-width: 900px)" />
+    <script src="/js/mock.js"></script>
+    <script src="/js/auth-guard.js"></script>
+    <script src="/js/app-router.js" defer></script>
   </head>
   <body>
     <div id="app"></div>
     <script>
-      // 防止页面泄露 + 平滑首屏：如果不是通过认证页进入，重定向到 loading 模板
+      // 改进的路由守卫逻辑：优先使用 loading 页面进行权限检查，避免登录页闪屏
       (function() {
-        if (!sessionStorage.getItem('auth_checked')) {
-          window.RouteGuard ? window.RouteGuard.goLoading('/', '正在校验会话…') : window.location.replace('/templates/loading.html?status=' + encodeURIComponent('正在校验会话…'));
-          return;
+        try{
+          // 检查是否是从其他页面导航过来（非地址栏直接访问）
+          var isDirectAccess = !document.referrer || window.history.length <= 1;
+          
+          // 检查近期认证标记（10秒内）- 延长时间窗口以减少重复检查
+          var ts = 0; 
+          try{ ts = Number(sessionStorage.getItem('auth_checked_ts') || '0'); }catch(_){ }
+          var recentlyChecked = ts && (Date.now() - ts) < 10000;
+          
+          // 如果最近已验证过，直接加载应用
+          if (recentlyChecked && !isDirectAccess){
+            var s1 = document.createElement('script'); 
+            s1.type='module'; 
+            s1.src='/js/app.js'; 
+            document.body.appendChild(s1);
+            try{ 
+              if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches){ 
+                var sm1=document.createElement('script'); 
+                sm1.type='module'; 
+                sm1.src='/js/app-mobile.js'; 
+                document.body.appendChild(sm1); 
+              } 
+            }catch(_){ }
+            return;
+          }
+          
+          // 地址栏直接访问或长时间未验证：通过 loading 页面进行权限检查
+          if (isDirectAccess){
+            // 显示 loading 界面，同时进行权限检查
+            var loadingDiv = document.createElement('div');
+            loadingDiv.innerHTML = '<div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#f8fafc;z-index:9999"><div style="text-align:center"><div style="font-size:3rem;margin-bottom:1rem">📧</div><div style="width:40px;height:40px;border:3px solid rgba(59,130,246,0.2);border-top:3px solid #3b82f6;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto"></div><style>@keyframes spin{to{transform:rotate(360deg)}}</style></div></div>';
+            document.body.appendChild(loadingDiv);
+            
+            // 并行进行权限检查
+            const controller = new AbortController();
+            const tid = setTimeout(function(){ try{ controller.abort(); }catch(_){ } }, 1200);
+            fetch('/api/session', { 
+              headers: { 'Cache-Control': 'no-cache' }, 
+              signal: controller.signal,
+              credentials: 'include'
+            })
+              .then(function(r){
+                clearTimeout(tid);
+                if (r && r.ok){
+                  try{ 
+                    sessionStorage.setItem('auth_checked','true'); 
+                    sessionStorage.setItem('auth_checked_ts', String(Date.now())); 
+                  }catch(_){ }
+                  // 移除 loading 界面
+                  if (loadingDiv) loadingDiv.remove();
+                  // 加载应用
+                  var s = document.createElement('script');
+                  s.type = 'module';
+                  s.src = '/js/app.js';
+                  document.body.appendChild(s);
+                  try{ 
+                    if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches){ 
+                      var sm=document.createElement('script'); 
+                      sm.type='module'; 
+                      sm.src='/js/app-mobile.js'; 
+                      document.body.appendChild(sm);
+                    } 
+                  }catch(_){ }
+                } else {
+                  // 跳转到 loading 页面进行更完整的权限检查
+                  window.location.replace('/templates/loading.html?redirect=/');
+                }
+              })
+              .catch(function(){ 
+                // 网络错误时跳转到 loading 页面
+                window.location.replace('/templates/loading.html?redirect=/');
+              });
+          } else {
+            // 非直接访问：快速权限检查
+            const controller = new AbortController();
+            const tid = setTimeout(function(){ try{ controller.abort(); }catch(_){ } }, 800);
+            fetch('/api/session', { 
+              headers: { 'Cache-Control': 'no-cache' }, 
+              signal: controller.signal,
+              credentials: 'include'
+            })
+              .then(function(r){
+                clearTimeout(tid);
+                if (r && r.ok){
+                  try{ 
+                    sessionStorage.setItem('auth_checked','true'); 
+                    sessionStorage.setItem('auth_checked_ts', String(Date.now())); 
+                  }catch(_){ }
+                  var s = document.createElement('script');
+                  s.type = 'module';
+                  s.src = '/js/app.js';
+                  document.body.appendChild(s);
+                  try{ 
+                    if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches){ 
+                      var sm=document.createElement('script'); 
+                      sm.type='module'; 
+                      sm.src='/js/app-mobile.js'; 
+                      document.body.appendChild(sm);
+                    } 
+                  }catch(_){ }
+                } else {
+                  window.location.replace('/html/login.html');
+                }
+              })
+              .catch(function(){ 
+                window.location.replace('/html/login.html'); 
+              });
+          }
+        }catch(_){ 
+          window.location.replace('/templates/loading.html?redirect=/'); 
         }
-        sessionStorage.removeItem('auth_checked');
-        // 通过认证页进入后再加载主应用，避免首屏闪现
-        var s = document.createElement('script');
-        s.type = 'module';
-        s.src = 'app.js';
-        document.body.appendChild(s);
       })();
     </script>
   </body>

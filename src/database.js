@@ -5,10 +5,16 @@ export async function initDatabase(db) {
     await db.exec("CREATE TABLE IF NOT EXISTS mailboxes (id INTEGER PRIMARY KEY AUTOINCREMENT, address TEXT NOT NULL UNIQUE, local_part TEXT NOT NULL, domain TEXT NOT NULL, created_at TEXT DEFAULT CURRENT_TIMESTAMP, last_accessed_at TEXT, expires_at TEXT, is_pinned INTEGER DEFAULT 0);");
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_mailboxes_address ON mailboxes(address);`);
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_mailboxes_is_pinned ON mailboxes(is_pinned DESC);`);
+    // 复合索引：按地址 + 创建时间，优化历史邮箱倒序
+    await db.exec(`CREATE INDEX IF NOT EXISTS idx_mailboxes_address_created ON mailboxes(address, created_at DESC);`);
 
-    await db.exec("CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, mailbox_id INTEGER NOT NULL, sender TEXT NOT NULL, subject TEXT NOT NULL, content TEXT NOT NULL, html_content TEXT, received_at TEXT DEFAULT CURRENT_TIMESTAMP, is_read INTEGER DEFAULT 0, FOREIGN KEY(mailbox_id) REFERENCES mailboxes(id));");
+    await db.exec("CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, mailbox_id INTEGER NOT NULL, sender TEXT NOT NULL, to_addrs TEXT NOT NULL, subject TEXT NOT NULL, verification_code TEXT, preview TEXT, r2_bucket TEXT NOT NULL DEFAULT 'mail-eml', r2_object_key TEXT NOT NULL, received_at TEXT DEFAULT CURRENT_TIMESTAMP, is_read INTEGER DEFAULT 0, FOREIGN KEY(mailbox_id) REFERENCES mailboxes(id));");
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_messages_mailbox_id ON messages(mailbox_id);`);
     await db.exec(`CREATE INDEX IF NOT EXISTS idx_messages_received_at ON messages(received_at DESC);`);
+    await db.exec(`CREATE INDEX IF NOT EXISTS idx_messages_r2_object_key ON messages(r2_object_key);`);
+    // 复合索引：常见筛选路径
+    await db.exec(`CREATE INDEX IF NOT EXISTS idx_messages_mailbox_received ON messages(mailbox_id, received_at DESC);`);
+    await db.exec(`CREATE INDEX IF NOT EXISTS idx_messages_mailbox_received_read ON messages(mailbox_id, received_at DESC, is_read);`);
 
     // 用户与授权关系表
     await ensureUsersTables(db);
@@ -16,7 +22,7 @@ export async function initDatabase(db) {
     // 发送记录表：用于记录通过 Resend 发出的邮件与状态
     await ensureSentEmailsTable(db);
 
-    // 兼容迁移：若存在旧表 emails 且新表 messages 为空，则尝试迁移数据
+    // 兼容迁移：若存在旧表 emails 且新表 messages 为空，则尝试迁移数据（不回填 R2，仅生成 preview）
     const legacy = await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='emails'").all();
     const mc = await db.prepare('SELECT COUNT(1) as c FROM messages').all();
     const msgCount = Array.isArray(mc?.results) && mc.results.length ? mc.results[0].c : 0;
@@ -26,9 +32,12 @@ export async function initDatabase(db) {
       if (rows && rows.length) {
         for (const r of rows) {
           const mailboxId = await getOrCreateMailboxId(db, r.mailbox);
-          await db.prepare(`INSERT INTO messages (mailbox_id, sender, subject, content, html_content, received_at, is_read)
-            VALUES (?, ?, ?, ?, ?, ?, ?)`)
-            .bind(mailboxId, r.sender, r.subject, r.content, r.html_content || null, r.received_at || null, r.is_read || 0)
+          const preview = (r.content && String(r.content).trim())
+            ? String(r.content).slice(0, 120)
+            : String(r.html_content || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 120);
+          await db.prepare(`INSERT INTO messages (mailbox_id, sender, to_addrs, subject, verification_code, preview, r2_bucket, r2_object_key, received_at, is_read)
+            VALUES (?, ?, '', ?, NULL, ?, 'mail-eml', '', ?, ?)`)
+            .bind(mailboxId, r.sender, r.subject, preview || '', r.received_at || null, r.is_read || 0)
             .run();
         }
       }
@@ -42,6 +51,18 @@ export async function initDatabase(db) {
         await db.exec('ALTER TABLE mailboxes ADD COLUMN is_pinned INTEGER DEFAULT 0');
         await db.exec('CREATE INDEX IF NOT EXISTS idx_mailboxes_is_pinned ON mailboxes(is_pinned DESC)');
       }
+    } catch (_) {}
+
+    // 迁移：messages 缺失新列时追加
+    try {
+      const info = await db.prepare("PRAGMA table_info(messages)").all();
+      const cols = (info?.results || []).map(r => (r.name || r?.['name']));
+      if (!cols.includes('to_addrs')) await db.exec("ALTER TABLE messages ADD COLUMN to_addrs TEXT NOT NULL DEFAULT ''");
+      if (!cols.includes('verification_code')) await db.exec("ALTER TABLE messages ADD COLUMN verification_code TEXT");
+      if (!cols.includes('preview')) await db.exec("ALTER TABLE messages ADD COLUMN preview TEXT");
+      if (!cols.includes('r2_bucket')) await db.exec("ALTER TABLE messages ADD COLUMN r2_bucket TEXT NOT NULL DEFAULT 'mail-eml'");
+      if (!cols.includes('r2_object_key')) await db.exec("ALTER TABLE messages ADD COLUMN r2_object_key TEXT NOT NULL DEFAULT ''");
+      await db.exec('CREATE INDEX IF NOT EXISTS idx_messages_r2_object_key ON messages(r2_object_key)');
     } catch (_) {}
   } catch (error) {
     console.error('数据库初始化失败:', error);
@@ -114,16 +135,16 @@ export async function recordSentEmail(db, { resendId, fromName, from, to, subjec
   const toAddrs = Array.isArray(to) ? to.join(',') : String(to || '');
   try{
     await db.prepare(`
-      INSERT INTO sent_emails (resend_id, from_name, from_addr, to_addrs, subject, html_content, text_content, status, scheduled_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO sent_emails (resend_id, from_name, from_addr, to_addrs, subject, verification_code, preview, r2_bucket, r2_object_key, html_content, text_content, status, scheduled_at)
+      VALUES (?, ?, ?, ?, ?, NULL, NULL, 'mail-eml', NULL, ?, ?, ?, ?)
     `).bind(resendId || null, fromName || null, from, toAddrs, subject, html || null, text || null, status, scheduledAt || null).run();
   } catch (e) {
     // 如果表不存在，尝试即时创建并重试一次
     if ((e?.message || '').toLowerCase().includes('no such table: sent_emails')){
       try { await ensureSentEmailsTable(db); } catch(_){}
       await db.prepare(`
-        INSERT INTO sent_emails (resend_id, from_name, from_addr, to_addrs, subject, html_content, text_content, status, scheduled_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO sent_emails (resend_id, from_name, from_addr, to_addrs, subject, verification_code, preview, r2_bucket, r2_object_key, html_content, text_content, status, scheduled_at)
+        VALUES (?, ?, ?, ?, ?, NULL, NULL, 'mail-eml', NULL, ?, ?, ?, ?)
       `).bind(resendId || null, fromName || null, from, toAddrs, subject, html || null, text || null, status, scheduledAt || null).run();
       return;
     }
@@ -166,6 +187,8 @@ export async function ensureSentEmailsTable(db){
   ')';
   await db.exec(createSql);
   await db.exec('CREATE INDEX IF NOT EXISTS idx_sent_emails_resend_id ON sent_emails(resend_id)');
+  await db.exec('CREATE INDEX IF NOT EXISTS idx_sent_emails_status_created ON sent_emails(status, created_at DESC)');
+  await db.exec('CREATE INDEX IF NOT EXISTS idx_sent_emails_from_addr ON sent_emails(from_addr)');
   // 迁移：若缺少 from_name 列，尝试增加
   try {
     const res = await db.prepare("PRAGMA table_info(sent_emails)").all();
@@ -216,6 +239,8 @@ export async function ensureUsersTables(db){
   );
   await db.exec('CREATE INDEX IF NOT EXISTS idx_user_mailboxes_user ON user_mailboxes(user_id)');
   await db.exec('CREATE INDEX IF NOT EXISTS idx_user_mailboxes_mailbox ON user_mailboxes(mailbox_id)');
+  await db.exec('CREATE INDEX IF NOT EXISTS idx_user_mailboxes_user_pinned ON user_mailboxes(user_id, is_pinned DESC)');
+  await db.exec('CREATE INDEX IF NOT EXISTS idx_user_mailboxes_composite ON user_mailboxes(user_id, mailbox_id, is_pinned)');
 
   // 迁移：若缺少 is_pinned 列，则添加
   try {

@@ -20,9 +20,12 @@ CREATE TABLE IF NOT EXISTS messages (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   mailbox_id INTEGER NOT NULL,
   sender TEXT NOT NULL,
+  to_addrs TEXT NOT NULL,
   subject TEXT NOT NULL,
-  content TEXT NOT NULL,
-  html_content TEXT,
+  verification_code TEXT,
+  preview TEXT,
+  r2_bucket TEXT NOT NULL DEFAULT 'mail-eml',
+  r2_object_key TEXT NOT NULL,
   received_at TEXT DEFAULT CURRENT_TIMESTAMP,
   is_read INTEGER DEFAULT 0,
   FOREIGN KEY(mailbox_id) REFERENCES mailboxes(id)
@@ -30,6 +33,7 @@ CREATE TABLE IF NOT EXISTS messages (
 
 CREATE INDEX IF NOT EXISTS idx_messages_mailbox_id ON messages(mailbox_id);
 CREATE INDEX IF NOT EXISTS idx_messages_received_at ON messages(received_at DESC);
+CREATE INDEX IF NOT EXISTS idx_messages_r2_object_key ON messages(r2_object_key);
 
 -- 发送记录表：sent_emails
 CREATE TABLE IF NOT EXISTS sent_emails (
@@ -38,6 +42,10 @@ CREATE TABLE IF NOT EXISTS sent_emails (
   from_addr TEXT NOT NULL,
   to_addrs TEXT NOT NULL,
   subject TEXT NOT NULL,
+  verification_code TEXT,
+  preview TEXT,
+  r2_bucket TEXT NOT NULL DEFAULT 'mail-eml',
+  r2_object_key TEXT,
   html_content TEXT,
   text_content TEXT,
   status TEXT DEFAULT 'queued',
@@ -46,6 +54,7 @@ CREATE TABLE IF NOT EXISTS sent_emails (
   updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_sent_emails_resend_id ON sent_emails(resend_id);
+CREATE INDEX IF NOT EXISTS idx_sent_emails_r2_object_key ON sent_emails(r2_object_key);
 
 
 -- 用户与授权表

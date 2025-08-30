@@ -32,6 +32,10 @@ function parseEntity(headers, body) {
     for (const part of parts) {
       const { headers: ph, body: pb } = splitHeadersAndBody(part);
       const pct = (ph['content-type'] || '').toLowerCase();
+      // 对转发/嵌套邮件的更强兼容：
+      // 1) message/rfc822（完整原始邮件作为 part）
+      // 2) text/rfc822-headers（仅头部）后常跟随一个 text/html 或 text/plain 部分
+      // 3) 某些服务会将原始邮件整体放在 text/plain/base64 中，里面再包含 HTML 片段
       if (pct.startsWith('multipart/')) {
         const nested = parseEntity(ph, pb);
         if (!html && nested.html) html = nested.html;
@@ -40,6 +44,9 @@ function parseEntity(headers, body) {
         const nested = parseEmailBody(pb);
         if (!html && nested.html) html = nested.html;
         if (!text && nested.text) text = nested.text;
+      } else if (pct.includes('rfc822-headers')) {
+        // 跳过纯头部，尝试在后续 part 中抓取正文
+        continue;
       } else {
         const res = parseEntity(ph, pb);
         if (!html && res.html) html = res.html;
@@ -53,6 +60,10 @@ function parseEntity(headers, body) {
   if (!html) {
     // 尝试从各 part 的原始体里猜测 HTML（有些邮件未正确声明 content-type）
     html = guessHtmlFromRaw(body);
+    // 如果仍为空，且 text 存在 HTML 痕迹（如标签密集），尝试容错解析
+    if (!html && /<\w+[\s\S]*?>[\s\S]*<\/\w+>/.test(body || '')){
+      html = body;
+    }
   }
   // 如果还没有 html，但有 text，用简单换行转 <br> 的方式提供可读 html
   if (!html && text) {
@@ -205,5 +216,99 @@ function escapeHtml(s){
 
 function textToHtml(text){
   return `<div style="white-space:pre-wrap">${escapeHtml(text)}</div>`;
+}
+
+// 将 HTML 粗略转为可检索纯文本（去标签/脚本/样式，并处理常见实体）
+function stripHtml(html){
+  const s = String(html || '');
+  return s
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&#(\d+);/g, (_, n) => {
+      try{ return String.fromCharCode(parseInt(n, 10)); }catch(_){ return ' '; }
+    })
+    .replace(/&[a-z]+;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// 更智能地从主题/文本/HTML 中提取验证码（4-8 位），支持空格/连字符分隔
+export function extractVerificationCode({ subject = '', text = '', html = '' } = {}){
+  const subjectText = String(subject || '');
+  const textBody = String(text || '');
+  const htmlBody = stripHtml(html);
+
+  const sources = {
+    subject: subjectText,
+    body: `${textBody} ${htmlBody}`.trim()
+  };
+
+  // 允许的数字长度范围
+  const minLen = 4;
+  const maxLen = 8;
+
+  // 将匹配结果中的分隔去掉，仅保留数字并校验长度
+  function normalizeDigits(s){
+    const digits = String(s || '').replace(/\D+/g, '');
+    if (digits.length >= minLen && digits.length <= maxLen) return digits;
+    return '';
+  }
+
+  // 关键词（多语言，非捕获）
+  const kw = '(?:verification|one[-\s]?time|two[-\s]?factor|2fa|security|auth|login|confirm|code|otp|验证码|校验码|驗證碼|確認碼|認證碼|認証コード|인증코드|코드)';
+  // 代码片段：4-8 位数字，允许以常见分隔符分隔（空格、NBSP、短/长破折号、点号、中点、引号等）
+  const sepClass = "[\\u00A0\\s\-–—_.·•∙‧'’]";
+  const codeChunk = `([0-9](?:${sepClass}?[0-9]){3,7})`;
+
+  // 优先 1：subject 中 关键词 邻近 代码（双向）
+  const subjectOrdereds = [
+    new RegExp(`${kw}[^\n\r\d]{0,20}(?<!\\d)${codeChunk}(?!\\d)`, 'i'),
+    new RegExp(`(?<!\\d)${codeChunk}(?!\\d)[^\n\r\d]{0,20}${kw}`, 'i'),
+  ];
+  for (const r of subjectOrdereds){
+    const m = sources.subject.match(r);
+    if (m && m[1]){
+      const n = normalizeDigits(m[1]);
+      if (n) return n;
+    }
+  }
+
+  // 优先 2：正文中 关键词 邻近 代码（双向）
+  const bodyOrdereds = [
+    new RegExp(`${kw}[^\n\r\d]{0,30}(?<!\\d)${codeChunk}(?!\\d)`, 'i'),
+    new RegExp(`(?<!\\d)${codeChunk}(?!\\d)[^\n\r\d]{0,30}${kw}`, 'i'),
+  ];
+  for (const r of bodyOrdereds){
+    const m = sources.body.match(r);
+    if (m && m[1]){
+      const n = normalizeDigits(m[1]);
+      if (n) return n;
+    }
+  }
+
+  // 兜底 1：正文里的分隔/连续数字（优先正文，避免主题中的无关数字抢占）
+  {
+    // 添加数字边界，避免从更长数字尾部截取；放宽分隔符范围
+    const r = new RegExp(`(?<!\\d)([0-9](?:${sepClass}?[0-9]){3,7})(?!\\d)`);
+    const m = sources.body.match(r);
+    if (m){
+      const n = normalizeDigits(m[1]);
+      if (n) return n;
+    }
+  }
+
+  // 兜底 2：subject 里的孤立 4-8 位数字（最后再考虑）
+  {
+    const r = /(?<!\d)(\d{4,8})(?!\d)/;
+    const m = sources.subject.match(r);
+    if (m){
+      const n = normalizeDigits(m[1]);
+      if (n) return n;
+    }
+  }
+
+  return '';
 }
 
