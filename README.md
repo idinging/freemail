@@ -112,6 +112,15 @@
 - [X] **触控优化**：优化触屏操作体验，支持手势操作
 ## API 文档
 
+### 根管理员令牌（Root Admin Override）
+
+- 当请求携带与 `wrangler.toml` 配置项 `JWT_TOKEN` 相同的令牌时，将被视为最高管理员（strictAdmin）。
+- 支持三种携带方式（任一即可）：
+  - Authorization 头：`Authorization: Bearer <JWT_TOKEN>`
+  - 自定义头：`X-Admin-Token: <JWT_TOKEN>`
+  - URL 查询参数：`?admin_token=<JWT_TOKEN>`
+- 适用范围：所有 `/api/*` 接口、`/api/session`、`/receive` 以及管理页访问判定。
+
 完整接口说明已迁移至独立文档，包含登录认证、邮箱与邮件、发件（Resend）以及“用户管理”相关接口。
 
 - 查看文档：[`docs/api.md`](docs/api.md)

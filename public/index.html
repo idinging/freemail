@@ -15,6 +15,10 @@
     <link rel="stylesheet" href="/css/app.css" />
     <link rel="stylesheet" href="/css/app-mobile.css" media="(max-width: 900px)" />
     <script src="/js/mock.js"></script>
+    <!-- 提前内联保存 hash，保证最早阶段即可保留路由信息 -->
+    <script>
+      try{ if (location.hash){ sessionStorage.setItem('mf:preservedHash', location.hash); } }catch(_){ }
+    </script>
     <script src="/js/auth-guard.js"></script>
     <script src="/js/app-router.js" defer></script>
   </head>
@@ -49,8 +53,35 @@
             return;
           }
           
-          // 地址栏直接访问或长时间未验证：通过 loading 页面进行权限检查
+          // 地址栏直接访问或长时间未验证：先尝试快速判断是否已有登录 Cookie
           if (isDirectAccess){
+            try{
+              var hasCookie = document.cookie.split(';').some(function(c){ return c.trim().indexOf('mailfree-session=') === 0; });
+              if (hasCookie){
+                // 已有登录 Cookie：直接加载应用并并行做一次后台校验，避免先进入首页再跳转
+                var s = document.createElement('script');
+                s.type='module';
+                s.src='/js/app.js';
+                document.body.appendChild(s);
+                try{ 
+                  if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches){ 
+                    var sm=document.createElement('script'); 
+                    sm.type='module'; 
+                    sm.src='/js/app-mobile.js'; 
+                    document.body.appendChild(sm);
+                  } 
+                }catch(_){ }
+                // 后台快速校验，失败再回登录
+                (function(){
+                  const controller = new AbortController();
+                  const tid = setTimeout(function(){ try{ controller.abort(); }catch(_){ } }, 1200);
+                  fetch('/api/session', { headers:{'Cache-Control':'no-cache'}, signal: controller.signal, credentials: 'include' })
+                    .then(function(r){ clearTimeout(tid); if (r && r.ok){ try{ sessionStorage.setItem('auth_checked','true'); sessionStorage.setItem('auth_checked_ts', String(Date.now())); }catch(_){ } } else { window.location.replace('/html/login.html'); } })
+                    .catch(function(){ window.location.replace('/html/login.html'); });
+                })();
+                return;
+              }
+            }catch(_){ }
             // 显示 loading 界面，同时进行权限检查
             var loadingDiv = document.createElement('div');
             loadingDiv.innerHTML = '<div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#f8fafc;z-index:9999"><div style="text-align:center"><div style="font-size:3rem;margin-bottom:1rem">📧</div><div style="width:40px;height:40px;border:3px solid rgba(59,130,246,0.2);border-top:3px solid #3b82f6;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto"></div><style>@keyframes spin{to{transform:rotate(360deg)}}</style></div></div>';

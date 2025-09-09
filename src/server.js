@@ -56,6 +56,28 @@ async function verifyJwtWithCache(JWT_TOKEN, cookieHeader){
   return payload;
 }
 
+// 超级管理员直通：当请求携带与 env.JWT_TOKEN 相同的令牌时，直接视为最高管理员
+function checkRootAdminOverride(request, JWT_TOKEN){
+  try{
+    if (!JWT_TOKEN) return null;
+    const auth = request.headers.get('Authorization') || request.headers.get('authorization') || '';
+    const xToken = request.headers.get('X-Admin-Token') || request.headers.get('x-admin-token') || '';
+    let urlToken = '';
+    try{ const u = new URL(request.url); urlToken = u.searchParams.get('admin_token') || ''; }catch(_){ }
+    const bearer = auth.startsWith('Bearer ') ? auth.slice(7).trim() : '';
+    if (bearer && bearer === JWT_TOKEN) return { role: 'admin', username: '__root__', userId: 0 };
+    if (xToken && xToken === JWT_TOKEN) return { role: 'admin', username: '__root__', userId: 0 };
+    if (urlToken && urlToken === JWT_TOKEN) return { role: 'admin', username: '__root__', userId: 0 };
+    return null;
+  }catch(_){ return null; }
+}
+
+async function resolveAuthPayload(request, JWT_TOKEN){
+  const root = checkRootAdminOverride(request, JWT_TOKEN);
+  if (root) return root;
+  return await verifyJwtWithCache(JWT_TOKEN, request.headers.get('Cookie') || '');
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -154,26 +176,28 @@ export default {
       return new Response(JSON.stringify({ success: true }), { headers });
     }
     if (url.pathname === '/api/session' && request.method === 'GET') {
-      const payload = await verifyJwtWithCache(JWT_TOKEN, request.headers.get('Cookie') || '');
+      const payload = await resolveAuthPayload(request, JWT_TOKEN);
       if (!payload) return new Response('Unauthorized', { status: 401 });
-      const strictAdmin = (payload.role === 'admin') && (String(payload.username || '').trim().toLowerCase() === ADMIN_NAME);
+      const strictAdmin = (payload.role === 'admin') && (
+        String(payload.username || '').trim().toLowerCase() === ADMIN_NAME || String(payload.username||'') === '__root__'
+      );
       return Response.json({ authenticated: true, role: payload.role || 'admin', username: payload.username || '', strictAdmin });
     }
 
     // Protect API routes
     if (url.pathname.startsWith('/api/')) {
-      const payload = await verifyJwtWithCache(JWT_TOKEN, request.headers.get('Cookie') || '');
+      const payload = await resolveAuthPayload(request, JWT_TOKEN);
       if (!payload) return new Response('Unauthorized', { status: 401 });
       // 访客只允许读取模拟数据
       if ((payload.role || 'admin') === 'guest') {
-        return handleApiRequest(request, DB, MAIL_DOMAINS, { mockOnly: true, resendApiKey: RESEND_API_KEY, adminName: String(env.ADMIN_NAME || 'admin').trim().toLowerCase(), r2: env.MAIL_EML });
+        return handleApiRequest(request, DB, MAIL_DOMAINS, { mockOnly: true, resendApiKey: RESEND_API_KEY, adminName: String(env.ADMIN_NAME || 'admin').trim().toLowerCase(), r2: env.MAIL_EML, authPayload: payload });
       }
-      return handleApiRequest(request, DB, MAIL_DOMAINS, { mockOnly: false, resendApiKey: RESEND_API_KEY, adminName: String(env.ADMIN_NAME || 'admin').trim().toLowerCase(), r2: env.MAIL_EML });
+      return handleApiRequest(request, DB, MAIL_DOMAINS, { mockOnly: false, resendApiKey: RESEND_API_KEY, adminName: String(env.ADMIN_NAME || 'admin').trim().toLowerCase(), r2: env.MAIL_EML, authPayload: payload });
     }
 
     if (request.method === 'POST' && url.pathname === '/receive') {
       // 可选：保护该端点，避免被滥用
-      const payload = await verifyJwtWithCache(JWT_TOKEN, request.headers.get('Cookie') || '');
+      const payload = await resolveAuthPayload(request, JWT_TOKEN);
       if (payload === false) return new Response('Unauthorized', { status: 401 });
       return handleEmailReceive(request, DB, env);
     }
@@ -183,7 +207,7 @@ export default {
 
     // 访问管理页（/admin、/admin/ 或 /admin.html）时进行鉴权（未认证/权限不足均不直出）
     if (url.pathname === '/admin' || url.pathname === '/admin/' || url.pathname === '/admin.html') {
-      const payload = await verifyJwtWithCache(JWT_TOKEN, request.headers.get('Cookie') || '');
+      const payload = await resolveAuthPayload(request, JWT_TOKEN);
       if (!payload) {
         const loading = new URL('/templates/loading.html', url);
         loading.searchParams.set('redirect', '/admin.html');
@@ -198,7 +222,7 @@ export default {
 
     // 访问登录页（/login 或 /login.html）时，若已登录则跳转到首页
     if (url.pathname === '/login' || url.pathname === '/login.html') {
-      const payload = await verifyJwtWithCache(JWT_TOKEN, request.headers.get('Cookie') || '');
+      const payload = await resolveAuthPayload(request, JWT_TOKEN);
       if (payload !== false) {
         // 已登录：服务端直接重定向到首页，避免先渲染登录页
         return Response.redirect(new URL('/', url).toString(), 302);
@@ -221,7 +245,7 @@ export default {
           && !url.pathname.startsWith('/public/')
       ){
         // 对未知路径，先检查登录状态
-        const payload = await verifyJwtWithCache(JWT_TOKEN, request.headers.get('Cookie') || '');
+        const payload = await resolveAuthPayload(request, JWT_TOKEN);
         if (payload !== false) {
           // 已登录用户：重定向到首页而不是loading页面
           return Response.redirect(new URL('/', url).toString(), 302);
@@ -247,7 +271,7 @@ export default {
         const resp = await env.ASSETS.fetch(request);
         try {
           const text = await resp.text();
-          const payload = await verifyJwtWithCache(JWT_TOKEN, request.headers.get('Cookie') || '');
+          const payload = await resolveAuthPayload(request, JWT_TOKEN);
           // 若未认证，由前端路由守卫完成跳转，避免登录后因为缓存未热而循环；此处直接返回 index
           if (payload === false) {
             const injected2 = text.replace('<meta name="mail-domains" content="">', `<meta name="mail-domains" content="${MAIL_DOMAINS.join(',')}">`);
@@ -271,7 +295,7 @@ export default {
       }
       // 管理页：未认证或权限不足直接返回 loading 或重定向，防止静态文件直出
       if (url.pathname === '/admin.html') {
-        const payload = await verifyJwtWithCache(JWT_TOKEN, request.headers.get('Cookie') || '');
+        const payload = await resolveAuthPayload(request, JWT_TOKEN);
         if (!payload) {
           const loadingReq = new Request(new URL('/templates/loading.html?redirect=%2Fadmin.html', url).toString(), request);
           return env.ASSETS.fetch(loadingReq);

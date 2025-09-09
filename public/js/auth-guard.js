@@ -1,3 +1,10 @@
+// 入口最早阶段尝试保存当前 hash，避免在任何重定向前丢失
+try{
+  if (location.hash) {
+    sessionStorage.setItem('mf:preservedHash', location.hash);
+  }
+}catch(_){ }
+
 (function(){
   function isDirectAddressBarVisit(){
     try{
@@ -30,14 +37,20 @@
   function getRedirectTarget(){
     try{ 
       const u = new URL(location.href); 
-      const redirectParam = u.searchParams.get('redirect') || '/';
-      // 如果是主页且当前有hash，保留hash信息
-      if ((redirectParam === '/' || redirectParam === '/html/app.html') && location.hash) {
-        return redirectParam + location.hash;
+      let redirectParam = u.searchParams.get('redirect') || '/';
+      // 优先从 sessionStorage 读取在来源页保存的 hash
+      let preservedHash = '';
+      try{ preservedHash = sessionStorage.getItem('mf:preservedHash') || ''; }catch(_){ }
+      // 当前页若也带有 hash 作为兜底
+      const currentHash = location.hash || '';
+      const hashToUse = preservedHash || currentHash;
+      if ((redirectParam === '/' || redirectParam === '/html/app.html') && hashToUse) {
+        return redirectParam + hashToUse;
       }
       return redirectParam;
     }catch(_){ 
-      // 发生错误时，如果当前有hash，也尝试保留
+      // 发生错误时，优先使用已保存的 hash
+      try{ const ph = sessionStorage.getItem('mf:preservedHash'); if (ph) return '/' + ph; }catch(_){ }
       return location.hash ? '/' + location.hash : '/'; 
     }
   }
@@ -83,8 +96,14 @@
       if (location.pathname === '/login' || location.pathname === '/html/login.html'){
         var hasToken = document.cookie.split(';').some(function(c){ return c.trim().indexOf('mailfree-session=') === 0; });
         if (hasToken){
-          // 立即重定向到首页
-          location.replace('/');
+          // 立即重定向到首页，尽量保留来源页 hash
+          var target = '/';
+          try{
+            var ph = sessionStorage.getItem('mf:preservedHash') || '';
+            if (!ph && location.hash) ph = location.hash;
+            if (ph) target += ph;
+          }catch(_){ }
+          location.replace(target);
           return true;
         }
       }

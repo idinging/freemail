@@ -1,5 +1,44 @@
 ## API 接口
 
+### 🔐 根管理员令牌（Root Admin Override）
+
+当请求方携带与服务端环境变量 `JWT_TOKEN`完全一致的令牌时，将跳过会话 Cookie/JWT 校验，直接被识别为最高管理员（strictAdmin）
+
+- 配置项：
+  - `wrangler.toml` → `[vars]` → `JWT_TOKEN="你的超管令牌"`
+- 令牌携带方式（任选其一）：
+  - Header（标准）：`Authorization: Bearer <JWT_TOKEN>`
+  - Header（自定义）：`X-Admin-Token: <JWT_TOKEN>`
+  - Query：`?admin_token=<JWT_TOKEN>`
+
+- 生效范围：
+  - 所有受保护的后端接口：`/api/*`
+  - 会话检查：`GET /api/session`
+  - 收信回调：`POST /receive`
+  - 管理页服务端访问判定（`/admin`/`/admin.html`）与未知路径的认证判断
+
+- 行为说明：
+  - 命中令牌后，鉴权载荷为：`{ role: 'admin', username: '__root__', userId: 0 }`
+  - `strictAdmin` 判定对 `__root__` 为 true（与严格管理员等价）
+  - 若未携带或不匹配，则回退到原有 Cookie/JWT 会话验证
+
+- 使用示例：
+  - cURL（Authorization 头）：
+    ```bash
+    curl -H "Authorization: Bearer <JWT_TOKEN>" https://your.domain/api/mailboxes
+    ```
+  - cURL（X-Admin-Token）：
+    ```bash
+    curl -H "X-Admin-Token: <JWT_TOKEN>" https://your.domain/api/domains
+    ```
+  - GET（Query）：
+    ```
+    GET /api/session?admin_token=<JWT_TOKEN>
+    ```
+
+- 风险与建议（务必阅读）：
+  - 严格保密 `JWT_TOKEN`，并定期更换
+
 ### 🎲 邮箱管理
 - `GET /api/generate` - 生成新的临时邮箱
   - 返回: `{ "email": "random@domain.com", "expires": timestamp }`

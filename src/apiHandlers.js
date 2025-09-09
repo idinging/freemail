@@ -5,7 +5,7 @@ import { getOrCreateMailboxId, getMailboxIdByAddress, recordSentEmail, updateSen
 import { parseEmailBody, extractVerificationCode } from './emailParser.js';
 import { sendEmailWithResend, sendBatchWithResend, getEmailFromResend, updateEmailInResend, cancelEmailInResend } from './emailSender.js';
 
-export async function handleApiRequest(request, db, mailDomains, options = { mockOnly: false, resendApiKey: '', adminName: '', r2: null }) {
+export async function handleApiRequest(request, db, mailDomains, options = { mockOnly: false, resendApiKey: '', adminName: '', r2: null, authPayload: null }) {
   const url = new URL(request.url);
   const path = url.pathname;
   const isMock = !!options.mockOnly;
@@ -13,6 +13,8 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
   const RESEND_API_KEY = options.resendApiKey || '';
 
   function getJwtPayload(){
+    // 优先使用服务端传入的已解析身份（支持 __root__ 超管）
+    if (options && options.authPayload) return options.authPayload;
     try{
       const cookie = request.headers.get('Cookie') || '';
       const token = (cookie.split(';').find(s=>s.trim().startsWith('mailfree-session='))||'').split('=')[1] || '';
@@ -28,6 +30,8 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
     const p = getJwtPayload();
     if (!p) return false;
     if (p.role !== 'admin') return false;
+    // __root__（根管理员）视为严格管理员
+    if (String(p.username || '') === '__root__') return true;
     if (options?.adminName){ return String(p.username || '').toLowerCase() === String(options.adminName || '').toLowerCase(); }
     return true;
   }

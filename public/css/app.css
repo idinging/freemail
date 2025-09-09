@@ -649,8 +649,8 @@ body::before{
   align-items: center;
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-sm);
-  padding: 10px 12px;
-  margin-bottom: 8px;
+  padding: 6px 10px;
+  margin-bottom: 6px;
   cursor: pointer;
   background: var(--card-glass);
   backdrop-filter: blur(16px);
@@ -712,16 +712,16 @@ body::before{
   color: var(--primary);
   background: rgba(59, 130, 246, 0.1);
   border: 1px solid rgba(59, 130, 246, 0.2);
-  height: 28px;
-  width: 28px;
+  height: 24px;
+  width: 24px;
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 12px;
   border-radius: 6px;
-  min-width: 28px;
-  min-height: 28px;
+  min-width: 24px;
+  min-height: 24px;
   pointer-events: none;
 }
 
@@ -755,32 +755,32 @@ body::before{
   text-overflow: ellipsis;
   font-weight: 500;
   color: var(--text);
-  margin-bottom: 2px;
-  font-size: 14px;
+  margin-bottom: 1px;
+  font-size: 13px;
 }
 
 .mailbox-item .time{
   color: var(--muted2);
-  font-size: 11px;
+  font-size: 10px;
   opacity: 0.8;
 }
 
 .mailbox-item .mailbox-actions .del{
   opacity: 0;
   transition: var(--transition);
-  height: 28px;
-  width: 28px;
+  height: 24px;
+  width: 24px;
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--danger);
   background: rgba(239, 68, 68, 0.05);
   border: 1px solid rgba(239, 68, 68, 0.2);
   border-radius: 6px;
-  min-width: 28px;
-  min-height: 28px;
+  min-width: 24px;
+  min-height: 24px;
   pointer-events: none;
 }
 
@@ -1213,7 +1213,7 @@ select:disabled{
 .list{
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   /* 防止内部卡片溢出重叠 */
   overflow: visible;
 }
@@ -1231,7 +1231,7 @@ select:disabled{
 .email-item{
   border: 1px solid var(--border-glass);
   border-radius: var(--radius);
-  padding: 12px 14px;
+  padding: 10px 12px;
   background: var(--card-glass);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -1241,7 +1241,7 @@ select:disabled{
   z-index: 0;
   overflow: hidden;
 }
-.email-item{ display:grid; grid-template-columns: 1fr auto; gap: 10px 12px; }
+.email-item{ display:grid; grid-template-columns: 1fr auto; gap: 8px 10px; }
 .email-item .email-actions{ grid-column: 2; align-self: center; }
 .email-item .email-content{ grid-column: 1 / span 1; }
 
@@ -1277,14 +1277,14 @@ select:disabled{
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 13px;
 }
 .email-meta{ /* 统一左对齐布局：发件人标签/发件人内容/时间 */
   display: grid; 
   grid-template-columns: 1fr auto; /* 左侧内容自适应，右侧时间固定自动宽度 */
-  gap: 12px;
+  gap: 10px;
   align-items: center;
 }
 .email-meta .meta-from{ 
@@ -1351,7 +1351,7 @@ select:disabled{
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: start;
-  gap: 12px;
+  gap: 8px;
 }
 
 .email-main{
@@ -1359,12 +1359,12 @@ select:disabled{
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .email-subject{
   font-weight: 700;
-  font-size: 16px;
+  font-size: 15px;
   color: var(--text);
   display: flex;
   align-items: center;
@@ -1376,8 +1376,8 @@ select:disabled{
 
 .email-preview{
   color: var(--text-light);
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 13px;
+  line-height: 1.4;
   display: block; /* 配合左对齐布局，避免高度不一导致错位 */
   word-break: break-word;
   overflow-wrap: anywhere;
@@ -1386,18 +1386,18 @@ select:disabled{
 /* 列表三行布局：发件人/主题/内容 - 与meta区域对齐 */
 .email-line{ 
   display: grid; 
-  grid-template-columns: 56px 1fr; /* 与email-meta的第一列和第二列宽度对应 */
+  grid-template-columns: 52px 1fr; /* 与email-meta的第一列和第二列宽度对应 */
   align-items: center; 
-  gap: 12px; 
-  margin: 2px 0; 
+  gap: 8px; 
+  margin: 1px 0; 
   min-width: 0; 
 }
 .label-chip{ 
-  width: 56px; 
+  width: 52px; 
   justify-self: start; 
   text-align: center; 
-  padding: 2px 8px; 
-  font-size: 12px; 
+  padding: 1px 6px; 
+  font-size: 11px; 
   color: var(--text-light); 
   background: var(--card-glass); 
   border: 1px solid var(--border-glass); 
