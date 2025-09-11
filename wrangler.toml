@@ -1,4 +1,4 @@
-name = "mailfree"
+name = "freemail"
 # name = "mail-exhibit"
 main = "src/server.js"
 compatibility_date = "2024-01-01"
@@ -6,16 +6,16 @@ compatibility_date = "2024-01-01"
 # D1 数据库绑定
 [[d1_databases]]
 binding = "TEMP_MAIL_DB"
-database_name = "maill_free_db" #你的d1数据库名称
-database_id = "c82663ac-62b6-4ba6-be81-cbe297f2a3dd" # 你的database_id
+database_name = "temp-mail-db" #你的d1数据库名称
+database_id = "f80afd45-9982-4f0f-8ea4-009078ee873d" # 你的database_id
 
 # 环境变量
 [vars]
-
-
-
-
-# 静态资源目录（Workers + Assets）
+MAIL_DOMAIN = "你的域名.com，域名2.cn" #可以多个 以英文逗号分隔
+ADMIN_NAME = "admin_name" # 超级管理员用户名 （不配名称 默认为admin）
+ADMIN_PASSWORD = "password" # 超级管理员密码
+JWT_TOKEN = "token" # 随便一串字符串
+# RESEND_API_KEY  # 发送邮件需要配置
 [assets]
 directory = "public"
 # 显式指定绑定名，确保在 Worker 中通过 env.ASSETS 可用
@@ -28,8 +28,5 @@ binding = "MAIL_EML"
 bucket_name = "mail-eml"
 
 # wrangler.toml (wrangler v3.88.0^) 日志服务
-# [observability.logs]
-# enabled = true
-
-
-
+[observability.logs]
+enabled = true
