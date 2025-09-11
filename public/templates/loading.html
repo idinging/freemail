@@ -75,7 +75,7 @@
         }catch(_){ }
         // 已认证用户兜底重定向：检测 Cookie 则确保跳往目标（更短延时）
         try{
-          var hasToken = document.cookie.split(';').some(function(c){ return c.trim().indexOf('mailfree-session=') === 0; });
+          var hasToken = document.cookie.split(';').some(function(c){ return c.trim().indexOf('iding-session=') === 0; });
           if (hasToken){
             var target = (function(){ try{ var u=new URL(location.href); return u.searchParams.get('redirect')||'/'; }catch(_){ return '/'; }})();
             // 减少延时时间

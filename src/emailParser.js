@@ -1,9 +1,20 @@
+/**
+ * 解析邮件正文，提取文本和HTML内容
+ * @param {string} raw - 原始邮件内容
+ * @returns {object} 包含text和html属性的对象
+ */
 export function parseEmailBody(raw) {
   if (!raw) return { text: '', html: '' };
   const { headers: topHeaders, body: topBody } = splitHeadersAndBody(raw);
   return parseEntity(topHeaders, topBody);
 }
 
+/**
+ * 解析邮件实体内容，处理单体和多部分内容
+ * @param {object} headers - 邮件头部对象
+ * @param {string} body - 邮件正文内容
+ * @returns {object} 包含text和html属性的对象
+ */
 function parseEntity(headers, body) {
   // 注意：boundary 区分大小写，不能对 content-type 整体小写后再提取
   const ctRaw = headers['content-type'] || '';
@@ -72,6 +83,11 @@ function parseEntity(headers, body) {
   return { text, html };
 }
 
+/**
+ * 分割邮件头部和正文
+ * @param {string} input - 包含头部和正文的完整邮件内容
+ * @returns {object} 包含headers对象和body字符串的对象
+ */
 function splitHeadersAndBody(input) {
   const idx = input.indexOf('\r\n\r\n');
   const idx2 = idx === -1 ? input.indexOf('\n\n') : idx;
@@ -82,6 +98,11 @@ function splitHeadersAndBody(input) {
   return { headers: parseHeaders(rawHeaders), body };
 }
 
+/**
+ * 解析邮件头部字符串为对象
+ * @param {string} rawHeaders - 原始头部字符串
+ * @returns {object} 头部字段对象，键为小写的头部名称
+ */
 function parseHeaders(rawHeaders) {
   const headers = {};
   const lines = rawHeaders.split(/\r?\n/);
@@ -100,6 +121,11 @@ function parseHeaders(rawHeaders) {
   return headers;
 }
 
+/**
+ * 从Content-Type头部中提取boundary分隔符
+ * @param {string} contentType - Content-Type头部值
+ * @returns {string} boundary分隔符，如果没有找到返回空字符串
+ */
 function getBoundary(contentType) {
   if (!contentType) return '';
   // 不改变大小写以保留 boundary 原值；用不区分大小写的匹配
@@ -107,6 +133,12 @@ function getBoundary(contentType) {
   return m ? m[1].trim() : '';
 }
 
+/**
+ * 根据boundary分隔符分割多部分邮件正文
+ * @param {string} body - 多部分邮件正文
+ * @param {string} boundary - boundary分隔符
+ * @returns {Array<string>} 分割后的部分数组
+ */
 function splitMultipart(body, boundary) {
   // 容错：RFC 规定分隔行形如 "--boundary" 与终止 "--boundary--"；
   // 这里允许前后空白、以及行中仅包含该标记
@@ -133,6 +165,12 @@ function splitMultipart(body, boundary) {
   return parts;
 }
 
+/**
+ * 根据传输编码解码邮件正文
+ * @param {string} body - 编码的正文内容
+ * @param {string} transferEncoding - 传输编码类型（base64、quoted-printable等）
+ * @returns {string} 解码后的正文内容
+ */
 function decodeBody(body, transferEncoding) {
   if (!body) return '';
   const enc = transferEncoding.trim();
@@ -158,7 +196,13 @@ function decodeBody(body, transferEncoding) {
   return body;
 }
 
-// 根据 content-type 中的 charset 尝试解码
+/**
+ * 根据Content-Type中的charset和传输编码解码正文
+ * @param {string} body - 编码的正文内容
+ * @param {string} transferEncoding - 传输编码类型
+ * @param {string} contentType - Content-Type头部值，包含charset信息
+ * @returns {string} 解码后的正文内容
+ */
 function decodeBodyWithCharset(body, transferEncoding, contentType) {
   const decodedRaw = decodeBody(body, transferEncoding);
   // base64/qp 已按 utf-8 解码为字符串；若 charset 指定为 gbk/gb2312 等，尝试再次按该编码解码
@@ -176,6 +220,11 @@ function decodeBodyWithCharset(body, transferEncoding, contentType) {
   }
 }
 
+/**
+ * 解码Quoted-Printable编码的内容
+ * @param {string} input - Quoted-Printable编码的字符串
+ * @returns {string} 解码后的字符串
+ */
 function decodeQuotedPrintable(input) {
   let s = input.replace(/=\r?\n/g, '');
   const bytes = [];
@@ -198,6 +247,11 @@ function decodeQuotedPrintable(input) {
   }
 }
 
+/**
+ * 从原始内容中猜测并提取HTML片段
+ * @param {string} raw - 原始内容
+ * @returns {string} 提取的HTML内容，如果没有找到返回空字符串
+ */
 function guessHtmlFromRaw(raw) {
   if (!raw) return '';
   const lower = raw.toLowerCase();
@@ -210,15 +264,29 @@ function guessHtmlFromRaw(raw) {
   return '';
 }
 
+/**
+ * 转义HTML特殊字符
+ * @param {string} s - 需要转义的字符串
+ * @returns {string} 转义后的字符串
+ */
 function escapeHtml(s){
   return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'': '&#39;'}[c] || c));
 }
 
+/**
+ * 将纯文本转换为HTML格式，保持空白格式
+ * @param {string} text - 纯文本内容
+ * @returns {string} HTML格式的内容
+ */
 function textToHtml(text){
   return `<div style="white-space:pre-wrap">${escapeHtml(text)}</div>`;
 }
 
-// 将 HTML 粗略转为可检索纯文本（去标签/脚本/样式，并处理常见实体）
+/**
+ * 将HTML内容转换为纯文本，去除标签、脚本、样式等
+ * @param {string} html - HTML内容
+ * @returns {string} 转换后的纯文本内容
+ */
 function stripHtml(html){
   const s = String(html || '');
   return s
@@ -234,7 +302,15 @@ function stripHtml(html){
     .trim();
 }
 
-// 更智能地从主题/文本/HTML 中提取验证码（4-8 位），支持空格/连字符分隔
+/**
+ * 从邮件主题、文本和HTML中智能提取验证码（4-8位数字）
+ * 支持空格、连字符等分隔符，并识别多语言关键词
+ * @param {object} params - 提取参数对象
+ * @param {string} params.subject - 邮件主题，默认为空字符串
+ * @param {string} params.text - 纯文本内容，默认为空字符串
+ * @param {string} params.html - HTML内容，默认为空字符串
+ * @returns {string} 提取的验证码，如果未找到返回空字符串
+ */
 export function extractVerificationCode({ subject = '', text = '', html = '' } = {}){
   const subjectText = String(subject || '');
   const textBody = String(text || '');

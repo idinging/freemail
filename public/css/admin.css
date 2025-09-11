@@ -12,6 +12,38 @@
 	background: var(--surface);
 }
 
+/* 禁用文本选择 */
+.admin-page *{
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+}
+
+/* 允许选择文本的重要元素 */
+.admin-page input,
+.admin-page textarea,
+.admin-page select,
+.admin-page .table td,
+.admin-page .table th,
+.admin-page .user-chip,
+.admin-page .selectable {
+	-webkit-user-select: text;
+	-moz-user-select: text;
+	-ms-user-select: text;
+	user-select: text;
+}
+
+/* 移动端触摸优化 */
+@media (max-width: 768px) {
+	.admin-page button,
+	.admin-page .btn,
+	.admin-page .close {
+		-webkit-touch-callout: none;
+		-webkit-tap-highlight-color: transparent;
+	}
+}
+
 /* 背景动效与首页一致 */
 .admin-page::before{
 	content: '';

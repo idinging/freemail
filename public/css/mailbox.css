@@ -1,0 +1,598 @@
+/* 邮箱用户专用样式 */
+
+/* 基础变量继承主样式 */
+:root {
+  --surface: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 20%, #f1f5f9 100%);
+  --surface-overlay: linear-gradient(135deg, rgba(248, 250, 252, 0.8) 0%, rgba(241, 245, 249, 0.9) 100%);
+  --card: rgba(255, 255, 255, 0.85);
+  --card-hover: rgba(255, 255, 255, 0.95);
+  --card-glass: rgba(255, 255, 255, 0.4);
+  --muted: #64748b;
+  --muted2: #94a3b8;
+  --primary: #3b82f6;
+  --primary-hover: #2563eb;
+  --primary-light: rgba(59, 130, 246, 0.1);
+  --primary-glass: rgba(59, 130, 246, 0.05);
+  --danger: #ef4444;
+  --danger-hover: #dc2626;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --border: #e2e8f0;
+  --border-light: #f1f5f9;
+  --border-glass: rgba(255, 255, 255, 0.2);
+  --text: #1e293b;
+  --text-light: #475569;
+  --radius: 16px;
+  --radius-sm: 8px;
+  --radius-lg: 20px;
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-glass: 0 8px 32px rgba(31, 38, 135, 0.15);
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'SF Pro Display', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--surface);
+  background-attachment: fixed;
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 邮箱容器布局 */
+.mailbox-container {
+  flex: 1;
+  display: flex;
+  max-width: 1200px; /* 与头部对齐 */
+  margin: 0 auto;
+  padding: 32px;
+  gap: 32px;
+}
+
+.mailbox-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* 邮箱信息卡片 */
+.mailbox-info-card {
+  background: var(--card);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: var(--shadow-glass);
+}
+
+.mailbox-info {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.mailbox-display {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: var(--primary-light);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: var(--shadow);
+  flex-wrap: wrap;
+}
+
+.mailbox-icon {
+  font-size: 20px;
+}
+
+.mailbox-address {
+  flex: 1;
+  min-width: 200px;
+  font-family: 'SF Mono', 'Monaco', 'Fira Code', monospace;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--primary);
+  word-break: break-all;
+}
+
+.mailbox-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* 工具栏 */
+.mailbox-toolbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.toolbar-left{ display:flex; align-items:center; gap:8px; }
+.toolbar-right{ display:flex; align-items:center; gap:8px; }
+.chip{
+  display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;
+  font-size:12px;font-weight:600;background:var(--card-glass);border:1px solid var(--border-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: var(--shadow);
+}
+.chip-unread{ color:var(--primary); background:var(--primary-light); }
+.chip-total{ color:var(--text-light); }
+.toggle{ 
+  display:inline-flex; 
+  align-items:center; 
+  gap:6px; 
+  font-size:12px; 
+  color:var(--text-light);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--card-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-glass);
+  box-shadow: var(--shadow);
+}
+.select-sm{ 
+  height:30px; 
+  padding:4px 8px; 
+  font-size:12px; 
+  background: var(--card-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+}
+.input-sm{ 
+  height:30px; 
+  padding:4px 10px; 
+  font-size:12px; 
+  background: var(--card-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+}
+
+/* 收件箱卡片 */
+.inbox-card {
+  background: var(--card);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: var(--shadow-glass);
+  flex: 1;
+  min-height: 400px;
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  min-height: 300px;
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.empty-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.empty-description {
+  font-size: 14px;
+  color: var(--muted);
+  max-width: 300px;
+}
+
+/* 继承必要的通用样式 */
+.topbar {
+  background: var(--card-glass);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid var(--border-glass);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 0;
+  transition: var(--transition);
+  box-shadow: var(--shadow-glass);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  width: 100%;
+}
+
+.topbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1200px;
+  width: 100%;
+  padding: 0 32px;
+  gap: 20px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--text);
+}
+
+.brand-icon {
+  font-size: 28px;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--primary-light);
+  color: var(--primary);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--border-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: var(--shadow);
+}
+
+/* 按钮样式 - 统一模糊效果 */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  text-decoration: none;
+  white-space: nowrap;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.btn-primary {
+  background: rgba(59, 130, 246, 0.9);
+  color: white;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  box-shadow: var(--shadow-glass);
+}
+
+.btn-primary:hover {
+  background: rgba(37, 99, 235, 0.9);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lg);
+}
+
+.btn-secondary {
+  background: var(--card-glass);
+  color: var(--text);
+  border: 1px solid var(--border-glass);
+  box-shadow: var(--shadow-glass);
+}
+
+.btn-secondary:hover {
+  background: var(--card);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lg);
+}
+
+.btn-ghost {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-light);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.btn-ghost:hover {
+  background: var(--card-glass);
+  color: var(--text);
+  border: 1px solid var(--border-glass);
+  box-shadow: var(--shadow);
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+/* 卡片样式 */
+.card {
+  background: var(--card);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-glass);
+  transition: var(--transition);
+}
+
+.card h2 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+
+.card-icon {
+  font-size: 24px;
+}
+
+/* 列表样式 */
+.listcard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.listcard-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.loading-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border);
+  border-top: 2px solid var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 邮件列表样式：完全复用首页(app.css)规则，避免覆盖 */
+
+/* 邮件详情样式：完全复用首页(app.css)的 email-meta-inline / email-actions-bar / email-content-area 规则 */
+
+/* 模态框样式 */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal.show {
+  display: flex;
+}
+
+.modal-card {
+  background: var(--card);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  max-width: 800px;
+  width: 100%;
+  max-height: 80vh;
+  overflow: hidden;
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-header div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.modal-icon {
+  font-size: 20px;
+}
+
+.close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--muted);
+  padding: 4px;
+  border-radius: 4px;
+  transition: var(--transition);
+}
+
+.close:hover {
+  background: var(--card-glass);
+  color: var(--text);
+}
+
+.modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  max-height: calc(80vh - 80px);
+}
+
+/* Toast 样式由全局 toast.html 模板提供，无需重复定义 */
+
+/* 表单样式 */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.form-group .input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  transition: var(--transition);
+  background: var(--card-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: var(--shadow);
+}
+
+.form-group .input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.form-actions .btn {
+  min-width: 100px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .mailbox-container {
+    padding: 16px;
+    gap: 16px;
+  }
+  
+  .mailbox-display {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .mailbox-address {
+    min-width: auto;
+    text-align: center;
+  }
+  
+  .mailbox-actions {
+    justify-content: center;
+  }
+  
+  .email-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .email-meta {
+    order: 1;
+  }
+  
+  .email-time {
+    order: 2;
+    text-align: center;
+  }
+  
+  .email-actions {
+    order: 3;
+    opacity: 1;
+    justify-content: center;
+  }
+  
+  .modal-card {
+    margin: 0;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+}
+
+/* 页面底部 */
+#footer-slot {
+  margin-top: auto;
+  padding: 24px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+}

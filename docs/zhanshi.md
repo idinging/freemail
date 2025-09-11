@@ -64,3 +64,7 @@
   <img src="../pic/phone/fasonyoujian.png" alt="手机端发送邮件" style="height: 400px;" />
   <img src="../pic/phone/youjianxiangqing.png" alt="手机端邮件详情" style="height: 400px;" />
 </div>
+
+### 邮箱首页
+![邮箱首页](../pic/v4/youxiang.png)
+

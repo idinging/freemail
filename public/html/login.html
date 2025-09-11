@@ -10,7 +10,7 @@
       (function(){
         try{
           var hasToken = document.cookie.split(';').some(function(c){ 
-            return c.trim().indexOf('mailfree-session=') === 0; 
+            return c.trim().indexOf('iding-session=') === 0; 
           });
           if (hasToken){
             // 立即重定向，阻止页面渲染
@@ -79,7 +79,7 @@
         <div class="logo">🔐</div>
         <h1>登录到临时邮箱</h1>
         <div id="err" class="err"></div>
-        <input id="username" class="input" type="text" placeholder="用户名" />
+        <input id="username" class="input" type="text" placeholder="用户名/邮箱" />
         <input id="pwd" class="input" type="password" placeholder="密码" />
         <div style="font-size:12px;color:#64748b;margin-bottom:8px">
           账号：guest，密码： admin，将进入观看模式。

@@ -94,7 +94,7 @@ try{
   function checkLoginPageAccess(){
     try{
       if (location.pathname === '/login' || location.pathname === '/html/login.html'){
-        var hasToken = document.cookie.split(';').some(function(c){ return c.trim().indexOf('mailfree-session=') === 0; });
+        var hasToken = document.cookie.split(';').some(function(c){ return c.trim().indexOf('iding-session=') === 0; });
         if (hasToken){
           // 立即重定向到首页，尽量保留来源页 hash
           var target = '/';
@@ -150,7 +150,7 @@ try{
           };
           quickCheck();
         }
-      }catch(_){ location.replace('/login.html'); }
+      }catch(_){ location.replace('/html/login.html'); }
     }
   };
 

@@ -56,29 +56,26 @@
           // 地址栏直接访问或长时间未验证：先尝试快速判断是否已有登录 Cookie
           if (isDirectAccess){
             try{
-              var hasCookie = document.cookie.split(';').some(function(c){ return c.trim().indexOf('mailfree-session=') === 0; });
+              var hasCookie = document.cookie.split(';').some(function(c){ return c.trim().indexOf('iding-session=') === 0; });
               if (hasCookie){
-                // 已有登录 Cookie：直接加载应用并并行做一次后台校验，避免先进入首页再跳转
-                var s = document.createElement('script');
-                s.type='module';
-                s.src='/js/app.js';
-                document.body.appendChild(s);
-                try{ 
-                  if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches){ 
-                    var sm=document.createElement('script'); 
-                    sm.type='module'; 
-                    sm.src='/js/app-mobile.js'; 
-                    document.body.appendChild(sm);
-                  } 
-                }catch(_){ }
-                // 后台快速校验，失败再回登录
-                (function(){
-                  const controller = new AbortController();
-                  const tid = setTimeout(function(){ try{ controller.abort(); }catch(_){ } }, 1200);
-                  fetch('/api/session', { headers:{'Cache-Control':'no-cache'}, signal: controller.signal, credentials: 'include' })
-                    .then(function(r){ clearTimeout(tid); if (r && r.ok){ try{ sessionStorage.setItem('auth_checked','true'); sessionStorage.setItem('auth_checked_ts', String(Date.now())); }catch(_){ } } else { window.location.replace('/html/login.html'); } })
-                    .catch(function(){ window.location.replace('/html/login.html'); });
-                })();
+                // 已有登录 Cookie：先快速查询会话，若为邮箱用户则直接跳往专用页，避免首页内容闪现
+                const controller = new AbortController();
+                const tid = setTimeout(function(){ try{ controller.abort(); }catch(_){ } }, 1200);
+                fetch('/api/session', { headers:{'Cache-Control':'no-cache'}, signal: controller.signal, credentials: 'include' })
+                  .then(function(r){
+                    clearTimeout(tid);
+                    if (!r || !r.ok) { window.location.replace('/html/login.html'); return; }
+                    return r.json();
+                  })
+                  .then(function(s){
+                    if (!s) return; 
+                    if (s.role === 'mailbox') { window.location.replace('/html/mailbox.html'); return; }
+                    try{ sessionStorage.setItem('auth_checked','true'); sessionStorage.setItem('auth_checked_ts', String(Date.now())); }catch(_){ }
+                    // 加载应用
+                    var s1=document.createElement('script'); s1.type='module'; s1.src='/js/app.js'; document.body.appendChild(s1);
+                    try{ if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches){ var sm=document.createElement('script'); sm.type='module'; sm.src='/js/app-mobile.js'; document.body.appendChild(sm); } }catch(_){ }
+                  })
+                  .catch(function(){ window.location.replace('/html/login.html'); });
                 return;
               }
             }catch(_){ }
@@ -98,6 +95,18 @@
               .then(function(r){
                 clearTimeout(tid);
                 if (r && r.ok){
+                  return r.json().then(function(s){
+                    if (s && s.role === 'mailbox') { window.location.replace('/html/mailbox.html'); return null; }
+                    return s;
+                  });
+                } else {
+                  // 跳转到 loading 页面进行更完整的权限检查
+                  window.location.replace('/templates/loading.html?redirect=/');
+                  return null;
+                }
+              })
+              .then(function(s){
+                if (!s) return; 
                   try{ 
                     sessionStorage.setItem('auth_checked','true'); 
                     sessionStorage.setItem('auth_checked_ts', String(Date.now())); 
@@ -117,10 +126,6 @@
                       document.body.appendChild(sm);
                     } 
                   }catch(_){ }
-                } else {
-                  // 跳转到 loading 页面进行更完整的权限检查
-                  window.location.replace('/templates/loading.html?redirect=/');
-                }
               })
               .catch(function(){ 
                 // 网络错误时跳转到 loading 页面
@@ -138,25 +143,33 @@
               .then(function(r){
                 clearTimeout(tid);
                 if (r && r.ok){
-                  try{ 
-                    sessionStorage.setItem('auth_checked','true'); 
-                    sessionStorage.setItem('auth_checked_ts', String(Date.now())); 
-                  }catch(_){ }
-                  var s = document.createElement('script');
-                  s.type = 'module';
-                  s.src = '/js/app.js';
-                  document.body.appendChild(s);
-                  try{ 
-                    if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches){ 
-                      var sm=document.createElement('script'); 
-                      sm.type='module'; 
-                      sm.src='/js/app-mobile.js'; 
-                      document.body.appendChild(sm);
-                    } 
-                  }catch(_){ }
+                  return r.json().then(function(s){
+                    if (s && s.role === 'mailbox') { window.location.replace('/html/mailbox.html'); return null; }
+                    return s;
+                  });
                 } else {
                   window.location.replace('/html/login.html');
+                  return null;
                 }
+              })
+              .then(function(s){
+                if (!s) return; 
+                try{ 
+                  sessionStorage.setItem('auth_checked','true'); 
+                  sessionStorage.setItem('auth_checked_ts', String(Date.now())); 
+                }catch(_){ }
+                var s1 = document.createElement('script');
+                s1.type = 'module';
+                s1.src = '/js/app.js';
+                document.body.appendChild(s1);
+                try{ 
+                  if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches){ 
+                    var sm=document.createElement('script'); 
+                    sm.type='module'; 
+                    sm.src='/js/app-mobile.js'; 
+                    document.body.appendChild(sm);
+                  } 
+                }catch(_){ }
               })
               .catch(function(){ 
                 window.location.replace('/html/login.html'); 

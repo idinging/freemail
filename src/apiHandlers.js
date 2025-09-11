@@ -5,19 +5,65 @@ import { getOrCreateMailboxId, getMailboxIdByAddress, recordSentEmail, updateSen
 import { parseEmailBody, extractVerificationCode } from './emailParser.js';
 import { sendEmailWithResend, sendBatchWithResend, getEmailFromResend, updateEmailInResend, cancelEmailInResend } from './emailSender.js';
 
-export async function handleApiRequest(request, db, mailDomains, options = { mockOnly: false, resendApiKey: '', adminName: '', r2: null, authPayload: null }) {
+export async function handleApiRequest(request, db, mailDomains, options = { mockOnly: false, resendApiKey: '', adminName: '', r2: null, authPayload: null, mailboxOnly: false }) {
   const url = new URL(request.url);
   const path = url.pathname;
   const isMock = !!options.mockOnly;
+  const isMailboxOnly = !!options.mailboxOnly;
   const MOCK_DOMAINS = ['exa.cc', 'exr.yp', 'duio.ty'];
   const RESEND_API_KEY = options.resendApiKey || '';
+
+  // 邮箱用户只能访问特定的API端点和自己的数据
+  if (isMailboxOnly) {
+    const payload = getJwtPayload();
+    const mailboxAddress = payload?.mailboxAddress;
+    const mailboxId = payload?.mailboxId;
+    
+    // 允许的API端点
+    const allowedPaths = ['/api/emails', '/api/email/', '/api/auth', '/api/quota', '/api/mailbox/password'];
+    const isAllowedPath = allowedPaths.some(allowedPath => path.startsWith(allowedPath));
+    
+    if (!isAllowedPath) {
+      return new Response('访问被拒绝', { status: 403 });
+    }
+    
+    // 对于邮件相关API，限制只能访问自己的邮箱
+    if (path === '/api/emails' && request.method === 'GET') {
+      const requestedMailbox = url.searchParams.get('mailbox');
+      if (requestedMailbox && requestedMailbox.toLowerCase() !== mailboxAddress?.toLowerCase()) {
+        return new Response('只能访问自己的邮箱', { status: 403 });
+      }
+      // 如果没有指定邮箱，自动设置为用户自己的邮箱
+      if (!requestedMailbox && mailboxAddress) {
+        url.searchParams.set('mailbox', mailboxAddress);
+      }
+    }
+    
+    // 对于单个邮件操作，验证邮件是否属于该用户的邮箱
+    if (path.startsWith('/api/email/') && mailboxId) {
+      const emailId = path.split('/')[3];
+      if (emailId && emailId !== 'batch') {
+        try {
+          const { results } = await db.prepare('SELECT mailbox_id FROM messages WHERE id = ?').bind(emailId).all();
+          if (!results || results.length === 0) {
+            return new Response('邮件不存在', { status: 404 });
+          }
+          if (results[0].mailbox_id !== mailboxId) {
+            return new Response('无权访问此邮件', { status: 403 });
+          }
+        } catch (e) {
+          return new Response('验证失败', { status: 500 });
+        }
+      }
+    }
+  }
 
   function getJwtPayload(){
     // 优先使用服务端传入的已解析身份（支持 __root__ 超管）
     if (options && options.authPayload) return options.authPayload;
     try{
       const cookie = request.headers.get('Cookie') || '';
-      const token = (cookie.split(';').find(s=>s.trim().startsWith('mailfree-session='))||'').split('=')[1] || '';
+      const token = (cookie.split(';').find(s=>s.trim().startsWith('iding-session='))||'').split('=')[1] || '';
       const parts = token.split('.');
       if (parts.length === 3){
         const json = atob(parts[1].replace(/-/g,'+').replace(/_/g,'/'));
@@ -343,7 +389,7 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
       if (!RESEND_API_KEY) return new Response('未配置 Resend API Key', { status: 500 });
       // 校验是否允许发件：根据当前登录用户（从 Cookie 读取 JWT）
       const cookie = request.headers.get('Cookie') || '';
-      const token = (cookie.split(';').find(s=>s.trim().startsWith('mailfree-session='))||'').split('=')[1] || '';
+      const token = (cookie.split(';').find(s=>s.trim().startsWith('iding-session='))||'').split('=')[1] || '';
       let jwtPayload = null;
       try{
         const parts = token.split('.');
@@ -389,7 +435,7 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
       if (!RESEND_API_KEY) return new Response('未配置 Resend API Key', { status: 500 });
       // 同样校验发件权限
       const cookie = request.headers.get('Cookie') || '';
-      const token = (cookie.split(';').find(s=>s.trim().startsWith('mailfree-session='))||'').split('=')[1] || '';
+      const token = (cookie.split(';').find(s=>s.trim().startsWith('iding-session='))||'').split('=')[1] || '';
       let payloadJwt = null;
       try{
         const parts = token.split('.');
@@ -818,6 +864,70 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
     } catch (e) {
       console.error('清空邮件失败:', e);
       return new Response('清空邮件失败', { status: 500 });
+    }
+  }
+
+  // ================= 邮箱密码管理 =================
+  if (path === '/api/mailbox/password' && request.method === 'PUT') {
+    if (isMock) return new Response('演示模式不可修改密码', { status: 403 });
+    
+    try {
+      const body = await request.json();
+      const { currentPassword, newPassword } = body;
+      
+      if (!currentPassword || !newPassword) {
+        return new Response('当前密码和新密码不能为空', { status: 400 });
+      }
+      
+      if (newPassword.length < 6) {
+        return new Response('新密码长度至少6位', { status: 400 });
+      }
+      
+      const payload = getJwtPayload();
+      const mailboxAddress = payload?.mailboxAddress;
+      const mailboxId = payload?.mailboxId;
+      
+      if (!mailboxAddress || !mailboxId) {
+        return new Response('未找到邮箱信息', { status: 401 });
+      }
+      
+      // 验证当前密码
+      const { results } = await db.prepare('SELECT password_hash FROM mailboxes WHERE id = ? AND address = ?')
+        .bind(mailboxId, mailboxAddress).all();
+      
+      if (!results || results.length === 0) {
+        return new Response('邮箱不存在', { status: 404 });
+      }
+      
+      const mailbox = results[0];
+      let currentPasswordValid = false;
+      
+      if (mailbox.password_hash) {
+        // 如果有存储的密码哈希，验证哈希密码
+        const { verifyPassword } = await import('./authentication.js');
+        currentPasswordValid = await verifyPassword(currentPassword, mailbox.password_hash);
+      } else {
+        // 兼容性：如果没有密码哈希，使用邮箱地址作为默认密码
+        currentPasswordValid = (currentPassword === mailboxAddress);
+      }
+      
+      if (!currentPasswordValid) {
+        return new Response('当前密码错误', { status: 400 });
+      }
+      
+      // 生成新密码哈希
+      const { hashPassword } = await import('./authentication.js');
+      const newPasswordHash = await hashPassword(newPassword);
+      
+      // 更新密码
+      await db.prepare('UPDATE mailboxes SET password_hash = ? WHERE id = ?')
+        .bind(newPasswordHash, mailboxId).run();
+      
+      return Response.json({ success: true, message: '密码修改成功' });
+      
+    } catch (error) {
+      console.error('修改密码失败:', error);
+      return new Response('修改密码失败', { status: 500 });
     }
   }
 

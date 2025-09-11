@@ -25,6 +25,30 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* 允许选择文本的重要元素 */
+input,
+textarea,
+select,
+.selectable {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+/* 移动端触摸优化 */
+@media (max-width: 768px) {
+  button,
+  .btn {
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
 }
 
 html, body {

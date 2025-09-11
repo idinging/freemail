@@ -48,6 +48,44 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* 允许选择文本的重要元素 */
+input,
+textarea,
+select,
+.email-text,
+.email-display,
+#modal-content,
+.table td,
+.table th,
+pre,
+code,
+.selectable,
+.custom-input,
+.field-input,
+.field-textarea {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+/* 移动端触摸优化 - 防止长按选择 */
+@media (max-width: 768px) {
+  button,
+  .btn,
+  .sidebar-toggle-btn,
+  .close,
+  .nav-actions > *,
+  .mailbox-actions > * {
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
 }
 
 body{
@@ -197,7 +235,28 @@ body::before{
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   width: auto;
   min-width: 280px;
+  /* 让历史邮箱成为独立滚动容器，避免滚动串联到右侧/页面 */
+  max-height: calc(100vh - 140px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  /* 更细、更柔和的滚动条（Firefox） */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100,116,139,.45) transparent;
+  /* 防止滚动条出现/消失引发布局抖动 */
+  scrollbar-gutter: stable both-edges;
 }
+
+/* 更细、更透明的滚动条（Chromium/WebKit） */
+.sidebar::-webkit-scrollbar{ width: 8px; height: 8px; }
+.sidebar::-webkit-scrollbar-button{ display: none; width: 0; height: 0; }
+.sidebar::-webkit-scrollbar-track{ background: transparent; }
+.sidebar::-webkit-scrollbar-thumb{
+  background: rgba(100,116,139,.35);
+  border-radius: 999px;
+  border: 2px solid rgba(255,255,255,.5);
+}
+.sidebar:hover::-webkit-scrollbar-thumb{ background: linear-gradient(180deg, rgba(59,130,246,.6), rgba(139,92,246,.6)); }
+.sidebar::-webkit-scrollbar-thumb:hover{ background: linear-gradient(180deg, rgba(59,130,246,.8), rgba(139,92,246,.8)); }
 
 .sidebar:hover{
   box-shadow: var(--shadow-lg);
@@ -261,27 +320,44 @@ body::before{
 
 /* 侧板收起/展开按钮样式 */
 .sidebar-toggle-btn {
-  background: var(--card);
+  background: linear-gradient(135deg, var(--card) 0%, rgba(255,255,255,0.9) 100%);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  width: 32px;
-  height: 32px;
+  border-radius: 12px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: var(--transition);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar-toggle-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  transition: left 0.6s ease;
 }
 
 .sidebar-toggle-btn:hover {
-  background: var(--primary);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
   border-color: var(--primary);
   color: white;
-  transform: scale(1.05);
-  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+  transform: scale(1.1) translateY(-2px);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+}
+
+.sidebar-toggle-btn:hover::before {
+  left: 100%;
 }
 
 .sidebar-toggle-btn:active {
@@ -304,6 +380,20 @@ body::before{
   width: 60px;
   padding: 16px 8px;
   overflow: hidden;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+              padding 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              background 0.3s ease,
+              box-shadow 0.3s ease;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, var(--card-glass) 50%, rgba(139, 92, 246, 0.05) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  box-shadow: 0 8px 32px rgba(59, 130, 246, 0.15), 
+              inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  animation: sidebarPulse 4s ease-in-out infinite;
+}
+
+.sidebar.collapsed:hover {
+  animation: sidebarPulse 2s ease-in-out infinite;
+  transform: translateY(-1px);
 }
 
 .sidebar.collapsed .sidebar-header {
@@ -334,6 +424,13 @@ body::before{
   margin: 0;
   transform: none;
   font-size: 16px;
+  animation: iconGlow 3s ease-in-out infinite;
+  transition: all 0.3s ease;
+}
+
+.sidebar.collapsed:hover .sidebar-icon {
+  animation: iconGlow 1s ease-in-out infinite;
+  transform: scale(1.1);
 }
 
 .sidebar.collapsed .sidebar-header-actions {
@@ -353,18 +450,96 @@ body::before{
 }
 
 .sidebar.collapsed .sidebar-toggle-btn {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  box-shadow: 0 3px 15px rgba(59, 130, 246, 0.2);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(255,255,255,0.9) 100%);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.sidebar.collapsed .sidebar-toggle-btn:hover {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+  transform: scale(1.15) translateY(-3px);
+  box-shadow: 0 8px 30px rgba(59, 130, 246, 0.5);
 }
 
 .sidebar.collapsed .sidebar-toggle-btn span {
   font-size: 12px;
+  font-weight: 800;
 }
 
 .sidebar.collapsed #mb-list,
-.sidebar.collapsed #mb-loading,
-.sidebar.collapsed #mb-more-wrap {
+.sidebar.collapsed #mb-loading {
   display: none;
+}
+
+/* 收起状态下的加载更多按钮样式 */
+.sidebar.collapsed #mb-more-wrap {
+  margin-top: 12px;
+  text-align: center;
+  padding: 0 4px;
+}
+
+.sidebar.collapsed #mb-more {
+  width: 100%;
+  min-height: 32px;
+  padding: 6px 4px;
+  font-size: 10px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(255,255,255,0.8) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  color: var(--primary);
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+}
+
+.sidebar.collapsed #mb-more:hover {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.sidebar.collapsed #mb-more-text {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+/* 收起状态下显示简化文本 */
+.sidebar.collapsed #mb-more-text::before {
+  content: "更多";
+  font-weight: 700;
+}
+
+.sidebar.collapsed #mb-more-text {
+  font-size: 0; /* 隐藏原文本 */
+}
+
+.sidebar.collapsed #mb-more-text::before {
+  font-size: 10px; /* 显示简化文本 */
+  color: inherit;
+}
+
+/* 确保在任何状态下"加载更多"按钮都可见 */
+.sidebar.collapsed.list-collapsed #mb-more-wrap {
+  display: block !important;
+  margin-top: 8px;
+  padding: 0 4px;
+}
+
+.sidebar.collapsed.list-collapsed #mb-more {
+  width: 100%;
+  min-height: 30px;
+  padding: 5px 4px;
+  font-size: 10px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(255,255,255,0.8) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  color: var(--primary);
 }
 
 /* 容器布局调整 */
@@ -378,8 +553,14 @@ body::before{
   transform: translateX(-200px);
   width: calc(100% + 200px); /* 向左位移同等宽度，消除右侧空白 */
   max-width: none;
-  padding-right: 0;
+  padding-right: 200px; /* 右侧留出等同位移的内边距 */
   overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 确保主内容区域有平滑过渡 */
+.main {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .container.sidebar-collapsed .mailbox-layout {
@@ -495,10 +676,38 @@ body::before{
 
 @keyframes expandLayout {
   0% {
-    opacity: 0.8;
+    filter: blur(2px);
+    opacity: 0.7;
+    transform: scale(0.98);
+  }
+  50% {
+    filter: blur(1px);
+    opacity: 0.85;
   }
   100% {
+    filter: blur(0);
     opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes sidebarPulse {
+  0%, 100% {
+    box-shadow: 0 8px 32px rgba(59, 130, 246, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+  50% {
+    box-shadow: 0 8px 32px rgba(59, 130, 246, 0.25),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+}
+
+@keyframes iconGlow {
+  0%, 100% {
+    text-shadow: none;
+  }
+  50% {
+    text-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
   }
 }
 
@@ -522,11 +731,17 @@ body::before{
 @media (max-width: 768px) {
   .sidebar {
     min-width: 260px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
   .sidebar.collapsed {
     width: 50px;
     padding: 12px 4px;
+    animation: sidebarPulse 5s ease-in-out infinite;
+  }
+  
+  .sidebar.collapsed:hover {
+    animation: sidebarPulse 2.5s ease-in-out infinite;
   }
   
   .sidebar.collapsed h3 {
@@ -540,12 +755,45 @@ body::before{
   }
   
   .sidebar.collapsed .sidebar-toggle-btn {
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(255,255,255,0.9) 100%);
+    box-shadow: 0 2px 12px rgba(59, 130, 246, 0.3);
+  }
+  
+  .sidebar.collapsed .sidebar-toggle-btn:hover {
+    transform: scale(1.2) translateY(-2px);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
   }
   
   .sidebar.collapsed .sidebar-toggle-btn span {
     font-size: 10px;
+    font-weight: 800;
+  }
+  
+  /* 移动端收起状态下的加载更多按钮 */
+  .sidebar.collapsed #mb-more-wrap {
+    margin-top: 8px;
+    padding: 0 2px;
+  }
+  
+  .sidebar.collapsed #mb-more {
+    min-height: 28px;
+    padding: 4px 2px;
+    font-size: 9px;
+    border-radius: 4px;
+  }
+  
+  .sidebar.collapsed #mb-more-text {
+    font-size: 0; /* 隐藏原文本 */
+    line-height: 1.1;
+  }
+  
+  .sidebar.collapsed #mb-more-text::before {
+    font-size: 8px; /* 移动端显示更小的简化文本 */
+    content: "+";
+    font-weight: 900;
   }
   
   .container.sidebar-collapsed .sidebar {
@@ -2002,6 +2250,9 @@ select:disabled{
   .sidebar{
     position: relative;
     top: auto;
+    max-height: none;
+    overflow: visible;
+    overscroll-behavior: auto;
   }
   
   .topbar{
@@ -2028,8 +2279,24 @@ select:disabled{
 
   /* 历史邮箱列表默认折叠（侧栏未完全收起时） */
   .sidebar.list-collapsed #mb-list,
-  .sidebar.list-collapsed #mb-loading,
-  .sidebar.list-collapsed #mb-more-wrap{ display:none; }
+  .sidebar.list-collapsed #mb-loading { display:none; }
+  
+  /* 移动端列表折叠时仍显示加载更多按钮 */
+  .sidebar.list-collapsed #mb-more-wrap { 
+    display: block !important;
+    margin-top: 8px;
+    text-align: center;
+  }
+  
+  .sidebar.list-collapsed #mb-more {
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 12px;
+    border-radius: 8px;
+    background: var(--primary-light);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    color: var(--primary);
+  }
   .sidebar .sidebar-header{ cursor: pointer; }
   
   .mailbox-display-section,
