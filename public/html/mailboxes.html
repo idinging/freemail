@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>邮箱管理 - iDing's临时邮箱</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/css/app.css" />
+  <link rel="stylesheet" href="/css/mailboxes.css" />
+  <style>
+    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .card.mailbox { padding: 12px; }
+    .card.mailbox .addr { font-weight: 600; word-break: break-all; }
+    .meta { color:#475569; font-size:12px; margin-top:6px }
+    .topbar .nav-actions .btn { margin-left:8px }
+    .toolbar { display:flex; gap:8px; align-items:center; margin-bottom:12px }
+    .pager { display:flex; justify-content:center; align-items:center; gap:8px; margin-top:12px }
+  </style>
+</head>
+<body class="page-mailboxes">
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <span class="brand-icon">📧</span>
+        <span class="brand-text">iDing's临时邮箱 - 邮箱总览</span>
+      </div>
+      <div class="nav-actions">
+        <div style="margin-right:auto"></div>
+        <a class="btn btn-ghost" href="/" title="返回首页"><span class="btn-icon">🏠</span><span class="btn-text">首页</span></a>
+        <button id="logout" class="btn btn-secondary" title="退出登录"><span class="btn-icon">🚪</span><span class="btn-text">退出登录</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="main">
+      <div class="card">
+        <h2><span class="card-icon">📦</span>所有邮箱</h2>
+        <div class="toolbar">
+          <div class="searchbar">
+            <input id="q" class="search-input" placeholder="搜索邮箱地址（支持模糊）" />
+            <button id="search" class="btn btn-primary btn-sm"><span class="btn-icon">🔍</span><span>搜索</span></button>
+          </div>
+        </div>
+        <div id="grid" class="grid"></div>
+        <div id="empty" class="empty-state" style="display:none">
+          <div class="empty-icon">📭</div>
+          <div class="empty-title">暂无数据</div>
+        </div>
+        <div class="pager">
+          <button id="prev" class="btn btn-ghost btn-sm">上一页</button>
+          <span id="page" class="muted" style="min-width:100px;text-align:center"></span>
+          <button id="next" class="btn btn-ghost btn-sm">下一页</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="footer-slot"></div>
+  <!-- 重置密码二级页（模态框） -->
+  <div class="modal" id="reset-modal" style="display:none">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <span class="modal-icon">🔐</span>
+          <span>重置邮箱密码</span>
+        </div>
+        <button id="reset-close" class="close">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin:0 0 12px 0;color:#334155">将把该邮箱的密码重置为“默认”（即邮箱地址本身）。</p>
+        <div style="padding:12px;border:1px solid var(--border-light);border-radius:8px;background:var(--card-glass);">
+          <div style="color:#475569;font-size:12px">邮箱地址</div>
+          <div id="reset-email" style="font-weight:700;color:#111827;word-break:break-all"></div>
+        </div>
+        <div style="margin-top:16px;display:flex;gap:12px;justify-content:flex-end">
+          <button id="reset-cancel" class="btn btn-secondary">取消</button>
+          <button id="reset-confirm" class="btn btn-danger">确定重置</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 登录权限确认框（模态框） -->
+  <div class="modal" id="login-confirm-modal" style="display:none">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <span class="modal-icon" id="login-confirm-icon">🔒</span>
+          <span id="login-confirm-title">确认操作</span>
+        </div>
+        <button id="login-confirm-close" class="close">✕</button>
+      </div>
+      <div class="modal-body">
+        <p id="login-confirm-message" style="margin:0 0 12px 0;color:#334155"></p>
+        <div style="padding:12px;border:1px solid var(--border-light);border-radius:8px;background:var(--card-glass);">
+          <div style="color:#475569;font-size:12px">邮箱地址</div>
+          <div id="login-confirm-email" style="font-weight:700;color:#111827;word-break:break-all"></div>
+        </div>
+        <div style="margin-top:16px;display:flex;gap:12px;justify-content:flex-end">
+          <button id="login-confirm-cancel" class="btn btn-secondary">取消</button>
+          <button id="login-confirm-ok" class="btn btn-primary">确定</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 修改密码模态框 -->
+  <div class="modal" id="change-password-modal" style="display:none">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <span class="modal-icon">🔑</span>
+          <span>修改邮箱密码</span>
+        </div>
+        <button id="change-password-close" class="close">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin:0 0 12px 0;color:#334155">为该邮箱设置新的自定义密码。</p>
+        <div style="padding:16px;border:1px solid rgba(226, 232, 240, 0.6);border-radius:12px;background:linear-gradient(135deg, rgba(248, 250, 252, 0.8) 0%, rgba(241, 245, 249, 0.6) 100%);margin-bottom:16px;">
+          <div style="color:#475569;font-size:12px">邮箱地址</div>
+          <div id="change-password-email" style="font-weight:700;color:#111827;word-break:break-all"></div>
+        </div>
+        <form id="change-password-form">
+          <div style="margin-bottom:16px;">
+            <label style="display:block;margin-bottom:6px;color:#374151;font-weight:500;font-size:14px;">新密码</label>
+            <input type="password" id="new-password" class="form-input" placeholder="请输入新密码（至少6位）" minlength="6" required 
+                   style="width:100%;padding:10px 12px;border:1px solid rgba(226, 232, 240, 0.8);border-radius:8px;font-size:14px;background:rgba(255,255,255,0.9);" />
+          </div>
+          <div style="margin-bottom:20px;">
+            <label style="display:block;margin-bottom:6px;color:#374151;font-weight:500;font-size:14px;">确认新密码</label>
+            <input type="password" id="confirm-password" class="form-input" placeholder="请再次输入新密码" minlength="6" required 
+                   style="width:100%;padding:10px 12px;border:1px solid rgba(226, 232, 240, 0.8);border-radius:8px;font-size:14px;background:rgba(255,255,255,0.9);" />
+          </div>
+          <div style="display:flex;gap:12px;justify-content:flex-end">
+            <button type="button" id="change-password-cancel" class="btn btn-secondary">取消</button>
+            <button type="submit" id="change-password-submit" class="btn btn-primary">修改密码</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="/js/mailboxes.js"></script>
+</body>
+</html>
+
+

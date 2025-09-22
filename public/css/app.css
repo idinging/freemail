@@ -214,10 +214,10 @@ body::before{
 .container{
   max-width: 1200px; /* 与头部对齐 */
   margin: 0 auto;
-  padding: 32px;
+  padding: 24px 24px 32px;
   display: grid;
   grid-template-columns: 320px 1fr;
-  gap: 32px;
+  gap: 24px;
   align-items: start;
   min-height: calc(100vh - 100px);
 }
@@ -245,6 +245,20 @@ body::before{
   /* 防止滚动条出现/消失引发布局抖动 */
   scrollbar-gutter: stable both-edges;
 }
+
+/* 历史邮箱搜索框样式 */
+.sidebar-search{ margin: 6px 0 10px; }
+.sidebar-search-input{
+  width: 100%;
+  height: 36px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-glass);
+  border-radius: 10px;
+  background: var(--card-glass);
+  box-shadow: var(--shadow-glass);
+}
+.sidebar-search-input::placeholder{ color: var(--muted2); }
+.sidebar-search-input:focus{ outline:none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,.15); background: #fff; }
 
 /* 更细、更透明的滚动条（Chromium/WebKit） */
 .sidebar::-webkit-scrollbar{ width: 8px; height: 8px; }
@@ -1054,7 +1068,7 @@ body::before{
   -webkit-backdrop-filter: blur(24px);
   border-radius: var(--radius);
   box-shadow: var(--shadow-glass);
-  padding: 32px;
+  padding: 24px;
   border: 1px solid var(--border-glass);
   transition: var(--transition);
   position: relative;
@@ -1157,7 +1171,7 @@ body::before{
 .custom-input{ min-width:280px; height:44px; padding:10px 14px; border:1px solid var(--border-glass); border-radius: var(--radius-sm); background: var(--card-glass); box-shadow: var(--shadow-glass); font-size:14px; }
 .custom-input::placeholder{ color: var(--muted2); }
 .custom-input:focus{ outline:none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,0.15); background:#fff; }
-/* 覆盖层内“创建”按钮：强制水平/垂直居中 */
+/* 覆盖层内"创建"按钮：强制水平/垂直居中 */
 .custom-overlay .btn{ height:44px; padding:0 16px; justify-content:center; align-items:center; }
 
 /* 让切换自定义按钮与随机按钮同样大小 */
@@ -2442,3 +2456,10 @@ select:disabled{
   .email-display{ padding: 12px; font-size: 14px; }
   .list-viewport{ max-height: calc(100vh - 260px); overflow: auto; }
 }
+
+/* mailboxes 页面搜索条样式 */
+.page-mailboxes .toolbar{ display:flex; justify-content:center; margin-bottom:12px; }
+.searchbar{ display:flex; align-items:center; gap:8px; background: var(--card-glass); border:1px solid var(--border-glass); padding:8px 10px; border-radius: 999px; box-shadow: var(--shadow-glass); width: min(720px, 100%); }
+.search-input{ flex:1; border:none; background: transparent; outline: none; padding: 6px 8px; font-size:14px; color: var(--text); }
+.search-input::placeholder{ color: var(--muted2); }
+.page-mailboxes .btn-sm{ height:36px; }

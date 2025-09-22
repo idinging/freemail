@@ -1,0 +1,280 @@
+/* 邮箱总览页（独立样式） */
+
+.page-mailboxes .container{ max-width: 1200px; padding: 16px 16px 24px; grid-template-columns: 1fr; }
+.page-mailboxes .main{ grid-column: 1; }
+.page-mailboxes .card{ padding: 20px; }
+/* 让右侧操作区真正靠右 */
+.page-mailboxes .topbar .topbar-inner{ display:flex; align-items:center; gap:20px; width:100%; }
+
+/* 栅格铺满展示，最小卡片宽 260px，自适应列数 */
+.page-mailboxes #grid{
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+/* 统一卡片尺寸与布局：固定高度避免参差不齐 */
+.mailbox-card{
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 140px;
+  padding: 12px;
+  background: var(--card-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-glass);
+  position: relative;
+}
+
+.mailbox-card .line{ color:#475569; font-size:12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mailbox-card .addr{ font-weight:700; font-size:14px; color: var(--text); }
+.mailbox-card .pwd{ color:#64748b; }
+.mailbox-card .login{ color:#64748b; }
+.mailbox-card .time{ color:#64748b; }
+
+/* 徽章/置顶标识内联缩进 */
+.mailbox-card .badge{ margin-left: 6px; }
+
+/* 悬停操作区 - 2x2 网格布局 */
+.mailbox-card .actions{
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity .15s ease;
+  width: 64px;
+  height: 64px;
+}
+.mailbox-card:hover .actions{ opacity: 1; }
+.mailbox-card .actions .btn-icon{ 
+  width: 30px; 
+  height: 30px; 
+  border-radius: 6px; 
+  border: 1px solid var(--border-glass); 
+  background: rgba(255,255,255,.9); 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  cursor: pointer; 
+  box-shadow: var(--shadow-glass); 
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+.mailbox-card .actions .btn-icon:hover{ 
+  background: var(--primary-light); 
+  border-color: var(--primary); 
+  transform: scale(1.05);
+}
+.mailbox-card .actions .btn-icon.active{ 
+  background: #16a34a; 
+  border-color: #16a34a; 
+  color: white; 
+}
+
+/* 顶部搜索条适配本页 */
+.page-mailboxes .searchbar{ width: min(900px, 100%); }
+
+@media (max-width: 768px){
+  .mailbox-card{ min-height: 100px; }
+}
+
+/* 模态框样式 - 统一确认对话框 */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.modal-card {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 16px;
+  box-shadow: 
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04),
+    0 0 0 1px rgba(255, 255, 255, 0.5);
+  width: 90%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow: hidden;
+  animation: modalSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px 24px;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+  background: linear-gradient(135deg, rgba(248, 250, 252, 0.8) 0%, rgba(241, 245, 249, 0.8) 100%);
+}
+
+.modal-header > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 16px;
+  color: #1e293b;
+}
+
+.modal-icon {
+  font-size: 20px;
+}
+
+/* 登录权限图标颜色优化 */
+#login-confirm-icon {
+  transition: all 0.2s ease;
+}
+
+/* 解锁图标样式 - 绿色调 */
+#login-confirm-icon.unlock {
+  color: #16a34a;
+  text-shadow: 0 0 8px rgba(22, 163, 74, 0.3);
+}
+
+/* 上锁图标样式 - 红色调 */
+#login-confirm-icon.lock {
+  color: #dc2626;
+  text-shadow: 0 0 8px rgba(220, 38, 38, 0.3);
+}
+
+.modal-header .close {
+  background: rgba(248, 250, 252, 0.8);
+  border: 1px solid rgba(226, 232, 240, 0.6);
+  font-size: 18px;
+  color: #64748b;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-header .close:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #dc2626;
+  transform: scale(1.05);
+}
+
+.modal-body {
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+/* 模态框内的按钮样式优化 */
+.modal-body .btn {
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 80px;
+}
+
+.modal-body .btn-secondary {
+  background: rgba(248, 250, 252, 0.9);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  color: #475569;
+}
+
+.modal-body .btn-secondary:hover {
+  background: rgba(241, 245, 249, 1);
+  border-color: rgba(203, 213, 225, 1);
+  color: #334155;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.modal-body .btn-primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border: 1px solid transparent;
+}
+
+.modal-body .btn-primary:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+}
+
+.modal-body .btn-danger {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  border: 1px solid transparent;
+}
+
+.modal-body .btn-danger:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+}
+
+/* 邮箱地址显示区域样式优化 */
+.modal-body > div[style*="padding:12px"] {
+  padding: 16px !important;
+  border: 1px solid rgba(226, 232, 240, 0.6) !important;
+  border-radius: 12px !important;
+  background: linear-gradient(135deg, rgba(248, 250, 252, 0.8) 0%, rgba(241, 245, 249, 0.6) 100%) !important;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+}
+
+.modal-body > p {
+  color: #475569 !important;
+  line-height: 1.6 !important;
+  margin-bottom: 16px !important;
+}
+
+/* 表单输入框样式 */
+.modal-body .form-input {
+  transition: all 0.2s ease;
+}
+
+.modal-body .form-input:focus {
+  outline: none !important;
+  border-color: rgba(59, 130, 246, 0.5) !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+  background: rgba(255, 255, 255, 1) !important;
+}
+
+.modal-body .form-input:hover {
+  border-color: rgba(203, 213, 225, 1) !important;
+}
+
+

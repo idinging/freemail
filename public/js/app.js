@@ -228,6 +228,7 @@ const els = {
   modalSubject: document.getElementById('modal-subject'),
   modalContent: document.getElementById('modal-content'),
   mbList: document.getElementById('mb-list'),
+  mbSearch: document.getElementById('mb-search'),
   mbLoading: document.getElementById('mb-loading'),
   toast: document.getElementById('toast'),
   mbMore: document.getElementById('mb-more'),
@@ -265,6 +266,7 @@ const els = {
 };
 // 管理入口（默认隐藏，登录后按角色显示）
 const adminLink = document.getElementById('admin');
+const allMailboxesLink = document.getElementById('all-mailboxes');
 
 // ===== 本地缓存（按用户隔离）：已抽离到 storage.js =====
 
@@ -279,6 +281,10 @@ function applySessionUI(s){
       else if (s.role === 'guest'){ badge.classList.add('role-user'); badge.textContent = '演示模式'; }
     }
     if (s && (s.strictAdmin || s.role === 'guest') && adminLink){ adminLink.style.display = 'inline-flex'; } else if (adminLink){ adminLink.style.display = 'none'; }
+    if (allMailboxesLink){
+      if (s && (s.strictAdmin || s.role === 'guest')) allMailboxesLink.style.display = 'inline-flex';
+      else allMailboxesLink.style.display = 'none';
+    }
   }catch(_){ }
 
 }
@@ -1109,6 +1115,12 @@ if (adminLink){
     location.replace('/templates/loading.html?redirect=%2Fhtml%2Fadmin.html&status=' + encodeURIComponent('正在打开管理页面…'));
   });
 }
+if (allMailboxesLink){
+  allMailboxesLink.addEventListener('click', (ev) => {
+    ev.preventDefault();
+    location.replace('/templates/loading.html?redirect=%2Fhtml%2Fmailboxes.html&status=' + encodeURIComponent('正在打开邮箱总览页面…'));
+  });
+}
 
 els.logout.onclick = async () => {
   try { fetch('/api/logout', { method:'POST', keepalive: true }); } catch {}
@@ -1305,7 +1317,12 @@ async function loadMailboxes(isAppend = false, options = {}){
     const mController = new AbortController();
     const mTimeout = setTimeout(()=>mController.abort(), 8000);
     const r = await api(`/api/mailboxes?limit=${MB_PAGE_SIZE}&offset=${mbOffset}`, { signal: mController.signal });
-    const items = await r.json();
+    let items = await r.json();
+    // 前端过滤：若输入了搜索关键字
+    try{
+      const kw = (els.mbSearch?.value || '').trim().toLowerCase();
+      if (kw){ items = (Array.isArray(items) ? items : []).filter(x => String(x.address||'').toLowerCase().includes(kw)); }
+    }catch(_){ }
     clearTimeout(mTimeout);
     const html = (items||[]).map(x => (
       `<div class="mailbox-item ${x.is_pinned ? 'pinned' : ''}" onclick="selectMailbox('${x.address}')">
@@ -1497,6 +1514,26 @@ if (els.mbMore) {
     mbOffset += MB_PAGE_SIZE;
     await loadMailboxes(true);
   };
+}
+
+// 历史邮箱搜索：输入即过滤当前结果，按回车触发重新拉取第一页
+if (els.mbSearch){
+  els.mbSearch.addEventListener('input', () => {
+    try{
+      const list = Array.from(els.mbList.querySelectorAll('.mailbox-item'));
+      const kw = (els.mbSearch.value || '').trim().toLowerCase();
+      list.forEach(item => {
+        const addr = item.querySelector('.address')?.textContent?.toLowerCase() || '';
+        item.style.display = kw ? (addr.includes(kw) ? '' : 'none') : '';
+      });
+    }catch(_){ }
+  });
+  els.mbSearch.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter'){
+      try{ mbOffset = 0; }catch(_){ }
+      loadMailboxes(false, { forceFresh: true });
+    }
+  });
 }
 
 mbOffset = 0;

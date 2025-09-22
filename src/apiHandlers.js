@@ -556,14 +556,24 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
       // 纯读：不存在则返回空数组，不创建
       const mailboxId = await getMailboxIdByAddress(db, normalized);
       if (!mailboxId) return Response.json([]);
+      
+      // 邮箱用户只能查看近24小时的邮件
+      let timeFilter = '';
+      let timeParam = [];
+      if (isMailboxOnly) {
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        timeFilter = ' AND received_at >= ?';
+        timeParam = [twentyFourHoursAgo];
+      }
+      
       try{
         const { results } = await db.prepare(`
           SELECT id, sender, subject, received_at, is_read, preview, verification_code
           FROM messages 
-          WHERE mailbox_id = ? 
+          WHERE mailbox_id = ?${timeFilter}
           ORDER BY received_at DESC 
           LIMIT 50
-        `).bind(mailboxId).all();
+        `).bind(mailboxId, ...timeParam).all();
         return Response.json(results);
       }catch(e){
         // 旧结构降级查询：从 content/html_content 计算 preview
@@ -574,10 +584,10 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
                       ELSE SUBSTR(COALESCE(html_content, ''), 1, 120)
                  END AS preview
           FROM messages 
-          WHERE mailbox_id = ? 
+          WHERE mailbox_id = ?${timeFilter}
           ORDER BY received_at DESC 
           LIMIT 50
-        `).bind(mailboxId).all();
+        `).bind(mailboxId, ...timeParam).all();
         return Response.json(results);
       }
     } catch (e) {
@@ -597,18 +607,28 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
         const arr = ids.map(id => buildMockEmailDetail(id));
         return Response.json(arr);
       }
+      
+      // 邮箱用户只能查看近24小时的邮件
+      let timeFilter = '';
+      let timeParam = [];
+      if (isMailboxOnly) {
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        timeFilter = ' AND received_at >= ?';
+        timeParam = [twentyFourHoursAgo];
+      }
+      
       const placeholders = ids.map(()=>'?').join(',');
       try{
         const { results } = await db.prepare(`
           SELECT id, sender, to_addrs, subject, verification_code, preview, r2_bucket, r2_object_key, received_at, is_read
-          FROM messages WHERE id IN (${placeholders})
-        `).bind(...ids).all();
+          FROM messages WHERE id IN (${placeholders})${timeFilter}
+        `).bind(...ids, ...timeParam).all();
         return Response.json(results || []);
       }catch(e){
         const { results } = await db.prepare(`
           SELECT id, sender, subject, content, html_content, received_at, is_read
-          FROM messages WHERE id IN (${placeholders})
-        `).bind(...ids).all();
+          FROM messages WHERE id IN (${placeholders})${timeFilter}
+        `).bind(...ids, ...timeParam).all();
         return Response.json(results || []);
       }
     }catch(e){
@@ -620,6 +640,7 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
   if (path === '/api/mailboxes' && request.method === 'GET') {
     const limit = Math.min(parseInt(url.searchParams.get('limit') || '10', 10), 100);
     const offset = Math.max(parseInt(url.searchParams.get('offset') || '0', 10), 0);
+    const q = String(url.searchParams.get('q') || '').trim().toLowerCase();
     if (isMock) {
       return Response.json(buildMockMailboxes(limit, offset, mailDomains));
     }
@@ -629,30 +650,49 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
         // 严格管理员：查看所有邮箱，并用自己在 user_mailboxes 中的置顶状态覆盖；未置顶则为 0
         const payload = getJwtPayload();
         const adminUid = Number(payload?.userId || 0);
+        const like = `%${q.replace(/%/g,'').replace(/_/g,'')}%`;
         const { results } = await db.prepare(`
-          SELECT m.address, m.created_at, COALESCE(um.is_pinned, 0) AS is_pinned
+          SELECT m.address, m.created_at, COALESCE(um.is_pinned, 0) AS is_pinned,
+                 CASE WHEN (m.password_hash IS NULL OR m.password_hash = '') THEN 1 ELSE 0 END AS password_is_default,
+                 COALESCE(m.can_login, 0) AS can_login
           FROM mailboxes m
           LEFT JOIN user_mailboxes um ON um.mailbox_id = m.id AND um.user_id = ?
+          WHERE (? = '' OR LOWER(m.address) LIKE LOWER(?))
           ORDER BY is_pinned DESC, m.created_at DESC
           LIMIT ? OFFSET ?
-        `).bind(adminUid || 0, limit, offset).all();
+        `).bind(adminUid || 0, q ? like : '', q ? like : '', limit, offset).all();
         return Response.json(results || []);
       }
       const payload = getJwtPayload();
       const uid = Number(payload?.userId || 0);
       if (!uid) return Response.json([]);
+      const like = `%${q.replace(/%/g,'').replace(/_/g,'')}%`;
       const { results } = await db.prepare(`
-        SELECT m.address, m.created_at, um.is_pinned
+        SELECT m.address, m.created_at, um.is_pinned,
+               CASE WHEN (m.password_hash IS NULL OR m.password_hash = '') THEN 1 ELSE 0 END AS password_is_default,
+               COALESCE(m.can_login, 0) AS can_login
         FROM user_mailboxes um
         JOIN mailboxes m ON m.id = um.mailbox_id
-        WHERE um.user_id = ?
+        WHERE um.user_id = ? AND (? = '' OR LOWER(m.address) LIKE LOWER(?))
         ORDER BY um.is_pinned DESC, m.created_at DESC
         LIMIT ? OFFSET ?
-      `).bind(uid, limit, offset).all();
+      `).bind(uid, q ? like : '', q ? like : '', limit, offset).all();
       return Response.json(results || []);
     }catch(_){
       return Response.json([]);
     }
+  }
+
+  // 重置某个邮箱的密码为默认（邮箱本身）——仅严格管理员
+  if (path === '/api/mailboxes/reset-password' && request.method === 'POST') {
+    if (isMock) return Response.json({ success: true, mock: true });
+    try{
+      if (!isStrictAdmin()) return new Response('Forbidden', { status: 403 });
+      const address = String(url.searchParams.get('address') || '').trim().toLowerCase();
+      if (!address) return new Response('缺少 address 参数', { status: 400 });
+      await db.prepare('UPDATE mailboxes SET password_hash = NULL WHERE address = ?').bind(address).run();
+      return Response.json({ success: true });
+    }catch(e){ return new Response('重置失败', { status: 500 }); }
   }
 
   // 切换邮箱置顶状态
@@ -681,6 +721,64 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
     try {
       const result = await toggleMailboxPin(db, address, uid);
       return Response.json({ success: true, ...result });
+    } catch (e) {
+      return new Response('操作失败: ' + e.message, { status: 500 });
+    }
+  }
+
+  // 切换邮箱登录权限（仅严格管理员可用）
+  if (path === '/api/mailboxes/toggle-login' && request.method === 'POST') {
+    if (isMock) return new Response('演示模式不可操作', { status: 403 });
+    if (!isStrictAdmin()) return new Response('Forbidden', { status: 403 });
+    try {
+      const body = await request.json();
+      const address = String(body.address || '').trim().toLowerCase();
+      const canLogin = Boolean(body.can_login);
+      
+      if (!address) return new Response('缺少 address 参数', { status: 400 });
+      
+      // 检查邮箱是否存在
+      const mbRes = await db.prepare('SELECT id FROM mailboxes WHERE address = ?').bind(address).all();
+      if (!mbRes.results || mbRes.results.length === 0) {
+        return new Response('邮箱不存在', { status: 404 });
+      }
+      
+      // 更新登录权限
+      await db.prepare('UPDATE mailboxes SET can_login = ? WHERE address = ?')
+        .bind(canLogin ? 1 : 0, address).run();
+      
+      return Response.json({ success: true, can_login: canLogin });
+    } catch (e) {
+      return new Response('操作失败: ' + e.message, { status: 500 });
+    }
+  }
+
+  // 修改邮箱密码（仅严格管理员可用）
+  if (path === '/api/mailboxes/change-password' && request.method === 'POST') {
+    if (isMock) return new Response('演示模式不可操作', { status: 403 });
+    if (!isStrictAdmin()) return new Response('Forbidden', { status: 403 });
+    try {
+      const body = await request.json();
+      const address = String(body.address || '').trim().toLowerCase();
+      const newPassword = String(body.new_password || '').trim();
+      
+      if (!address) return new Response('缺少 address 参数', { status: 400 });
+      if (!newPassword || newPassword.length < 6) return new Response('密码长度至少6位', { status: 400 });
+      
+      // 检查邮箱是否存在
+      const mbRes = await db.prepare('SELECT id FROM mailboxes WHERE address = ?').bind(address).all();
+      if (!mbRes.results || mbRes.results.length === 0) {
+        return new Response('邮箱不存在', { status: 404 });
+      }
+      
+      // 生成密码哈希
+      const newPasswordHash = await sha256Hex(newPassword);
+      
+      // 更新密码
+      await db.prepare('UPDATE mailboxes SET password_hash = ? WHERE address = ?')
+        .bind(newPasswordHash, address).run();
+      
+      return Response.json({ success: true });
     } catch (e) {
       return new Response('操作失败: ' + e.message, { status: 500 });
     }
@@ -746,11 +844,25 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
       return Response.json(buildMockEmailDetail(emailId));
     }
     try{
+      // 邮箱用户需要验证邮件是否在24小时内
+      let timeFilter = '';
+      let timeParam = [];
+      if (isMailboxOnly) {
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        timeFilter = ' AND received_at >= ?';
+        timeParam = [twentyFourHoursAgo];
+      }
+      
       const { results } = await db.prepare(`
         SELECT id, sender, to_addrs, subject, verification_code, preview, r2_bucket, r2_object_key, received_at, is_read
-        FROM messages WHERE id = ?
-      `).bind(emailId).all();
-      if (results.length === 0) return new Response('未找到邮件', { status: 404 });
+        FROM messages WHERE id = ?${timeFilter}
+      `).bind(emailId, ...timeParam).all();
+      if (results.length === 0) {
+        if (isMailboxOnly) {
+          return new Response('邮件不存在或已超过24小时访问期限', { status: 404 });
+        }
+        return new Response('未找到邮件', { status: 404 });
+      }
       await db.prepare(`UPDATE messages SET is_read = 1 WHERE id = ?`).bind(emailId).run();
       const row = results[0];
       let content = '';

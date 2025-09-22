@@ -13,6 +13,10 @@
       <span class="btn-icon">🛠️</span>
       <span class="btn-text">用户管理</span>
     </a>
+    <a id="all-mailboxes" class="btn btn-ghost" href="/templates/loading.html?redirect=%2Fhtml%2Fmailboxes.html&status=%E6%AD%A3%E5%9C%A8%E6%89%93%E5%BC%80%E9%82%AE%E7%AE%B1%E6%80%BB%E8%A7%88%E9%A1%B5%E9%9D%A2%E2%80%A6" title="所有邮箱" style="display:none">
+      <span class="btn-icon">📦</span>
+      <span class="btn-text">所有邮箱</span>
+    </a>
     <button id="logout" class="btn btn-secondary" title="退出登录">
       <span class="btn-icon">🚪</span>
       <span class="btn-text">退出登录</span>
@@ -36,6 +40,9 @@
             <span id="mb-toggle-icon">▾</span>
           </button>
         </div>
+      </div>
+      <div class="sidebar-search">
+        <input id="mb-search" class="input sidebar-search-input" placeholder="搜索历史邮箱" />
       </div>
       <div id="mb-list"></div>
       <div id="mb-loading" style="margin-top:12px"></div>

@@ -67,6 +67,15 @@ export async function initDatabase(db) {
       }
     } catch (_) {}
 
+    // 迁移：为现有邮箱添加 can_login 字段
+    try {
+      const res = await db.prepare("PRAGMA table_info(mailboxes)").all();
+      const cols = (res?.results || []).map(r => (r.name || r?.['name']));
+      if (!cols.includes('can_login')){
+        await db.exec('ALTER TABLE mailboxes ADD COLUMN can_login INTEGER DEFAULT 0');
+      }
+    } catch (_) {}
+
     // 迁移：messages 缺失新列时追加
     try {
       const info = await db.prepare("PRAGMA table_info(messages)").all();

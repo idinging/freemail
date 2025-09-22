@@ -218,8 +218,6 @@ async function loadEmails(page = 1) {
   
   try {
     showLoading(true);
-    // 加载时先清空列表并显示空态，避免卡在旧状态
-    if (elements.emailList) elements.emailList.innerHTML = '';
     
     const response = await fetch(`/api/emails?mailbox=${encodeURIComponent(currentMailbox)}&page=${page}&limit=${pageSize}`);
     
@@ -228,10 +226,17 @@ async function loadEmails(page = 1) {
     }
     
     const data = await response.json();
-    emails = Array.isArray(data) ? data : [];
+    const newList = Array.isArray(data) ? data : [];
+    const canIncremental = page === 1 && elements.emailList && elements.emailList.children && elements.emailList.children.length > 0 && !keyword;
+    if (canIncremental){
+      applyIncrementalList(newList);
+      emails = newList;
+    } else {
+      emails = newList;
+      renderEmailList();
+    }
     currentPage = page;
     
-    renderEmailList();
     updatePagination();
     updateCounters();
     
@@ -278,12 +283,18 @@ function createEmailItem(email) {
   const item = document.createElement('div');
   item.className = 'email-item clickable';
   item.onclick = () => viewEmailDetail(email.id);
+  try{ item.dataset.id = String(email.id); }catch(_){ }
 
   // 统一与普通用户列表的预览与验证码提取逻辑
   const raw = (email.preview || email.content || email.html_content || '').toString();
   const plain = raw.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
   const listCode = (email.verification_code || '').toString().trim() || extractCode(`${email.subject || ''} ${plain}`);
-  const preview = (plain || '').slice(0, 20);
+  let preview = '';
+  if (plain) {
+    preview = plain;
+    if (listCode) preview = `验证码: ${listCode} | ${preview}`;
+    preview = preview.slice(0, 20);
+  }
   const hasContent = preview.length > 0;
   const timeText = formatTime(email.received_at);
   const senderText = escapeHtml(email.sender || '');
@@ -307,17 +318,53 @@ function createEmailItem(email) {
         </div>
       </div>
       <div class="email-actions">
-        <button class="btn btn-secondary btn-sm" data-code="${listCode || ''}" onclick="copyFromList(event, ${email.id});event.stopPropagation()" title="复制内容或验证码">
+        <button class="btn btn-secondary btn-sm" data-code="${listCode || ''}" onclick="copyFromList(event, ${email.id})" title="复制内容或验证码">
           <span class="btn-icon">📋</span>
-        </button>
-        <button class="btn btn-danger btn-sm" onclick="deleteEmail(${email.id});event.stopPropagation()" title="删除邮件">
-          <span class="btn-icon">🗑️</span>
         </button>
       </div>
     </div>
   `;
 
   return item;
+}
+
+/**
+ * 增量更新列表：仅追加新邮件到顶部，并移除不在第一页的数据
+ */
+function applyIncrementalList(newList){
+  try{
+    const container = elements.emailList;
+    if (!container){ return; }
+    const existingChildren = Array.from(container.children || []);
+    const existingIds = new Set(existingChildren.map(el => Number(el.dataset && el.dataset.id)));
+    const newIds = new Set(newList.map(e => e.id));
+    // 1) 预先构建需要插入的新节点（保持从旧到新插入到顶部的顺序）
+    const toInsert = [];
+    for (let i = newList.length - 1; i >= 0; i--){
+      const e = newList[i];
+      if (!existingIds.has(e.id)){
+        toInsert.push(createEmailItem(e));
+      }
+    }
+    // 插入到顶部（保持新列表顺序）
+    for (let i = toInsert.length - 1; i >= 0; i--){
+      const node = toInsert[i];
+      if (container.firstChild){ container.insertBefore(node, container.firstChild); }
+      else { container.appendChild(node); }
+    }
+    // 2) 移除不在新列表中的旧节点（通常是底部旧邮件被顶出）
+    existingChildren.forEach(el => {
+      const id = Number(el.dataset && el.dataset.id);
+      if (!newIds.has(id)){
+        el.remove();
+      }
+    });
+    // 3) 空态处理
+    if (elements.emptyState){ elements.emptyState.style.display = container.children.length ? 'none' : 'flex'; }
+  }catch(_){
+    // 发生异常时回退到完整渲染
+    renderEmailList();
+  }
 }
 
 /**
@@ -759,11 +806,21 @@ async function handlePasswordChange(e) {
 /**
  * 格式化时间
  */
+function parseUtcToDate(timeStr){
+  // 兼容 D1 返回的 "YYYY-MM-DD HH:MM:SS"（UTC）
+  if (!timeStr) return null;
+  try{
+    const iso = String(timeStr).replace(' ', 'T');
+    return new Date(iso + 'Z');
+  }catch(_){ return null; }
+}
+
 function formatTime(timeStr) {
   if (!timeStr) return '未知时间';
   
   try {
-    const date = new Date(timeStr);
+    // 将数据库UTC时间转换为正确时刻
+    const date = parseUtcToDate(timeStr) || new Date(timeStr);
     const now = new Date();
     const diff = now - date;
     
@@ -776,13 +833,17 @@ function formatTime(timeStr) {
     } else if (diff < 7 * 86400000) { // 小于7天
       return Math.floor(diff / 86400000) + '天前';
     } else {
-      return date.toLocaleDateString('zh-CN', {
+      // 超7天显示具体时间，固定东八区
+      return new Intl.DateTimeFormat('zh-CN', {
+        timeZone: 'Asia/Shanghai',
+        hour12: false,
         year: 'numeric',
-        month: 'short',
+        month: 'numeric',
         day: 'numeric',
         hour: '2-digit',
-        minute: '2-digit'
-      });
+        minute: '2-digit',
+        second: '2-digit'
+      }).format(date);
     }
   } catch (error) {
     return '时间格式错误';
@@ -803,3 +864,57 @@ function escapeHtml(text) {
 // 暴露全局函数
 window.viewEmailDetail = viewEmailDetail;
 window.deleteEmail = deleteEmail;
+
+/**
+ * 从文本中提取验证码/激活码
+ */
+function extractCode(text){
+  if (!text) return '';
+  const keywords = '(?:验证码|校验码|激活码|one[-\\s]?time\\s+code|verification\\s+code|security\\s+code|two[-\\s]?factor|2fa|otp|login\\s+code|code)';
+  const notFollowAlnum = '(?![0-9A-Za-z])';
+  let m = text.match(new RegExp(
+    keywords + "[^0-9A-Za-z]{0,20}(?:is(?:\\s*[:：])?|[:：]|为|是)?[^0-9A-Za-z]{0,10}(\\d{4,8})" + notFollowAlnum,
+    'i'
+  ));
+  if (m) return m[1];
+  m = text.match(new RegExp(
+    keywords + "[^0-9A-Za-z]{0,20}(?:is(?:\\s*[:：])?|[:：]|为|是)?[^0-9A-Za-z]{0,10}((?:\\d[ \\t-]){3,7}\\d)",
+    'i'
+  ));
+  if (m){ const digits = m[1].replace(/\\D/g,''); if (digits.length>=4 && digits.length<=8) return digits; }
+  m = text.match(new RegExp(
+    keywords + "[^0-9A-Za-z]{0,40}((?=[0-9A-Za-z]*\\d)[0-9A-Za-z]{4,8})" + notFollowAlnum,
+    'i'
+  ));
+  if (m) return m[1];
+  m = text.match(/(?<!\d)(\d{6})(?!\d)/);
+  if (m) return m[1];
+  m = text.match(/(\d(?:[ \t-]\d){5,7})/);
+  if (m){ const digits = m[1].replace(/\D/g,''); if (digits.length>=4 && digits.length<=8) return digits; }
+  return '';
+}
+
+/**
+ * 列表复制：优先复制已提取验证码，否则拉取详情复制正文
+ */
+window.copyFromList = async function(ev, id){
+  try{
+    if (ev && ev.stopPropagation) ev.stopPropagation();
+    const btn = ev && (ev.currentTarget || ev.target);
+    const code = (btn && btn.dataset ? String(btn.dataset.code || '').trim() : '');
+    if (code){
+      await navigator.clipboard.writeText(code);
+      try{ showToast('已复制验证码：' + code, 'success'); }catch(_){ }
+      return false;
+    }
+    const r = await fetch(`/api/email/${id}`);
+    if (!r.ok) throw new Error('网络错误');
+    const email = await r.json();
+    const raw = (email.html_content || email.content || '').toString();
+    const txt = `${email.subject || ''} ` + raw.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+    const fallback = extractCode(txt) || txt;
+    await navigator.clipboard.writeText(fallback);
+    try{ showToast(fallback && fallback.length<=12 ? '已复制验证码/激活码：' + fallback : '已复制邮件内容', 'success'); }catch(_){ }
+    return false;
+  }catch(_){ showToast('复制失败', 'warn'); return false; }
+};

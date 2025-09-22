@@ -47,6 +47,15 @@ export class Router {
   }
 
   /**
+   * 添加PUT路由
+   * @param {string} path - 路径
+   * @param {Function} handler - 处理函数
+   */
+  put(path, handler) {
+    this.addRoute('PUT', path, handler);
+  }
+
+  /**
    * 添加DELETE路由
    * @param {string} path - 路径
    * @param {Function} handler - 处理函数
@@ -427,6 +436,11 @@ export function createRouter() {
   });
 
   router.patch('/api/*', async (context) => {
+    return await delegateApiRequest(context);
+  });
+
+  // 支持 PUT 方法（如修改密码）
+  router.put('/api/*', async (context) => {
     return await delegateApiRequest(context);
   });
 

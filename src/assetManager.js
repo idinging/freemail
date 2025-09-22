@@ -13,6 +13,8 @@ export class AssetManager {
       '/login', 
       '/login.html', 
       '/admin.html',
+      '/html/mailboxes.html',
+      '/mailboxes.html',
       '/mailbox.html',
        '/html/mailbox.html',
       '/templates/app.html', 
@@ -54,6 +56,8 @@ export class AssetManager {
       '/admin.html',
       '/admin',
       '/admin/',
+      '/mailboxes.html',
+      '/html/mailboxes.html',
       '/mailbox.html',
       '/mailbox',
       '/mailbox/'
@@ -147,6 +151,9 @@ export class AssetManager {
 
     if (pathname === '/mailbox.html' || pathname === '/html/mailbox.html') {
       return await this.handleMailboxPage(mappedRequest, env, JWT_TOKEN);
+    }
+    if (pathname === '/mailboxes.html' || pathname === '/html/mailboxes.html') {
+      return await this.handleAllMailboxesPage(mappedRequest, env, JWT_TOKEN);
     }
 
     // 其他静态资源直接返回
@@ -267,6 +274,10 @@ export class AssetManager {
     if (url.pathname === '/mailbox.html') {
       targetUrl = new URL('/html/mailbox.html', url).toString();
     }
+    // 将 /mailboxes.html 统一映射到 /html/mailboxes.html
+    if (url.pathname === '/mailboxes.html') {
+      targetUrl = new URL('/html/mailboxes.html', url).toString();
+    }
 
     return new Request(targetUrl, request);
   }
@@ -367,6 +378,27 @@ export class AssetManager {
       }
     }
     
+    return env.ASSETS.fetch(request);
+  }
+
+  /**
+   * 处理所有邮箱管理页（仅超级管理员和游客）
+   */
+  async handleAllMailboxesPage(request, env, JWT_TOKEN) {
+    const url = new URL(request.url);
+    const payload = await resolveAuthPayload(request, JWT_TOKEN);
+    if (!payload) {
+      const loadingReq = new Request(
+        new URL('/templates/loading.html?redirect=%2Fhtml%2Fmailboxes.html', url).toString(),
+        request
+      );
+      return env.ASSETS.fetch(loadingReq);
+    }
+    const isStrictAdmin = (payload.role === 'admin' && (payload.username === '__root__' || payload.username));
+    const isGuest = (payload.role === 'guest');
+    if (!isStrictAdmin && !isGuest){
+      return Response.redirect(new URL('/', url).toString(), 302);
+    }
     return env.ASSETS.fetch(request);
   }
 

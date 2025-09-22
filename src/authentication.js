@@ -95,11 +95,16 @@ export async function verifyMailboxLogin(emailAddress, password, DB) {
     const email = emailAddress.toLowerCase().trim();
     
     // 检查邮箱是否存在于数据库中
-    const result = await DB.prepare('SELECT id, address, local_part, domain, password_hash FROM mailboxes WHERE address = ?')
+    const result = await DB.prepare('SELECT id, address, local_part, domain, password_hash, can_login FROM mailboxes WHERE address = ?')
       .bind(email).all();
     
     if (result?.results?.length > 0) {
       const mailbox = result.results[0];
+      
+      // 检查是否允许登录
+      if (!mailbox.can_login) {
+        return false;
+      }
       
       // 验证密码
       let passwordValid = false;
@@ -155,7 +160,7 @@ async function sha256Hex(text) {
  * @param {string} hashed - 已哈希的密码
  * @returns {Promise<boolean>} 验证结果，true表示密码匹配
  */
-async function verifyPassword(rawPassword, hashed) {
+export async function verifyPassword(rawPassword, hashed) {
   if (!hashed) return false;
   try {
     const hex = (await sha256Hex(rawPassword)).toLowerCase();

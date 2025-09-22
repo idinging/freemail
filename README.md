@@ -1,6 +1,10 @@
 # 临时邮箱 Cloudflare Worker（模块化结构）
 
-当前状态：V4 支持单个邮箱登陆接收邮件
+当前状态：V4.1 全部邮箱预览管理以及添加邮箱搜索功能
+
+`
+  注：如果需要支持邮箱用户自行修改密码 将mailbox.html中 77行到80行取消注释
+`
 
 一个基于 Cloudflare Workers 和 D1 数据库的临时邮箱服务。
 
@@ -22,7 +26,14 @@
   <img src="./pic/phone/lishi.png" alt="手机端历史邮箱" style="height: 400px;" />
 </div>
 
+### 单个邮箱页
+
 ![单个邮箱首页](./pic/v4/youxiang.png)
+
+### 全部邮箱预览
+![单个邮箱首页](./pic/v4/xiugaiquanju.png)
+
+
 #### [更多展示点击查看](docs/zhanshi.md)
 
 ## 功能特性

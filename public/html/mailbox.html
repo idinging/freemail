@@ -73,10 +73,11 @@
             <span class="btn-icon">📋</span>
             <span>复制</span>
           </button>
-          <button id="change-password" class="btn btn-ghost btn-sm" title="修改密码">
+        <!-- 修改密码 -->
+          <!-- <button id="change-password" class="btn btn-ghost btn-sm" title="修改密码">
             <span class="btn-icon">🔒</span>
             <span>修改密码</span>
-          </button>
+          </button> -->
         </div>
         <div class="mailbox-toolbar">
           <div class="toolbar-left">
@@ -121,7 +122,7 @@
         <div id="empty-state" class="empty-state" style="display:none">
           <div class="empty-icon">📭</div>
           <div class="empty-title">暂无邮件</div>
-          <div class="empty-description">当有新邮件到达时，会显示在这里</div>
+          <div class="empty-description">仅显示近24小时内的邮件，超过24小时的邮件会自动删除</div>
         </div>
         <div id="list-pager" class="pager" style="display:none">
           <button id="prev-page" class="btn btn-ghost btn-sm">上一页</button>
@@ -201,15 +202,15 @@
       <form id="password-form">
         <div class="form-group">
           <label for="current-password">当前密码</label>
-          <input type="password" id="current-password" class="input" placeholder="请输入当前密码" required />
+          <input type="text" id="current-password" class="input" placeholder="请输入当前密码" required />
         </div>
         <div class="form-group">
           <label for="new-password">新密码</label>
-          <input type="password" id="new-password" class="input" placeholder="请输入新密码（至少6位）" minlength="6" required />
+          <input type="text" id="new-password" class="input" placeholder="请输入新密码（至少6位）" minlength="6" required />
         </div>
         <div class="form-group">
           <label for="confirm-password">确认新密码</label>
-          <input type="password" id="confirm-password" class="input" placeholder="请再次输入新密码" minlength="6" required />
+          <input type="text" id="confirm-password" class="input" placeholder="请再次输入新密码" minlength="6" required />
         </div>
         <div class="form-actions">
           <button type="button" id="password-cancel" class="btn btn-secondary">取消</button>
