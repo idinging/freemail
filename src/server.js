@@ -5,6 +5,7 @@ import { forwardByLocalPart } from './emailForwarder.js';
 import { parseEmailBody, extractVerificationCode } from './emailParser.js';
 import { createRouter, authMiddleware, resolveAuthPayload } from './routes.js';
 import { createAssetManager } from './assetManager.js';
+import { getDatabaseWithValidation } from './dbConnectionHelper.js';
 
 
 export default {
@@ -17,7 +18,13 @@ export default {
    */
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    const DB = env.TEMP_MAIL_DB;
+    let DB;
+    try {
+      DB = await getDatabaseWithValidation(env);
+    } catch (error) {
+      console.error('数据库连接失败:', error.message);
+      return new Response('数据库连接失败，请检查配置', { status: 500 });
+    }
     
     // 支持多个域名：使用逗号/空格分隔，创建地址时取第一个为默认显示
     const MAIL_DOMAINS = (env.MAIL_DOMAIN || 'temp.example.com')
@@ -54,8 +61,14 @@ export default {
    * @returns {Promise<void>} 处理完成后无返回值
    */
   async email(message, env, ctx) {
-    const DB = env.TEMP_MAIL_DB;
-    await initDatabase(DB);
+    let DB;
+    try {
+      DB = await getDatabaseWithValidation(env);
+      await initDatabase(DB);
+    } catch (error) {
+      console.error('邮件处理时数据库连接失败:', error.message);
+      return; // 邮件处理失败，静默失败
+    }
 
     try {
       const headers = message.headers;

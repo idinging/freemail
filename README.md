@@ -156,18 +156,11 @@
 
 > 提示：如需开启发件功能，还需在 Resend 完成发信域名验证并创建 API Key。不会配置？请查看《[Resend 密钥获取与配置教程](docs/resend.md)》。
 
-3) Cloudflare 连接 GitHub 仓库部署
+Cloudflare 连接 GitHub 仓库部署
 - 如果使用 Git 集成而非 wrangler deploy，请在 Dashboard → Workers → Settings → Variables 中手动配置上述变量
 - `[assets]` 已指向 `public/`，静态页面由 Workers + Assets 提供
 
-### 4.5 初始化 D1 表结构（首次部署）
-只要绑定了d1 默认可以自行创建，如果不能自动创建再手动创建
-```bash
-# 方式一：表结构
-wrangler d1 execute TEMP_MAIL_DB --file=./d1-init-basic.sql
-```
-
-### 5. 配置邮件路由（必需用于收取真实邮件）
+### 配置邮件路由（必需用于收取真实邮件）
 
 如果需要接收真实邮件，需要在 Cloudflare 控制台配置邮件路由：
 
@@ -175,7 +168,7 @@ wrangler d1 execute TEMP_MAIL_DB --file=./d1-init-basic.sql
 2. 添加 Catch-all 规则
 3. 目标设置为 Worker: `temp-mail-worker`
 
-### 6. 设置自定义域名（可选）
+### 设置自定义域名（可选）
 
 在 Worker 设置中添加自定义域名，或使用 workers.dev 子域名。
 

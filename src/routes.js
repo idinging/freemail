@@ -1,6 +1,7 @@
 import { handleApiRequest, handleEmailReceive } from './apiHandlers.js';
 import { createJwt, verifyJwt, buildSessionCookie, verifyMailboxLogin } from './authentication.js';
 import { extractEmail } from './commonUtils.js';
+import { getDatabaseWithValidation } from './dbConnectionHelper.js';
 
 /**
  * 路由处理器类，用于管理所有API路由
@@ -290,7 +291,13 @@ export function createRouter() {
   // =================== 认证相关路由 ===================
   router.post('/api/login', async (context) => {
     const { request, env } = context;
-    const DB = env.TEMP_MAIL_DB;
+    let DB;
+    try {
+      DB = await getDatabaseWithValidation(env);
+    } catch (error) {
+      console.error('登录时数据库连接失败:', error.message);
+      return new Response('数据库连接失败', { status: 500 });
+    }
     const ADMIN_NAME = String(env.ADMIN_NAME || 'admin').trim().toLowerCase();
     const ADMIN_PASSWORD = env.ADMIN_PASSWORD || env.ADMIN_PASS || '';
     const GUEST_PASSWORD = env.GUEST_PASSWORD || '';
@@ -456,7 +463,15 @@ export function createRouter() {
       return new Response('Unauthorized', { status: 401 });
     }
     
-    return handleEmailReceive(request, env.TEMP_MAIL_DB, env);
+    let DB;
+    try {
+      DB = await getDatabaseWithValidation(env);
+    } catch (error) {
+      console.error('邮件接收时数据库连接失败:', error.message);
+      return new Response('数据库连接失败', { status: 500 });
+    }
+    
+    return handleEmailReceive(request, DB, env);
   });
 
   return router;
@@ -469,7 +484,13 @@ export function createRouter() {
  */
 async function delegateApiRequest(context) {
   const { request, env, authPayload } = context;
-  const DB = env.TEMP_MAIL_DB;
+  let DB;
+  try {
+    DB = await getDatabaseWithValidation(env);
+  } catch (error) {
+    console.error('API请求时数据库连接失败:', error.message);
+    return new Response('数据库连接失败', { status: 500 });
+  }
   
   // 支持多个域名：使用逗号/空格分隔
   const MAIL_DOMAINS = (env.MAIL_DOMAIN || 'temp.example.com')
