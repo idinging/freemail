@@ -8,7 +8,6 @@
   <link rel="stylesheet" href="/css/app.css" />
   <link rel="stylesheet" href="/css/mailboxes.css" />
   <style>
-    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
     .card.mailbox { padding: 12px; }
     .card.mailbox .addr { font-weight: 600; word-break: break-all; }
     .meta { color:#475569; font-size:12px; margin-top:6px }
@@ -44,6 +43,14 @@
           <div class="searchbar">
             <input id="q" class="search-input" placeholder="搜索邮箱地址（支持模糊）" />
             <button id="search" class="btn btn-primary btn-sm"><span class="btn-icon">🔍</span><span>搜索</span></button>
+          </div>
+          <div class="view-toggle">
+            <button id="view-grid" class="btn btn-ghost btn-sm active" title="卡片网格视图">
+              <span class="view-icon grid-icon"></span>
+            </button>
+            <button id="view-list" class="btn btn-ghost btn-sm" title="列表行视图">
+              <span class="view-icon list-icon"></span>
+            </button>
           </div>
         </div>
         <div id="grid" class="grid"></div>

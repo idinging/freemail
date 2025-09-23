@@ -6,12 +6,17 @@ const els = {
   prev: document.getElementById('prev'),
   next: document.getElementById('next'),
   page: document.getElementById('page'),
-  logout: document.getElementById('logout')
+  logout: document.getElementById('logout'),
+  viewGrid: document.getElementById('view-grid'),
+  viewList: document.getElementById('view-list')
 };
 
 let page = 1;
 const PAGE_SIZE = 20; // 固定每页20（4列×5行）
 let lastCount = 0;
+
+// 视图模式：'grid' 或 'list'
+let currentView = localStorage.getItem('mf:mailboxes:view') || 'grid';
 
 // 性能优化变量
 let searchTimeout = null;
@@ -49,9 +54,8 @@ function fmt(ts){
   return new Intl.DateTimeFormat('zh-CN',{ timeZone:'Asia/Shanghai', hour12:false, year:'numeric', month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit' }).format(d);
 }
 
-function render(items){
-  const list = Array.isArray(items) ? items : [];
-  els.grid.innerHTML = list.map(x => `
+function renderGrid(items){
+  return items.map(x => `
     <div class="mailbox-card" onclick="selectAndGoToHomepage('${x.address}', event)">
       <div class="line addr" title="${x.address}">${x.address}</div>
       <div class="line pwd" title="${x.password_is_default ? '默认密码（邮箱本身）' : '自定义密码'}">密码：${x.password_is_default ? '默认' : '自定义'}</div>
@@ -66,6 +70,45 @@ function render(items){
       </div>
     </div>
   `).join('');
+}
+
+function renderList(items){
+  return items.map(x => `
+    <div class="mailbox-list-item" onclick="selectAndGoToHomepage('${x.address}', event)">
+      <div class="pin-indicator">
+        ${x.is_pinned ? '<span class="pin-icon" title="已置顶">📌</span>' : '<span class="pin-placeholder"></span>'}
+      </div>
+      <div class="mailbox-info">
+        <div class="addr" title="${x.address}">${x.address}</div>
+        <div class="meta">
+          <span class="pwd" title="${x.password_is_default ? '默认密码（邮箱本身）' : '自定义密码'}">密码：${x.password_is_default ? '默认' : '自定义'}</span>
+          <span class="login" title="邮箱登录权限">登录：${x.can_login ? '<span style="color:#16a34a">✓允许</span>' : '<span style="color:#dc2626">✗禁止</span>'}</span>
+          <span class="time" title="${fmt(x.created_at)}">创建：${fmt(x.created_at)}</span>
+        </div>
+      </div>
+      <div class="list-actions">
+        <button class="btn btn-ghost btn-sm" title="复制邮箱" onclick="event.stopPropagation(); copyMailboxAddressFromList('${x.address}')">📋</button>
+        <button class="btn btn-ghost btn-sm" title="重置为默认密码" onclick="event.stopPropagation(); resetMailboxPassword('${x.address}')">🔁</button>
+        <button class="btn btn-ghost btn-sm ${x.can_login ? 'active' : ''}" title="${x.can_login ? '禁止邮箱登录' : '允许邮箱登录'}" onclick="event.stopPropagation(); toggleMailboxLogin('${x.address}', ${x.can_login ? 'false' : 'true'})">${x.can_login ? '🔓' : '🔒'}</button>
+        <button class="btn btn-ghost btn-sm" title="修改密码" onclick="event.stopPropagation(); changeMailboxPassword('${x.address}')">🔑</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function render(items){
+  const list = Array.isArray(items) ? items : [];
+  
+  // 切换容器样式
+  els.grid.className = currentView === 'grid' ? 'grid' : 'list';
+  
+  // 根据视图模式渲染
+  if (currentView === 'grid') {
+    els.grid.innerHTML = renderGrid(list);
+  } else {
+    els.grid.innerHTML = renderList(list);
+  }
+  
   els.empty.style.display = list.length ? 'none' : 'flex';
 }
 
@@ -199,6 +242,32 @@ els.q.addEventListener('keydown', e => {
 });
 
 els.logout && (els.logout.onclick = async () => { try{ fetch('/api/logout',{method:'POST'}); }catch(_){ } location.replace('/html/login.html?from=logout'); });
+
+// 视图切换功能
+function switchView(view) {
+  currentView = view;
+  localStorage.setItem('mf:mailboxes:view', view);
+  
+  // 更新按钮状态
+  els.viewGrid.classList.toggle('active', view === 'grid');
+  els.viewList.classList.toggle('active', view === 'list');
+  
+  // 重新渲染当前数据
+  load();
+}
+
+// 初始化视图切换按钮状态
+function initViewToggle() {
+  els.viewGrid.classList.toggle('active', currentView === 'grid');
+  els.viewList.classList.toggle('active', currentView === 'list');
+  
+  // 添加点击事件
+  els.viewGrid.onclick = () => switchView('grid');
+  els.viewList.onclick = () => switchView('list');
+}
+
+// 初始化视图切换
+initViewToggle();
 
 // footer
 (async function(){

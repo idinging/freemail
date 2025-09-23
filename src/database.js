@@ -457,7 +457,7 @@ export async function getUserMailboxes(db, userId){
     FROM user_mailboxes um
     JOIN mailboxes m ON m.id = um.mailbox_id
     WHERE um.user_id = ?
-    ORDER BY um.is_pinned DESC, m.can_login DESC, datetime(m.created_at) DESC
+    ORDER BY um.is_pinned DESC, datetime(m.created_at) DESC
   `;
   const { results } = await db.prepare(sql).bind(userId).all();
   return results || [];

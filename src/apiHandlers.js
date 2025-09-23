@@ -658,7 +658,7 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
           FROM mailboxes m
           LEFT JOIN user_mailboxes um ON um.mailbox_id = m.id AND um.user_id = ?
           WHERE (? = '' OR LOWER(m.address) LIKE LOWER(?))
-          ORDER BY is_pinned DESC, can_login DESC, m.created_at DESC
+          ORDER BY is_pinned DESC, m.created_at DESC
           LIMIT ? OFFSET ?
         `).bind(adminUid || 0, q ? like : '', q ? like : '', limit, offset).all();
         return Response.json(results || []);
@@ -674,7 +674,7 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
         FROM user_mailboxes um
         JOIN mailboxes m ON m.id = um.mailbox_id
         WHERE um.user_id = ? AND (? = '' OR LOWER(m.address) LIKE LOWER(?))
-        ORDER BY um.is_pinned DESC, m.can_login DESC, m.created_at DESC
+        ORDER BY um.is_pinned DESC, m.created_at DESC
         LIMIT ? OFFSET ?
       `).bind(uid, q ? like : '', q ? like : '', limit, offset).all();
       return Response.json(results || []);

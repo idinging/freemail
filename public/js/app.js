@@ -202,6 +202,100 @@ function extractCode(text){
   return '';
 }
 
+// 优化的随机人名生成函数
+function generateRandomId(length = 8) {
+  // 扩展的音节库 - 分类管理，生成更自然的人名
+  const vowelSyllables = ["a", "e", "i", "o", "u", "ai", "ei", "ou", "ia", "io"];
+  const consonantSyllables = ["b", "c", "d", "f", "g", "h", "j", "k", "l", "m", "n", "p", "r", "s", "t", "v", "w", "x", "y", "z"];
+  const commonSyllables = [
+    "al", "an", "ar", "er", "in", "on", "en", "el", "or", "ir",
+    "la", "le", "li", "lo", "lu", "ra", "re", "ri", "ro", "ru",
+    "na", "ne", "ni", "no", "nu", "ma", "me", "mi", "mo", "mu",
+    "ta", "te", "ti", "to", "tu", "sa", "se", "si", "so", "su",
+    "ca", "ce", "ci", "co", "cu", "da", "de", "di", "do", "du",
+    "fa", "fe", "fi", "fo", "fu", "ga", "ge", "gi", "go", "gu",
+    "ba", "be", "bi", "bo", "bu", "va", "ve", "vi", "vo", "vu"
+  ];
+  const nameFragments = [
+    "alex", "max", "sam", "ben", "tom", "joe", "leo", "kai", "ray", "jay",
+    "anna", "emma", "lily", "lucy", "ruby", "zoe", "eva", "mia", "ava", "ivy",
+    "chen", "wang", "yang", "zhao", "liu", "lin", "zhou", "wu", "xu", "sun"
+  ];
+
+  // 智能音节组合函数
+  const makeNaturalWord = (targetLen) => {
+    let word = "";
+    let lastWasVowel = false;
+    let attempts = 0;
+    const maxAttempts = 50; // 防止无限循环
+
+    while (word.length < targetLen && attempts < maxAttempts) {
+      attempts++;
+      let syllable;
+      
+      if (word.length === 0) {
+        // 首字母倾向于使用常见音节或名字片段
+        if (Math.random() < 0.3 && targetLen >= 4) {
+          const fragment = nameFragments[Math.floor(Math.random() * nameFragments.length)];
+          if (fragment.length <= targetLen) {
+            syllable = fragment;
+          } else {
+            syllable = commonSyllables[Math.floor(Math.random() * commonSyllables.length)];
+          }
+        } else {
+          syllable = commonSyllables[Math.floor(Math.random() * commonSyllables.length)];
+        }
+      } else {
+        // 后续音节根据前一个音节的类型来选择
+        const rand = Math.random();
+        if (rand < 0.6) {
+          syllable = commonSyllables[Math.floor(Math.random() * commonSyllables.length)];
+        } else if (rand < 0.8) {
+          syllable = lastWasVowel ? 
+            consonantSyllables[Math.floor(Math.random() * consonantSyllables.length)] :
+            vowelSyllables[Math.floor(Math.random() * vowelSyllables.length)];
+        } else {
+          syllable = commonSyllables[Math.floor(Math.random() * commonSyllables.length)];
+        }
+      }
+
+      // 检查添加音节后是否会超长
+      if (word.length + syllable.length <= targetLen) {
+        word += syllable;
+        lastWasVowel = /[aeiou]$/.test(syllable);
+      } else {
+        // 如果会超长，尝试找个更短的音节
+        const shortSyllables = [vowelSyllables, consonantSyllables].flat().filter(s => s.length === 1);
+        const remainingLen = targetLen - word.length;
+        const fitSyllables = shortSyllables.filter(s => s.length <= remainingLen);
+        
+        if (fitSyllables.length > 0) {
+          syllable = fitSyllables[Math.floor(Math.random() * fitSyllables.length)];
+          word += syllable;
+        }
+        break;
+      }
+    }
+
+    return word.length > targetLen ? word.slice(0, targetLen) : word;
+  };
+
+  const len = Math.max(4, Math.min(32, Number(length) || 8));
+
+  if (len <= 12) {
+    return makeNaturalWord(len).toLowerCase();
+  } else {
+    // 长名字用下划线分割，模拟 firstname_lastname 格式
+    const firstLen = Math.max(3, Math.floor((len - 1) * 0.4)); // 40% 给名字
+    const lastLen = Math.max(3, len - 1 - firstLen); // 剩余给姓氏
+
+    const firstName = makeNaturalWord(firstLen);
+    const lastName = makeNaturalWord(lastLen);
+
+    return (firstName + "_" + lastName).toLowerCase();
+  }
+}
+
 // 初始化流程将会在模板加载后进行（见 init()）
 
 const app = document.getElementById('app');
@@ -213,6 +307,7 @@ app.innerHTML = __templateHtml;
 const els = {
   email: document.getElementById('email'),
   gen: document.getElementById('gen'),
+  genName: document.getElementById('gen-name'),
   copy: document.getElementById('copy'),
   clear: document.getElementById('clear'),
   list: document.getElementById('list'),
@@ -683,6 +778,83 @@ els.gen.onclick = async () => {
     await loadMailboxes(false, { forceFresh: true });
   } catch (e){ showToast(String(e?.message || '已达到邮箱上限或创建失败'), 'warn'); }
   finally { restoreButton(els.gen); }
+}
+
+// 随机人名生成按钮事件
+if (els.genName) {
+  els.genName.onclick = async () => {
+    try {
+      setButtonLoading(els.genName, '正在生成…');
+      const len = Number((lenRange && lenRange.value) || localStorage.getItem(STORAGE_KEYS.length) || 8);
+      const domainIndex = Number(domainSelect?.value || 0);
+      
+      // 使用随机人名生成用户名
+      const localName = generateRandomId(Math.max(8, Math.min(30, isNaN(len) ? 8 : len)));
+      
+      const r = await api('/api/create', { 
+        method: 'POST', 
+        headers: {'Content-Type': 'application/json'}, 
+        body: JSON.stringify({ 
+          local: localName, 
+          domainIndex: isNaN(domainIndex) ? 0 : domainIndex 
+        }) 
+      });
+      
+      if (!r.ok) { const t = await r.text(); throw new Error(t); }
+      const data = await r.json();
+      
+      // 持久化选择
+      try {
+        localStorage.setItem(STORAGE_KEYS.length, String(Math.max(8, Math.min(30, isNaN(len) ? 8 : len))));
+        const opt = domainSelect?.options?.[domainIndex];
+        if (opt) localStorage.setItem(STORAGE_KEYS.domain, opt.textContent || '');
+      } catch(_) {}
+      
+      window.currentMailbox = data.email;
+      // 持久化保存当前邮箱
+      try { sessionStorage.setItem('mf:currentMailbox', data.email); } catch(_) {}
+      
+      const t = document.getElementById('email-text');
+      if (t) t.textContent = data.email; else els.email.textContent = data.email;
+      els.email.classList.add('has-email');
+      els.emailActions.style.display = 'flex';
+      els.listCard.style.display = 'block';
+      
+      // 重启自动刷新
+      startAutoRefresh();
+      
+      showToast('随机人名邮箱生成成功！', 'success');
+      // 成功后尽早复位按钮
+      try { restoreButton(els.genName); } catch(_) {}
+      await refresh();
+      
+      // 乐观插入到左侧列表
+      try {
+        const createdAt = new Date().toISOString().replace('T',' ').slice(0,19);
+        const html = `
+          <div class="mailbox-item" onclick="selectMailbox('${data.email}')">
+            <div class="mailbox-content">
+              <span class="address">${data.email}</span>
+              <span class="time">${formatTs(createdAt)}</span>
+            </div>
+            <div class="mailbox-actions">
+              <button class="btn btn-ghost btn-sm pin" onclick="togglePin(event,'${data.email}')" title="置顶">📍</button>
+              <button class="btn btn-ghost btn-sm del" onclick="deleteMailbox(event,'${data.email}')" title="删除">🗑️</button>
+            </div>
+          </div>`;
+        if (els.mbList) {
+          const pinned = els.mbList.querySelectorAll('.mailbox-item.pinned');
+          if (pinned && pinned.length) { pinned[pinned.length - 1].insertAdjacentHTML('afterend', html); }
+          else { els.mbList.insertAdjacentHTML('afterbegin', html); }
+        }
+      } catch(_) {}
+      
+      // 强制刷新第一页
+      if (typeof mbOffset !== 'undefined') { mbOffset = 0; }
+      await loadMailboxes(false, { forceFresh: true });
+    } catch (e) { showToast(String(e?.message || '已达到邮箱上限或创建失败'), 'warn'); }
+    finally { restoreButton(els.genName); }
+  };
 }
 
 els.copy.onclick = async () => {

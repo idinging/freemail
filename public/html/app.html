@@ -126,11 +126,17 @@
                 </div>
               </div>
                <div class="generate-action">
-                 <button id="gen" class="btn btn-generate">
-                   <span class="btn-icon">🎲</span>
-                   <span>随机生成</span>
-                 </button>
-                 <button id="toggle-custom" class="btn btn-secondary btn-sm" title="自定义邮箱">切换自定义</button>
+                 <div class="generate-buttons" style="display: flex; gap: 8px; margin-bottom: 8px; width: 100%;">
+                   <button id="gen" class="btn btn-generate" style="flex: 1;">
+                     <span class="btn-icon">🎲</span>
+                     <span>随机生成</span>
+                   </button>
+                   <button id="gen-name" class="btn btn-primary" style="flex: 1;" title="使用随机人名生成邮箱">
+                     <span class="btn-icon">👤</span>
+                     <span>随机人名</span>
+                   </button>
+                 </div>
+                 <button id="toggle-custom" class="btn btn-secondary btn-sm" style="width: 100%;" title="自定义邮箱">切换自定义</button>
                </div>
             </div>
           </div>

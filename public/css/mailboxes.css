@@ -7,7 +7,16 @@
 .page-mailboxes .topbar .topbar-inner{ display:flex; align-items:center; gap:20px; width:100%; }
 
 /* 栅格铺满展示，固定卡片宽度 */
-.page-mailboxes #grid{
+.page-mailboxes #grid.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 280px);
+  gap: 12px;
+  justify-content: center;
+  max-width: 1200px;
+}
+
+/* 默认grid样式，兼容性处理 */
+.page-mailboxes .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, 280px);
   gap: 12px;
@@ -135,41 +144,87 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
-  gap: 4px;
+  gap: 6px;
   opacity: 0;
-  transition: opacity .15s ease;
-  width: 64px;
-  height: 64px;
+  transition: opacity .2s ease, transform .2s ease;
+  width: 72px;
+  height: 72px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow: 
+    0 8px 25px rgba(0, 0, 0, 0.15),
+    0 4px 10px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
 }
 
 /* 当有置顶标识时，操作按钮稍微往下移动 */
 .mailbox-card:has(.pin-badge) .actions {
   top: 60%;
 }
-.mailbox-card:hover .actions{ opacity: 1; }
+
+.mailbox-card:hover .actions{ 
+  opacity: 1; 
+  transform: translateY(-50%) scale(1.02);
+}
+
 .mailbox-card .actions .btn-icon{ 
   width: 30px; 
   height: 30px; 
-  border-radius: 6px; 
-  border: 1px solid var(--border-glass); 
-  background: rgba(255,255,255,.9); 
+  border-radius: 8px; 
+  border: 1px solid rgba(226, 232, 240, 0.6); 
+  background: rgba(255, 255, 255, 0.9);
   display: flex; 
   align-items: center; 
   justify-content: center; 
   cursor: pointer; 
-  box-shadow: var(--shadow-glass); 
   font-size: 14px;
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  color: #475569;
 }
+
+.mailbox-card .actions .btn-icon::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
 .mailbox-card .actions .btn-icon:hover{ 
-  background: var(--primary-light); 
-  border-color: var(--primary); 
-  transform: scale(1.05);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.05));
+  border-color: rgba(99, 102, 241, 0.3); 
+  transform: scale(1.1) translateY(-1px);
+  box-shadow: 
+    0 6px 20px rgba(99, 102, 241, 0.25),
+    0 3px 8px rgba(0, 0, 0, 0.1);
+  color: #4338ca;
 }
+
+.mailbox-card .actions .btn-icon:hover::before {
+  opacity: 1;
+}
+
 .mailbox-card .actions .btn-icon.active{ 
-  background: #16a34a; 
-  border-color: #16a34a; 
-  color: white; 
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%); 
+  border-color: #10b981; 
+  color: white;
+  box-shadow: 
+    0 4px 14px rgba(16, 185, 129, 0.4),
+    0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.mailbox-card .actions .btn-icon:active {
+  transform: scale(0.95);
 }
 
 /* 顶部搜索条适配本页 */
@@ -215,9 +270,9 @@
   transition: opacity 0.2s ease;
 }
 
-/* 响应式设计 */
+/* 响应式设计 - 仅针对grid视图 */
 @media (max-width: 1200px){
-  .page-mailboxes #grid{
+  .page-mailboxes #grid.grid, .page-mailboxes .grid{
     grid-template-columns: repeat(auto-fill, 260px);
   }
   .mailbox-card{
@@ -230,7 +285,7 @@
 }
 
 @media (max-width: 768px){
-  .page-mailboxes #grid{
+  .page-mailboxes #grid.grid, .page-mailboxes .grid{
     grid-template-columns: repeat(auto-fill, 240px);
     gap: 8px;
   }
@@ -250,7 +305,7 @@
 }
 
 @media (max-width: 480px){
-  .page-mailboxes #grid{
+  .page-mailboxes #grid.grid, .page-mailboxes .grid{
     grid-template-columns: 1fr;
     max-width: 100%;
   }
@@ -456,6 +511,435 @@
 
 .modal-body .form-input:hover {
   border-color: rgba(203, 213, 225, 1) !important;
+}
+
+/* 视图切换按钮样式 */
+.view-toggle {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+  background: rgba(248, 250, 252, 0.8);
+  border: 1px solid rgba(226, 232, 240, 0.6);
+  border-radius: 12px;
+  padding: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.view-toggle .btn {
+  min-width: 44px;
+  height: 36px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  letter-spacing: 0.5px;
+}
+
+.view-toggle .btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.view-toggle .btn.active {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  transform: scale(1.02);
+  box-shadow: 
+    0 4px 14px rgba(99, 102, 241, 0.4),
+    0 2px 6px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.view-toggle .btn.active::before {
+  opacity: 0;
+}
+
+.view-toggle .btn:not(.active):hover {
+  color: #4338ca;
+  background: rgba(99, 102, 241, 0.1);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 12px rgba(99, 102, 241, 0.15);
+}
+
+.view-toggle .btn:not(.active):hover::before {
+  opacity: 1;
+}
+
+.view-toggle .btn:active {
+  transform: scale(0.98);
+}
+
+/* 视图图标样式 */
+.view-icon {
+  width: 16px;
+  height: 16px;
+  position: relative;
+  display: inline-block;
+}
+
+/* 网格图标 - 2x2网格 */
+.grid-icon {
+  background: 
+    linear-gradient(currentColor, currentColor) 0 0/6px 6px no-repeat,
+    linear-gradient(currentColor, currentColor) 10px 0/6px 6px no-repeat,
+    linear-gradient(currentColor, currentColor) 0 10px/6px 6px no-repeat,
+    linear-gradient(currentColor, currentColor) 10px 10px/6px 6px no-repeat;
+}
+
+/* 列表图标 - 水平线条 */
+.list-icon {
+  background: 
+    linear-gradient(currentColor, currentColor) 0 2px/16px 2px no-repeat,
+    linear-gradient(currentColor, currentColor) 0 7px/16px 2px no-repeat,
+    linear-gradient(currentColor, currentColor) 0 12px/16px 2px no-repeat;
+}
+
+/* 激活状态下图标颜色 */
+.view-toggle .btn.active .view-icon {
+  color: white;
+}
+
+/* 悬停状态下图标颜色 */
+.view-toggle .btn:not(.active):hover .view-icon {
+  color: #4338ca;
+}
+
+/* 工具栏布局调整 */
+.toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+  justify-content: space-between;
+}
+
+.toolbar .searchbar {
+  flex: 1;
+  max-width: 400px;
+}
+
+/* 列表视图样式 */
+.page-mailboxes #grid.list {
+  display: flex !important;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 100%;
+  grid-template-columns: none !important;
+}
+
+/* 兼容性列表样式 */
+.page-mailboxes .list {
+  display: flex !important;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 100%;
+  grid-template-columns: none !important;
+}
+
+.mailbox-list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--card-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-glass);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 60px;
+}
+
+.mailbox-list-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+  border-color: rgba(99, 102, 241, 0.3);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(249, 250, 251, 0.95) 100%);
+}
+
+/* 置顶指示器 */
+.pin-indicator {
+  width: 32px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.pin-icon {
+  color: #f59e0b;
+  font-size: 16px;
+  text-shadow: 0 1px 3px rgba(245, 158, 11, 0.3);
+  transition: transform 0.2s ease;
+}
+
+.pin-placeholder {
+  width: 16px;
+  height: 16px;
+}
+
+.mailbox-list-item:hover .pin-icon {
+  transform: scale(1.1) rotate(15deg);
+}
+
+/* 邮箱信息区域 */
+.mailbox-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mailbox-info .addr {
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: help;
+}
+
+.mailbox-info .meta {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: #64748b;
+  flex-wrap: wrap;
+}
+
+.mailbox-info .meta > span {
+  white-space: nowrap;
+}
+
+/* 列表视图操作按钮 */
+.list-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+  align-items: center;
+  background: rgba(248, 250, 252, 0.6);
+  padding: 6px;
+  border-radius: 10px;
+  border: 1px solid rgba(226, 232, 240, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.list-actions .btn {
+  padding: 8px 10px;
+  font-size: 14px;
+  min-width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid rgba(226, 232, 240, 0.6);
+  background: rgba(255, 255, 255, 0.8);
+  color: #475569;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.list-actions .btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.list-actions .btn:hover {
+  transform: translateY(-2px);
+  background: rgba(99, 102, 241, 0.1);
+  border-color: rgba(99, 102, 241, 0.3);
+  color: #4338ca;
+  box-shadow: 
+    0 6px 20px rgba(99, 102, 241, 0.2),
+    0 3px 10px rgba(0, 0, 0, 0.1);
+}
+
+.list-actions .btn:hover::before {
+  opacity: 1;
+}
+
+.list-actions .btn.active {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-color: #10b981;
+  color: white;
+  box-shadow: 
+    0 4px 14px rgba(16, 185, 129, 0.4),
+    0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.list-actions .btn.active::before {
+  opacity: 0;
+}
+
+.list-actions .btn:active {
+  transform: scale(0.96) translateY(-1px);
+}
+
+/* 响应式设计 - 列表视图 */
+@media (max-width: 768px) {
+  .mailbox-info .meta {
+    gap: 12px;
+    font-size: 11px;
+  }
+  
+  .list-actions {
+    gap: 6px;
+    padding: 4px;
+  }
+  
+  .list-actions .btn {
+    padding: 6px 8px;
+    font-size: 12px;
+    min-width: 32px;
+    height: 32px;
+  }
+  
+  .mailbox-list-item {
+    padding: 10px 12px;
+    min-height: 54px;
+  }
+  
+  .mailbox-info .addr {
+    font-size: 14px;
+  }
+  
+  /* 视图切换按钮响应式 */
+  .view-toggle {
+    padding: 3px;
+  }
+  
+  .view-toggle .btn {
+    min-width: 36px;
+    height: 32px;
+    padding: 6px 8px;
+    font-size: 14px;
+  }
+  
+  .view-icon {
+    width: 14px;
+    height: 14px;
+  }
+  
+  .grid-icon {
+    background: 
+      linear-gradient(currentColor, currentColor) 0 0/5px 5px no-repeat,
+      linear-gradient(currentColor, currentColor) 9px 0/5px 5px no-repeat,
+      linear-gradient(currentColor, currentColor) 0 9px/5px 5px no-repeat,
+      linear-gradient(currentColor, currentColor) 9px 9px/5px 5px no-repeat;
+  }
+  
+  .list-icon {
+    background: 
+      linear-gradient(currentColor, currentColor) 0 2px/14px 2px no-repeat,
+      linear-gradient(currentColor, currentColor) 0 6px/14px 2px no-repeat,
+      linear-gradient(currentColor, currentColor) 0 10px/14px 2px no-repeat;
+  }
+}
+
+@media (max-width: 480px) {
+  .mailbox-info .meta {
+    flex-direction: column;
+    gap: 2px;
+  }
+  
+  .list-actions {
+    flex-direction: column;
+    gap: 4px;
+    padding: 4px;
+  }
+  
+  .list-actions .btn {
+    padding: 8px;
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+  }
+  
+  .mailbox-list-item {
+    gap: 8px;
+    padding: 8px 10px;
+  }
+  
+  .pin-indicator {
+    width: 24px;
+  }
+  
+  /* 视图切换按钮在小屏幕上优化 */
+  .view-toggle {
+    gap: 1px;
+    padding: 2px;
+  }
+  
+  .view-toggle .btn {
+    min-width: 32px;
+    height: 28px;
+    padding: 4px 6px;
+    font-size: 13px;
+  }
+  
+  .view-icon {
+    width: 12px;
+    height: 12px;
+  }
+  
+  .grid-icon {
+    background: 
+      linear-gradient(currentColor, currentColor) 0 0/4px 4px no-repeat,
+      linear-gradient(currentColor, currentColor) 8px 0/4px 4px no-repeat,
+      linear-gradient(currentColor, currentColor) 0 8px/4px 4px no-repeat,
+      linear-gradient(currentColor, currentColor) 8px 8px/4px 4px no-repeat;
+  }
+  
+  .list-icon {
+    background: 
+      linear-gradient(currentColor, currentColor) 0 1px/12px 1.5px no-repeat,
+      linear-gradient(currentColor, currentColor) 0 5px/12px 1.5px no-repeat,
+      linear-gradient(currentColor, currentColor) 0 9px/12px 1.5px no-repeat;
+  }
+  
+  /* 卡片视图操作按钮在小屏幕上优化 */
+  .mailbox-card .actions {
+    width: 64px;
+    height: 64px;
+    gap: 4px;
+    padding: 4px;
+  }
+  
+  .mailbox-card .actions .btn-icon {
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
+  }
 }
 
 
