@@ -194,16 +194,16 @@ export async function recordSentEmail(db, { resendId, fromName, from, to, subjec
   const toAddrs = Array.isArray(to) ? to.join(',') : String(to || '');
   try{
     await db.prepare(`
-      INSERT INTO sent_emails (resend_id, from_name, from_addr, to_addrs, subject, verification_code, preview, r2_bucket, r2_object_key, html_content, text_content, status, scheduled_at)
-      VALUES (?, ?, ?, ?, ?, NULL, NULL, 'mail-eml', NULL, ?, ?, ?, ?)
+      INSERT INTO sent_emails (resend_id, from_name, from_addr, to_addrs, subject, html_content, text_content, status, scheduled_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(resendId || null, fromName || null, from, toAddrs, subject, html || null, text || null, status, scheduledAt || null).run();
   } catch (e) {
     // 如果表不存在，尝试即时创建并重试一次
     if ((e?.message || '').toLowerCase().includes('no such table: sent_emails')){
       try { await ensureSentEmailsTable(db); } catch(_){}
       await db.prepare(`
-        INSERT INTO sent_emails (resend_id, from_name, from_addr, to_addrs, subject, verification_code, preview, r2_bucket, r2_object_key, html_content, text_content, status, scheduled_at)
-        VALUES (?, ?, ?, ?, ?, NULL, NULL, 'mail-eml', NULL, ?, ?, ?, ?)
+        INSERT INTO sent_emails (resend_id, from_name, from_addr, to_addrs, subject, html_content, text_content, status, scheduled_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(resendId || null, fromName || null, from, toAddrs, subject, html || null, text || null, status, scheduledAt || null).run();
       return;
     }
@@ -452,11 +452,12 @@ export async function assignMailboxToUser(db, { userId = null, username = null, 
  */
 export async function getUserMailboxes(db, userId){
   const sql = `
-    SELECT m.address, m.created_at, um.is_pinned
+    SELECT m.address, m.created_at, um.is_pinned,
+           COALESCE(m.can_login, 0) AS can_login
     FROM user_mailboxes um
     JOIN mailboxes m ON m.id = um.mailbox_id
     WHERE um.user_id = ?
-    ORDER BY um.is_pinned DESC, datetime(m.created_at) DESC
+    ORDER BY um.is_pinned DESC, m.can_login DESC, datetime(m.created_at) DESC
   `;
   const { results } = await db.prepare(sql).bind(userId).all();
   return results || [];

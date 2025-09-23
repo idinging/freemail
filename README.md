@@ -8,6 +8,12 @@
 
 一个基于 Cloudflare Workers 和 D1 数据库的临时邮箱服务。
 
+## 一键部署
+
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/username/repo)
+
+ ### [点击查看一键部署指南](docs/yijianbushu.md)
+
 ## 📸 项目展示
 ### 体验地址： https://mailexhibit.dinging.top/
 
@@ -144,75 +150,9 @@
 
 ## 部署步骤
 
-### 1. 创建 D1 数据库
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/username/repo)
 
-> 提示：也可在 Cloudflare 控制台在线创建 D1 数据库。
-
-```bash
-# 安装 Wrangler CLI
-npm install -g wrangler
-
-# 登录 Cloudflare
-wrangler login
-
-# 创建 D1 数据库
-wrangler d1 create temp-mail-db
-```
-
-### 2. 创建 R2 存储桶（用于保存邮件原文）
-
-```bash
-# 创建 R2 存储桶（用于存储完整的 EML 邮件文件）
-wrangler r2 bucket create mail-eml
-```
-
-### 3. 配置 wrangler.toml（已改为模块化入口）
-
-复制返回的数据库 ID，更新 `wrangler.toml` 文件：
-
-```toml
-main = "src/server.js"
-
-# D1 数据库绑定
-[[d1_databases]]
-binding = "TEMP_MAIL_DB"
-database_name = "temp-mail-db"
-database_id = "你的数据库ID"
-
-# R2 存储桶绑定（用于保存完整 EML 内容）
-[[r2_buckets]]
-binding = "MAIL_EML"
-bucket_name = "你的R2存储桶名称"
-
-# 环境变量
-[vars]
-MAIL_DOMAIN = "你的域名.com，域名2.cn" #可以多个 以英文逗号分隔
-ADMIN_NAME = "admin_name" # 超级管理员用户名 （不配名称 默认为admin）
-ADMIN_PASSWORD = "password" # 超级管理员密码
-JWT_TOKEN = "token" # 随便一串字符串
-# RESEND_API_KEY  # 发送邮件需要配置
-```
-
-### 4. 本地与线上部署（推荐 wrangler）
-
-1) 本地开发
-```bash
-npm i -g wrangler
-wrangler login
-# 可在 wrangler.toml 的 [vars] 中配置本地变量（仅用于 dev/deploy via wrangler）
-wrangler dev
-```
-
-2) 线上部署
-```bash
-# 设置敏感变量（Secret）
-wrangler secret put ADMIN_PASSWORD
-wrangler secret put JWT_TOKEN
-# （可选，如需发件）设置 Resend 密钥
-wrangler secret put RESEND_API_KEY
-# 非敏感变量可放在 wrangler.toml 的 [vars] 或控制台 Variables 中
-wrangler deploy
-```
+ ### [一键部署指南](docs/yijianbushu.md)
 
 > 提示：如需开启发件功能，还需在 Resend 完成发信域名验证并创建 API Key。不会配置？请查看《[Resend 密钥获取与配置教程](docs/resend.md)》。
 

@@ -6,18 +6,21 @@
 /* 让右侧操作区真正靠右 */
 .page-mailboxes .topbar .topbar-inner{ display:flex; align-items:center; gap:20px; width:100%; }
 
-/* 栅格铺满展示，最小卡片宽 260px，自适应列数 */
+/* 栅格铺满展示，固定卡片宽度 */
 .page-mailboxes #grid{
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fill, 280px);
   gap: 12px;
+  justify-content: center;
+  max-width: 1200px;
 }
 
-/* 统一卡片尺寸与布局：固定高度避免参差不齐 */
+/* 统一卡片尺寸与布局：固定宽高避免参差不齐 */
 .mailbox-card{
   display: flex;
   flex-direction: column;
   gap: 6px;
+  width: 280px;
   height: 140px;
   padding: 12px;
   background: var(--card-glass);
@@ -25,16 +28,103 @@
   border-radius: var(--radius);
   box-shadow: var(--shadow-glass);
   position: relative;
+  box-sizing: border-box;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.mailbox-card .line{ color:#475569; font-size:12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.mailbox-card .addr{ font-weight:700; font-size:14px; color: var(--text); }
+.mailbox-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.08);
+  border-color: rgba(99, 102, 241, 0.3);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(249, 250, 251, 0.95) 100%);
+}
+
+.mailbox-card:active {
+  transform: translateY(0);
+}
+
+/* 当鼠标悬停在按钮区域时，取消卡片的悬停效果 */
+.mailbox-card .actions:hover ~ *,
+.mailbox-card:has(.actions:hover) {
+  transform: none !important;
+}
+
+.mailbox-card .line{ 
+  color:#475569; 
+  font-size:12px; 
+  white-space: nowrap; 
+  overflow: hidden; 
+  text-overflow: ellipsis; 
+  width: 100%;
+  max-width: 256px; /* 280px - 24px padding */
+}
+
+.mailbox-card .addr{ 
+  font-weight:700; 
+  font-size:14px; 
+  color: var(--text); 
+  white-space: nowrap; 
+  overflow: hidden; 
+  text-overflow: ellipsis; 
+  width: 100%;
+  max-width: 256px; /* 280px - 24px padding */
+  cursor: help;
+  transition: all 0.2s ease;
+}
+
+/* 邮箱地址悬停显示完整内容 */
+.mailbox-card .addr:hover {
+  position: relative;
+  z-index: 20;
+}
+
+.mailbox-card .addr:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 21;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  margin-bottom: 4px;
+  max-width: 300px;
+  word-break: break-all;
+  white-space: normal;
+}
 .mailbox-card .pwd{ color:#64748b; }
 .mailbox-card .login{ color:#64748b; }
 .mailbox-card .time{ color:#64748b; }
 
-/* 徽章/置顶标识内联缩进 */
-.mailbox-card .badge{ margin-left: 6px; }
+/* 置顶标识 - 右上角显示 */
+.mailbox-card .pin-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+  z-index: 10;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  transition: all 0.2s ease;
+}
+
+.mailbox-card .pin-badge:hover {
+  transform: scale(1.1) rotate(15deg);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.6);
+}
 
 /* 悬停操作区 - 2x2 网格布局 */
 .mailbox-card .actions{
@@ -50,6 +140,11 @@
   transition: opacity .15s ease;
   width: 64px;
   height: 64px;
+}
+
+/* 当有置顶标识时，操作按钮稍微往下移动 */
+.mailbox-card:has(.pin-badge) .actions {
+  top: 60%;
 }
 .mailbox-card:hover .actions{ opacity: 1; }
 .mailbox-card .actions .btn-icon{ 
@@ -80,8 +175,94 @@
 /* 顶部搜索条适配本页 */
 .page-mailboxes .searchbar{ width: min(900px, 100%); }
 
+/* 分页器样式优化 */
+.page-mailboxes .pager {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  min-height: 40px;
+}
+
+.page-mailboxes .pager #page {
+  min-width: 120px;
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.page-mailboxes .pager .btn {
+  transition: all 0.2s ease;
+}
+
+.page-mailboxes .pager .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 加载状态优化 */
+.page-mailboxes #grid.loading {
+  opacity: 0.6;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.page-mailboxes .btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transition: opacity 0.2s ease;
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px){
+  .page-mailboxes #grid{
+    grid-template-columns: repeat(auto-fill, 260px);
+  }
+  .mailbox-card{
+    width: 260px;
+  }
+  .mailbox-card .line,
+  .mailbox-card .addr{
+    max-width: 236px; /* 260px - 24px padding */
+  }
+}
+
 @media (max-width: 768px){
-  .mailbox-card{ min-height: 100px; }
+  .page-mailboxes #grid{
+    grid-template-columns: repeat(auto-fill, 240px);
+    gap: 8px;
+  }
+  .mailbox-card{
+    width: 240px;
+    height: 120px;
+    padding: 10px;
+  }
+  .mailbox-card .line,
+  .mailbox-card .addr{
+    max-width: 220px; /* 240px - 20px padding */
+    font-size: 11px;
+  }
+  .mailbox-card .addr{
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px){
+  .page-mailboxes #grid{
+    grid-template-columns: 1fr;
+    max-width: 100%;
+  }
+  .mailbox-card{
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto;
+  }
+  .mailbox-card .line,
+  .mailbox-card .addr{
+    max-width: calc(100% - 24px);
+  }
 }
 
 /* 模态框样式 - 统一确认对话框 */
