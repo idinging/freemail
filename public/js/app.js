@@ -1082,6 +1082,23 @@ async function refresh(){
 // 暴露刷新入口给移动端图标调用
 try{ window.refreshEmails = function(){ try{ return refresh(); }catch(_){ } }; }catch(_){ }
 
+// 暴露调试开关给开发者使用
+try{ 
+  window.enableMailboxDebug = function(enable = true) {
+    window.__DEBUG_MAILBOX__ = enable;
+    if (enable) {
+      console.log('邮箱调试模式已开启');
+      console.log('当前状态：', {
+        mbOffset,
+        MB_PAGE_SIZE,
+        currentMailbox: window.currentMailbox
+      });
+    } else {
+      console.log('邮箱调试模式已关闭');
+    }
+  };
+}catch(_){ }
+
 window.showEmail = async (id) => {
   try {
     let email = emailCache.get(id);
@@ -1284,13 +1301,15 @@ els.refresh.onclick = refresh;
 if (adminLink){
   adminLink.addEventListener('click', (ev) => {
     ev.preventDefault();
-    location.replace('/templates/loading.html?redirect=%2Fhtml%2Fadmin.html&status=' + encodeURIComponent('正在打开管理页面…'));
+    // 使用 location.href 而不是 replace，确保创建历史记录条目以支持前进后退
+    location.href = '/templates/loading.html?redirect=%2Fhtml%2Fadmin.html&status=' + encodeURIComponent('正在打开管理页面…');
   });
 }
 if (allMailboxesLink){
   allMailboxesLink.addEventListener('click', (ev) => {
     ev.preventDefault();
-    location.replace('/templates/loading.html?redirect=%2Fhtml%2Fmailboxes.html&status=' + encodeURIComponent('正在打开邮箱总览页面…'));
+    // 使用 location.href 而不是 replace，确保创建历史记录条目以支持前进后退
+    location.href = '/templates/loading.html?redirect=%2Fhtml%2Fmailboxes.html&status=' + encodeURIComponent('正在打开邮箱总览页面…');
   });
 }
 
@@ -1388,6 +1407,63 @@ window.addEventListener('keydown', (ev) => {
 let mbOffset = 0;
 const MB_PAGE_SIZE = 10;
 
+/**
+ * 统一更新加载更多按钮的显示逻辑
+ * @param {Array} items - 当前返回的数据项
+ * @param {boolean} isAppend - 是否为追加模式
+ */
+function updateLoadMoreButton(items, isAppend = false) {
+  try {
+    if (!els.mbMore) return;
+    
+    const itemCount = Array.isArray(items) ? items.length : 0;
+    const wrap = document.getElementById('mb-more-wrap');
+    
+    // 判断是否应该显示加载更多按钮的逻辑：
+    // 1. 如果返回的数据量达到页面大小，说明可能还有更多数据
+    // 2. 在追加模式下，如果数据量小于页面大小，说明已经到底了
+    let shouldShow = false;
+    
+    if (isAppend) {
+      // 追加模式：只有当返回数据量达到页面大小时才继续显示
+      shouldShow = itemCount >= MB_PAGE_SIZE;
+    } else {
+      // 首次加载模式：数据量达到页面大小时显示
+      shouldShow = itemCount >= MB_PAGE_SIZE;
+    }
+    
+    // 在搜索状态下的特殊处理
+    const isSearching = (els.mbSearch?.value || '').trim().length > 0;
+    if (isSearching && itemCount < MB_PAGE_SIZE) {
+      // 搜索时如果返回数据小于页面大小，说明搜索结果已全部显示
+      shouldShow = false;
+    }
+    
+    // 统一设置按钮和wrapper的显示状态
+    const displayValue = shouldShow ? 'inline-flex' : 'none';
+    els.mbMore.style.display = displayValue;
+    if (wrap) wrap.style.display = displayValue;
+    
+    // 重置按钮状态
+    els.mbMore.disabled = false;
+    if (els.mbMoreText) els.mbMoreText.textContent = '加载更多';
+    
+    // 调试信息（生产环境可删除）
+    if (window.__DEBUG_MAILBOX__) {
+      console.log('updateLoadMoreButton:', {
+        itemCount,
+        isAppend,
+        isSearching,
+        shouldShow,
+        mbOffset,
+        MB_PAGE_SIZE
+      });
+    }
+  } catch (error) {
+    console.error('updateLoadMoreButton error:', error);
+  }
+}
+
 async function loadMailboxes(isAppend = false, options = {}){
   try{
     // 初始和分页加载时显示列表加载动画
@@ -1443,15 +1519,8 @@ async function loadMailboxes(isAppend = false, options = {}){
         )).join('');
         els.mbList.innerHTML = html || '<div style="color:#94a3b8">暂无历史邮箱</div>';
         if (els.mbLoading) els.mbLoading.innerHTML = '';
-        // 首屏用缓存渲染时，同步显示"加载更多"按钮
-        const wrapCached = document.getElementById('mb-more-wrap');
-        if (els.mbMore){
-          const count = Array.isArray(mbCached) ? mbCached.length : 0;
-          els.mbMore.style.display = (count >= MB_PAGE_SIZE) ? 'inline-flex' : 'none';
-          els.mbMore.disabled = false;
-          if (els.mbMoreText) els.mbMoreText.textContent = '加载更多';
-          if (wrapCached) wrapCached.style.display = els.mbMore.style.display;
-        }
+        // 首屏用缓存渲染时，更新"加载更多"按钮
+        updateLoadMoreButton(mbCached, false);
       }
       const mbPrefetched = readPrefetch('mf:prefetch:mailboxes');
       if (!options.forceFresh && Array.isArray(mbPrefetched)){
@@ -1471,15 +1540,8 @@ async function loadMailboxes(isAppend = false, options = {}){
         )).join('');
         els.mbList.innerHTML = html || '<div style="color:#94a3b8">暂无历史邮箱</div>';
         if (els.mbLoading) els.mbLoading.innerHTML = '';
-        // 首屏用预取渲染时，同步显示"加载更多"按钮
-        const wrapPref = document.getElementById('mb-more-wrap');
-        if (els.mbMore){
-          const count = Array.isArray(mbPrefetched) ? mbPrefetched.length : 0;
-          els.mbMore.style.display = (count >= MB_PAGE_SIZE) ? 'inline-flex' : 'none';
-          els.mbMore.disabled = false;
-          if (els.mbMoreText) els.mbMoreText.textContent = '加载更多';
-          if (wrapPref) wrapPref.style.display = els.mbMore.style.display;
-        }
+        // 首屏用预取渲染时，更新"加载更多"按钮
+        updateLoadMoreButton(mbPrefetched, false);
         // 预取当前邮箱列表前 5 封
         await prefetchTopEmails();
         return;
@@ -1488,13 +1550,17 @@ async function loadMailboxes(isAppend = false, options = {}){
 
     const mController = new AbortController();
     const mTimeout = setTimeout(()=>mController.abort(), 8000);
-    const r = await api(`/api/mailboxes?limit=${MB_PAGE_SIZE}&offset=${mbOffset}`, { signal: mController.signal });
+    
+    // 构建搜索参数（真正的服务器端搜索）
+    const q = (els.mbSearch?.value || '').trim();
+    const params = new URLSearchParams({ 
+      limit: String(MB_PAGE_SIZE), 
+      offset: String(mbOffset) 
+    });
+    if (q) params.set('q', q);
+    
+    const r = await api(`/api/mailboxes?${params.toString()}`, { signal: mController.signal });
     let items = await r.json();
-    // 前端过滤：若输入了搜索关键字
-    try{
-      const kw = (els.mbSearch?.value || '').trim().toLowerCase();
-      if (kw){ items = (Array.isArray(items) ? items : []).filter(x => String(x.address||'').toLowerCase().includes(kw)); }
-    }catch(_){ }
     clearTimeout(mTimeout);
     const html = (items||[]).map(x => (
       `<div class="mailbox-item ${x.is_pinned ? 'pinned' : ''}" onclick="selectMailbox('${x.address}')">
@@ -1516,13 +1582,8 @@ async function loadMailboxes(isAppend = false, options = {}){
       els.mbList.innerHTML = html || '<div style="color:#94a3b8">暂无历史邮箱</div>';
     }
     if (els.mbLoading) els.mbLoading.innerHTML = '';
-    if (els.mbMore) {
-      els.mbMore.style.display = (items && items.length === MB_PAGE_SIZE) ? 'inline-flex' : 'none';
-      els.mbMore.disabled = false;
-      if (els.mbMoreText) els.mbMoreText.textContent = '加载更多';
-      const wrap = document.getElementById('mb-more-wrap');
-      if (wrap) wrap.style.display = els.mbMore.style.display;
-    }
+    // 更新加载更多按钮显示逻辑
+    updateLoadMoreButton(items, isAppend);
     // 预取当前邮箱列表前 5 封
     await prefetchTopEmails();
     // 缓存第一页数据
@@ -1532,10 +1593,8 @@ async function loadMailboxes(isAppend = false, options = {}){
   }catch(_){ 
     if (els.mbLoading) els.mbLoading.innerHTML = '';
     els.mbList.innerHTML = '<div style="color:#dc2626">加载失败</div>'; 
-    if (els.mbMore){
-      els.mbMore.disabled = false;
-      if (els.mbMoreText) els.mbMoreText.textContent = '加载更多';
-    }
+    // 加载失败时隐藏"加载更多"按钮
+    updateLoadMoreButton([], isAppend);
   }
 }
 
@@ -1688,22 +1747,36 @@ if (els.mbMore) {
   };
 }
 
-// 历史邮箱搜索：输入即过滤当前结果，按回车触发重新拉取第一页
+// 历史邮箱搜索：防抖搜索机制，与mailboxes页面保持一致
+let searchTimeout = null;
+
+// 防抖搜索函数
+function debouncedMbSearch() {
+  if (searchTimeout) {
+    clearTimeout(searchTimeout);
+  }
+  searchTimeout = setTimeout(() => {
+    mbOffset = 0; // 重置分页偏移
+    loadMailboxes(false, { forceFresh: true });
+  }, 300); // 300ms防抖延迟
+}
+
+// 立即搜索（按回车键）
+function immediateMbSearch() {
+  if (searchTimeout) {
+    clearTimeout(searchTimeout);
+    searchTimeout = null;
+  }
+  mbOffset = 0; // 重置分页偏移
+  loadMailboxes(false, { forceFresh: true });
+}
+
 if (els.mbSearch){
-  els.mbSearch.addEventListener('input', () => {
-    try{
-      const list = Array.from(els.mbList.querySelectorAll('.mailbox-item'));
-      const kw = (els.mbSearch.value || '').trim().toLowerCase();
-      list.forEach(item => {
-        const addr = item.querySelector('.address')?.textContent?.toLowerCase() || '';
-        item.style.display = kw ? (addr.includes(kw) ? '' : 'none') : '';
-      });
-    }catch(_){ }
-  });
+  els.mbSearch.addEventListener('input', debouncedMbSearch);
   els.mbSearch.addEventListener('keydown', (ev) => {
     if (ev.key === 'Enter'){
-      try{ mbOffset = 0; }catch(_){ }
-      loadMailboxes(false, { forceFresh: true });
+      ev.preventDefault();
+      immediateMbSearch();
     }
   });
 }

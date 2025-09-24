@@ -498,6 +498,10 @@ async function delegateApiRequest(context) {
     .map(d => d.trim())
     .filter(Boolean);
     
+  // RESEND配置支持多种格式：
+  // 1. 单一API密钥：直接填写密钥
+  // 2. 多域名配置：域名=密钥的键值对格式，如 "domain1.com=key1,domain2.com=key2"
+  // 3. JSON格式：{"domain1.com": "key1", "domain2.com": "key2"}
   const RESEND_API_KEY = env.RESEND_API_KEY || env.RESEND_TOKEN || env.RESEND || '';
   const ADMIN_NAME = String(env.ADMIN_NAME || 'admin').trim().toLowerCase();
 

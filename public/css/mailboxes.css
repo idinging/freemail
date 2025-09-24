@@ -13,6 +13,7 @@
   gap: 12px;
   justify-content: center;
   max-width: 1200px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* 默认grid样式，兼容性处理 */
@@ -22,6 +23,7 @@
   gap: 12px;
   justify-content: center;
   max-width: 1200px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* 统一卡片尺寸与布局：固定宽高避免参差不齐 */
@@ -264,10 +266,186 @@
   transition: opacity 0.2s ease;
 }
 
+/* 加载时隐藏网格 */
+.page-mailboxes #grid.loading-hidden {
+  display: none;
+}
+
+/* 视图切换过渡状态 */
+.page-mailboxes #grid.view-transitioning {
+  transition: opacity 0.1s ease-out;
+}
+
+.page-mailboxes #grid.view-transitioning .mailbox-card,
+.page-mailboxes #grid.view-transitioning .mailbox-list-item {
+  animation: fadeInUp 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  opacity: 0;
+  transform: translateY(8px) scale(0.98);
+}
+
+/* 确保动画结束后状态正确 - 使用更高特异性避免!important */
+.page-mailboxes #grid.grid:not(.view-transitioning) .mailbox-card,
+.page-mailboxes #grid.list:not(.view-transitioning) .mailbox-list-item {
+  animation: none;
+  opacity: 1;
+  transform: none;
+  animation-delay: 0s;
+  animation-fill-mode: none;
+}
+
+/* 网格视图交错动画 */
+.page-mailboxes #grid.view-transitioning.grid .mailbox-card:nth-child(1) { animation-delay: 0.01s; }
+.page-mailboxes #grid.view-transitioning.grid .mailbox-card:nth-child(2) { animation-delay: 0.02s; }
+.page-mailboxes #grid.view-transitioning.grid .mailbox-card:nth-child(3) { animation-delay: 0.03s; }
+.page-mailboxes #grid.view-transitioning.grid .mailbox-card:nth-child(4) { animation-delay: 0.04s; }
+.page-mailboxes #grid.view-transitioning.grid .mailbox-card:nth-child(5) { animation-delay: 0.05s; }
+.page-mailboxes #grid.view-transitioning.grid .mailbox-card:nth-child(6) { animation-delay: 0.06s; }
+.page-mailboxes #grid.view-transitioning.grid .mailbox-card:nth-child(7) { animation-delay: 0.07s; }
+.page-mailboxes #grid.view-transitioning.grid .mailbox-card:nth-child(8) { animation-delay: 0.08s; }
+.page-mailboxes #grid.view-transitioning.grid .mailbox-card:nth-child(n+9) { animation-delay: 0.09s; }
+
+/* 列表视图交错动画 */
+.page-mailboxes #grid.view-transitioning.list .mailbox-list-item:nth-child(1) { animation-delay: 0.01s; }
+.page-mailboxes #grid.view-transitioning.list .mailbox-list-item:nth-child(2) { animation-delay: 0.02s; }
+.page-mailboxes #grid.view-transitioning.list .mailbox-list-item:nth-child(3) { animation-delay: 0.03s; }
+.page-mailboxes #grid.view-transitioning.list .mailbox-list-item:nth-child(4) { animation-delay: 0.04s; }
+.page-mailboxes #grid.view-transitioning.list .mailbox-list-item:nth-child(5) { animation-delay: 0.05s; }
+.page-mailboxes #grid.view-transitioning.list .mailbox-list-item:nth-child(6) { animation-delay: 0.06s; }
+.page-mailboxes #grid.view-transitioning.list .mailbox-list-item:nth-child(7) { animation-delay: 0.07s; }
+.page-mailboxes #grid.view-transitioning.list .mailbox-list-item:nth-child(8) { animation-delay: 0.08s; }
+.page-mailboxes #grid.view-transitioning.list .mailbox-list-item:nth-child(n+9) { animation-delay: 0.09s; }
+
+@keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .page-mailboxes .btn:disabled {
   opacity: 0.7;
   cursor: not-allowed;
   transition: opacity 0.2s ease;
+}
+
+/* 加载占位符样式 */
+.loading-placeholder {
+  display: none;
+}
+
+.loading-placeholder.show {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 280px);
+  gap: 12px;
+  justify-content: center;
+  max-width: 1200px;
+}
+
+.loading-placeholder.show.list {
+  display: flex !important;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 100%;
+  grid-template-columns: none !important;
+}
+
+/* 骨架屏卡片 */
+.skeleton-card {
+  width: 280px;
+  height: 140px;
+  padding: 12px;
+  background: var(--card-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-glass);
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.skeleton-list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--card-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-glass);
+  min-height: 60px;
+}
+
+/* 骨架屏动画 */
+.skeleton-line {
+  background: linear-gradient(90deg, 
+    rgba(226, 232, 240, 0.6) 25%, 
+    rgba(248, 250, 252, 0.8) 50%, 
+    rgba(226, 232, 240, 0.6) 75%
+  );
+  background-size: 200% 100%;
+  border-radius: 4px;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* 骨架屏各种线条 */
+.skeleton-line.title {
+  height: 16px;
+  width: 70%;
+  margin-bottom: 2px;
+}
+
+.skeleton-line.subtitle {
+  height: 12px;
+  width: 50%;
+}
+
+.skeleton-line.text {
+  height: 12px;
+  width: 40%;
+}
+
+.skeleton-line.time {
+  height: 12px;
+  width: 60%;
+}
+
+/* 列表视图骨架屏 */
+.skeleton-list-item .skeleton-pin {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.skeleton-list-item .skeleton-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.skeleton-list-item .skeleton-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.skeleton-list-item .skeleton-actions .skeleton-line {
+  width: 36px;
+  height: 32px;
+  border-radius: 8px;
 }
 
 /* 响应式设计 - 仅针对grid视图 */
@@ -281,6 +459,14 @@
   .mailbox-card .line,
   .mailbox-card .addr{
     max-width: 236px; /* 260px - 24px padding */
+  }
+  
+  /* 加载占位符响应式 */
+  .loading-placeholder.show {
+    grid-template-columns: repeat(auto-fill, 260px);
+  }
+  .skeleton-card {
+    width: 260px;
   }
 }
 
@@ -302,6 +488,17 @@
   .mailbox-card .addr{
     font-size: 13px;
   }
+  
+  /* 加载占位符响应式 */
+  .loading-placeholder.show {
+    grid-template-columns: repeat(auto-fill, 240px);
+    gap: 8px;
+  }
+  .skeleton-card {
+    width: 240px;
+    height: 120px;
+    padding: 10px;
+  }
 }
 
 @media (max-width: 480px){
@@ -317,6 +514,17 @@
   .mailbox-card .line,
   .mailbox-card .addr{
     max-width: calc(100% - 24px);
+  }
+  
+  /* 加载占位符响应式 */
+  .loading-placeholder.show {
+    grid-template-columns: 1fr;
+    max-width: 100%;
+  }
+  .skeleton-card {
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto;
   }
 }
 
@@ -637,20 +845,22 @@
 
 /* 列表视图样式 */
 .page-mailboxes #grid.list {
-  display: flex !important;
+  display: flex;
   flex-direction: column;
   gap: 8px;
   max-width: 100%;
-  grid-template-columns: none !important;
+  grid-template-columns: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* 兼容性列表样式 */
 .page-mailboxes .list {
-  display: flex !important;
+  display: flex;
   flex-direction: column;
   gap: 8px;
   max-width: 100%;
-  grid-template-columns: none !important;
+  grid-template-columns: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .mailbox-list-item {

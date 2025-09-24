@@ -1,6 +1,7 @@
 const els = {
   grid: document.getElementById('grid'),
   empty: document.getElementById('empty'),
+  loadingPlaceholder: document.getElementById('loading-placeholder'),
   q: document.getElementById('q'),
   search: document.getElementById('search'),
   prev: document.getElementById('prev'),
@@ -14,6 +15,7 @@ const els = {
 let page = 1;
 const PAGE_SIZE = 20; // 固定每页20（4列×5行）
 let lastCount = 0;
+let currentData = []; // 缓存当前显示的数据
 
 // 视图模式：'grid' 或 'list'
 let currentView = localStorage.getItem('mf:mailboxes:view') || 'grid';
@@ -29,7 +31,7 @@ async function api(path){
   return r;
 }
 
-async function showToast(message, type = 'success'){
+async function showToast(message, type = 'success', duration = 2000){
   try{
     const res = await fetch('/templates/toast.html', { cache: 'no-cache' });
     const tpl = await res.text();
@@ -43,9 +45,54 @@ async function showToast(message, type = 'success'){
       let container = document.getElementById('toast');
       if (!container){ container = document.createElement('div'); container.id = 'toast'; container.className = 'toast'; document.body.appendChild(container); }
       container.appendChild(toastEl);
-      setTimeout(()=>{ toastEl.style.transition = 'opacity .3s ease'; toastEl.style.opacity = '0'; setTimeout(()=>toastEl.remove(), 300); }, 2000);
+      setTimeout(()=>{ toastEl.style.transition = 'opacity .3s ease'; toastEl.style.opacity = '0'; setTimeout(()=>toastEl.remove(), 300); }, duration);
     }
   }catch(_){ }
+}
+
+// 专门用于跳转的短时间toast
+async function showJumpToast(message){
+  await showToast(message, 'info', 500); // 500ms显示时间 + 300ms淡出 = 800ms总时间
+}
+
+// 生成骨架屏卡片
+function createSkeletonCard() {
+  return `
+    <div class="skeleton-card">
+      <div class="skeleton-line title"></div>
+      <div class="skeleton-line subtitle"></div>
+      <div class="skeleton-line text"></div>
+      <div class="skeleton-line time"></div>
+    </div>
+  `;
+}
+
+// 生成骨架屏列表项
+function createSkeletonListItem() {
+  return `
+    <div class="skeleton-list-item">
+      <div class="skeleton-line skeleton-pin"></div>
+      <div class="skeleton-content">
+        <div class="skeleton-line title"></div>
+        <div class="skeleton-line subtitle"></div>
+      </div>
+      <div class="skeleton-actions">
+        <div class="skeleton-line"></div>
+        <div class="skeleton-line"></div>
+        <div class="skeleton-line"></div>
+        <div class="skeleton-line"></div>
+      </div>
+    </div>
+  `;
+}
+
+// 生成骨架屏内容
+function generateSkeletonContent(viewMode = 'grid', count = 8) {
+  if (viewMode === 'grid') {
+    return Array(count).fill().map(() => createSkeletonCard()).join('');
+  } else {
+    return Array(count).fill().map(() => createSkeletonListItem()).join('');
+  }
 }
 
 function fmt(ts){
@@ -56,7 +103,7 @@ function fmt(ts){
 
 function renderGrid(items){
   return items.map(x => `
-    <div class="mailbox-card" onclick="selectAndGoToHomepage('${x.address}', event)">
+    <div class="mailbox-card" data-address="${x.address}">
       <div class="line addr" title="${x.address}">${x.address}</div>
       <div class="line pwd" title="${x.password_is_default ? '默认密码（邮箱本身）' : '自定义密码'}">密码：${x.password_is_default ? '默认' : '自定义'}</div>
       <div class="line login" title="邮箱登录权限">登录：${x.can_login ? '<span style="color:#16a34a">✓允许</span>' : '<span style="color:#dc2626">✗禁止</span>'}</div>
@@ -74,7 +121,7 @@ function renderGrid(items){
 
 function renderList(items){
   return items.map(x => `
-    <div class="mailbox-list-item" onclick="selectAndGoToHomepage('${x.address}', event)">
+    <div class="mailbox-list-item" data-address="${x.address}">
       <div class="pin-indicator">
         ${x.is_pinned ? '<span class="pin-icon" title="已置顶">📌</span>' : '<span class="pin-placeholder"></span>'}
       </div>
@@ -99,7 +146,20 @@ function renderList(items){
 function render(items){
   const list = Array.isArray(items) ? items : [];
   
-  // 切换容器样式
+  // 缓存当前数据
+  currentData = list;
+  
+  // 隐藏加载占位符
+  els.loadingPlaceholder.classList.remove('show');
+  
+  // 清理任何残留的动画状态
+  cleanupTransitionState();
+  
+  // 移除可能的隐藏样式，让CSS类接管显示控制
+  els.grid.style.display = '';
+  els.grid.style.visibility = '';
+  
+  // 切换容器样式，保留基础类名
   els.grid.className = currentView === 'grid' ? 'grid' : 'list';
   
   // 根据视图模式渲染
@@ -109,6 +169,7 @@ function render(items){
     els.grid.innerHTML = renderList(list);
   }
   
+  // 控制空状态显示
   els.empty.style.display = list.length ? 'none' : 'flex';
 }
 
@@ -152,15 +213,32 @@ async function load(){
 // 显示/隐藏加载状态
 function showLoadingState(show) {
   if (show) {
+    // 禁用交互元素
     els.search.disabled = true;
     els.search.textContent = '搜索中...';
-    els.grid.classList.add('loading');
     els.prev.disabled = true;
     els.next.disabled = true;
+    
+    // 使用CSS类来控制显示隐藏，而不是内联样式
+    els.grid.classList.add('loading-hidden');
+    els.empty.style.display = 'none';
+    
+    // 生成并显示加载占位符
+    const skeletonContent = generateSkeletonContent(currentView, PAGE_SIZE);
+    els.loadingPlaceholder.innerHTML = skeletonContent;
+    els.loadingPlaceholder.className = currentView === 'grid' ? 'loading-placeholder show' : 'loading-placeholder show list';
+    
   } else {
+    // 恢复交互元素
     els.search.disabled = false;
     els.search.innerHTML = '<span class="btn-icon">🔍</span><span>搜索</span>';
-    els.grid.classList.remove('loading');
+    
+    // 隐藏加载占位符
+    els.loadingPlaceholder.classList.remove('show');
+    
+    // 移除加载隐藏类，让CSS类接管显示控制
+    els.grid.classList.remove('loading-hidden');
+    
     // 分页按钮状态由updatePagination()统一管理
   }
 }
@@ -245,6 +323,8 @@ els.logout && (els.logout.onclick = async () => { try{ fetch('/api/logout',{meth
 
 // 视图切换功能
 function switchView(view) {
+  if (currentView === view) return; // 如果已经是当前视图，不执行切换
+  
   currentView = view;
   localStorage.setItem('mf:mailboxes:view', view);
   
@@ -252,8 +332,94 @@ function switchView(view) {
   els.viewGrid.classList.toggle('active', view === 'grid');
   els.viewList.classList.toggle('active', view === 'list');
   
-  // 重新渲染当前数据
-  load();
+  // 平滑的视图切换
+  smoothViewTransition(view);
+}
+
+// 平滑的视图切换动画
+function smoothViewTransition(targetView) {
+  // 如果没有数据，直接切换
+  if (!currentData || currentData.length === 0) {
+    els.grid.className = targetView === 'grid' ? 'grid' : 'list';
+    cleanupTransitionState();
+    return;
+  }
+  
+  // 先清理任何残留的动画状态
+  cleanupTransitionState();
+  
+  // 添加过渡状态类
+  els.grid.classList.add('view-transitioning');
+  
+  // 短暂的淡出效果
+  els.grid.style.opacity = '0.6';
+  
+  // 延迟后执行布局切换
+  setTimeout(() => {
+    // 切换容器样式
+    els.grid.className = targetView === 'grid' ? 'grid view-transitioning' : 'list view-transitioning';
+    
+    // 使用缓存的数据重新渲染
+    if (targetView === 'grid') {
+      els.grid.innerHTML = renderGrid(currentData);
+    } else {
+      els.grid.innerHTML = renderList(currentData);
+    }
+    
+    // 立即恢复透明度，让元素自己的动画接管
+    els.grid.style.opacity = '';
+    
+    // 动画完成后移除过渡类
+    setTimeout(() => {
+      cleanupTransitionState();
+    }, 350); // 等待所有元素动画完成 (0.25s + 0.09s delay + 0.01s buffer)
+    
+    // 备用清理机制，防止动画残留
+    setTimeout(() => {
+      if (els.grid.classList.contains('view-transitioning')) {
+        console.warn('强制清理残留的动画状态');
+        cleanupTransitionState();
+      }
+    }, 500);
+  }, 100);
+}
+
+// 彻底清理过渡动画状态
+function cleanupTransitionState() {
+  // 移除过渡类
+  els.grid.classList.remove('view-transitioning');
+  
+  // 重置容器样式
+  els.grid.style.opacity = '';
+  
+  // 强制重置所有子元素的动画状态
+  const cards = els.grid.querySelectorAll('.mailbox-card, .mailbox-list-item');
+  cards.forEach(card => {
+    card.style.animation = '';
+    card.style.opacity = '';
+    card.style.transform = '';
+    card.style.animationDelay = '';
+    card.style.animationFillMode = '';
+  });
+}
+
+// 添加动画结束监听器，提供额外的清理保险
+function setupAnimationCleanupListeners() {
+  els.grid.addEventListener('animationend', function(event) {
+    // 检查是否是过渡动画结束
+    if (event.animationName === 'fadeInUp' && els.grid.classList.contains('view-transitioning')) {
+      // 检查是否所有动画都已结束
+      const animatingCards = els.grid.querySelectorAll('.mailbox-card[style*="animation"], .mailbox-list-item[style*="animation"]');
+      if (animatingCards.length === 0) {
+        setTimeout(() => {
+          if (els.grid.classList.contains('view-transitioning')) {
+            console.log('通过动画监听器清理过渡状态');
+            cleanupTransitionState();
+          }
+        }, 50);
+      }
+    }
+  });
 }
 
 // 初始化视图切换按钮状态
@@ -269,6 +435,25 @@ function initViewToggle() {
 // 初始化视图切换
 initViewToggle();
 
+// 设置动画清理监听器
+setupAnimationCleanupListeners();
+
+// 邮箱卡片点击事件委托
+els.grid.addEventListener('click', function(event) {
+  const card = event.target.closest('.mailbox-card, .mailbox-list-item');
+  if (!card) return;
+  
+  // 检查是否点击的是操作按钮区域
+  if (event.target.closest('.actions, .list-actions')) {
+    return; // 如果点击的是按钮区域，不处理
+  }
+  
+  const address = card.getAttribute('data-address');
+  if (address) {
+    selectAndGoToHomepage(address, event);
+  }
+});
+
 // footer
 (async function(){
   try{
@@ -279,7 +464,62 @@ initViewToggle();
   }catch(_){ }
 })();
 
+// 页面初始加载时显示加载状态
+showLoadingState(true);
+
 load();
+
+// 添加浏览器前进后退按钮支持
+window.addEventListener('popstate', function(event) {
+  // console.log('mailboxes页面popstate事件:', event.state);
+  // 在邮箱管理页面，前进后退主要是页面内的状态变化
+  // 如果用户通过浏览器后退想离开这个页面，需要相应处理
+  
+  // 检查是否有保存的来源页面信息
+  const referrer = document.referrer;
+  if (referrer && (referrer.includes('/html/app.html') || referrer.endsWith('/'))) {
+    // 如果来自首页，后退应该回到首页
+    // 但这里我们已经在邮箱管理页面了，让浏览器自然处理
+  }
+});
+
+// 监听页面即将卸载，保存状态用于历史记录恢复
+window.addEventListener('beforeunload', function() {
+  try {
+    // 保存当前页面状态，便于历史记录恢复
+    sessionStorage.setItem('mf:mailboxes:lastPage', page.toString());
+    sessionStorage.setItem('mf:mailboxes:lastQuery', els.q.value || '');
+    
+    // 清理导航计时器，避免意外跳转
+    if (navigationTimer) {
+      clearTimeout(navigationTimer);
+      navigationTimer = null;
+    }
+    
+    // 清理页面上的所有toast，避免跨页面残留
+    const toastContainer = document.getElementById('toast');
+    if (toastContainer) {
+      toastContainer.remove();
+    }
+    
+    // 清理动画状态，避免跨页面残留
+    cleanupTransitionState();
+  } catch(_) {}
+});
+
+// 页面加载时恢复之前的状态
+try {
+  const savedPage = sessionStorage.getItem('mf:mailboxes:lastPage');
+  const savedQuery = sessionStorage.getItem('mf:mailboxes:lastQuery');
+  
+  if (savedPage && !isNaN(Number(savedPage))) {
+    page = Math.max(1, Number(savedPage));
+  }
+  
+  if (savedQuery) {
+    els.q.value = savedQuery;
+  }
+} catch(_) {}
 
 // 操作防重复标记
 let operationFlags = {
@@ -593,6 +833,43 @@ window.changeMailboxPassword = async function(address){
 
 // 防止重复跳转的标记
 let isNavigating = false;
+let lastNavigateTime = 0;
+let navigationTimer = null;
+
+// 页面可见性变化时重置导航状态
+document.addEventListener('visibilitychange', function() {
+  if (!document.hidden) {
+    isNavigating = false;
+    if (navigationTimer) {
+      clearTimeout(navigationTimer);
+      navigationTimer = null;
+    }
+    // 清理可能残留的动画状态
+    cleanupTransitionState();
+  }
+});
+
+// 页面获得焦点时重置导航状态
+window.addEventListener('focus', function() {
+  isNavigating = false;
+  if (navigationTimer) {
+    clearTimeout(navigationTimer);
+    navigationTimer = null;
+  }
+  // 清理可能残留的动画状态
+  cleanupTransitionState();
+});
+
+// 页面加载时重置导航状态
+window.addEventListener('pageshow', function() {
+  isNavigating = false;
+  if (navigationTimer) {
+    clearTimeout(navigationTimer);
+    navigationTimer = null;
+  }
+  // 清理可能残留的动画状态
+  cleanupTransitionState();
+});
 
 /**
  * 选择邮箱并跳转到首页
@@ -602,33 +879,46 @@ let isNavigating = false;
 window.selectAndGoToHomepage = function(address, event) {
   try {
     // 防止重复点击
-    if (isNavigating) return;
+    if (isNavigating) {
+      return;
+    }
     
-    // 检查是否点击的是按钮区域（有stopPropagation的话就不会到这里）
-    if (event && event.target && event.target.closest('.actions')) {
-      return; // 如果点击的是按钮区域，不处理
+    // 检查基本参数
+    if (!address) {
+      return;
+    }
+    
+    // 检查时间间隔，防止极快的重复点击
+    const now = Date.now();
+    if (now - lastNavigateTime < 300) {
+      return;
     }
     
     isNavigating = true;
+    lastNavigateTime = now;
     
     // 保存选中的邮箱到 sessionStorage，首页会自动恢复
     try {
       sessionStorage.setItem('mf:currentMailbox', address);
     } catch(_) {}
     
-    // 显示简短提示并立即跳转
-    showToast(`正在跳转到：${address}`, 'info');
+    // 显示短时间跳转提示，确保动画完整播放
+    showJumpToast(`正在跳转到：${address}`);
     
-    // 优化：减少延迟时间，提供更快的响应
-    setTimeout(() => {
-      // 跳转到首页的收件箱页面
+    // 跨页面导航：等待toast播放完成后跳转（800ms + 50ms buffer = 850ms）
+    navigationTimer = setTimeout(() => {
+      navigationTimer = null;
       window.location.href = '/#inbox';
-    }, 200);
+    }, 850);
     
   } catch(err) {
     console.error('跳转失败:', err);
     showToast('跳转失败', 'error');
     isNavigating = false;
+    if (navigationTimer) {
+      clearTimeout(navigationTimer);
+      navigationTimer = null;
+    }
   }
 }
 

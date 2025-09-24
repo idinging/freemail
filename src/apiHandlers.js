@@ -3,7 +3,7 @@ import { buildMockEmails, buildMockMailboxes, buildMockEmailDetail } from './moc
 import { getOrCreateMailboxId, getMailboxIdByAddress, recordSentEmail, updateSentEmail, ensureSentEmailsTable, toggleMailboxPin, 
   listUsersWithCounts, createUser, updateUser, deleteUser, assignMailboxToUser, getUserMailboxes } from './database.js';
 import { parseEmailBody, extractVerificationCode } from './emailParser.js';
-import { sendEmailWithResend, sendBatchWithResend, getEmailFromResend, updateEmailInResend, cancelEmailInResend } from './emailSender.js';
+import { sendEmailWithResend, sendBatchWithResend, sendEmailWithAutoResend, sendBatchWithAutoResend, getEmailFromResend, updateEmailInResend, cancelEmailInResend } from './emailSender.js';
 
 export async function handleApiRequest(request, db, mailDomains, options = { mockOnly: false, resendApiKey: '', adminName: '', r2: null, authPayload: null, mailboxOnly: false }) {
   const url = new URL(request.url);
@@ -409,7 +409,8 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
         return new Response('未授权发件', { status: 403 });
       }
       const sendPayload = await request.json();
-      const result = await sendEmailWithResend(RESEND_API_KEY, sendPayload);
+      // 使用智能发送，根据发件人域名自动选择API密钥
+      const result = await sendEmailWithAutoResend(RESEND_API_KEY, sendPayload);
       await ensureSentEmailsTable(db);
       await recordSentEmail(db, {
         resendId: result.id || null,
@@ -454,7 +455,8 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
         return new Response('未授权发件', { status: 403 });
       }
       const items = await request.json();
-      const result = await sendBatchWithResend(RESEND_API_KEY, items);
+      // 使用智能批量发送，自动按域名分组并使用对应的API密钥
+      const result = await sendBatchWithAutoResend(RESEND_API_KEY, items);
       try{
         await ensureSentEmailsTable(db);
         // 尝试记录（如果返回结构包含 id 列表）

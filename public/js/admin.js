@@ -309,7 +309,10 @@ function restoreButton(button){
 }
 
 // 导航
-els.back.onclick = () => { location.replace('/templates/loading.html?redirect=%2F&status=' + encodeURIComponent('正在返回首页…')); };
+els.back.onclick = () => { 
+  // 使用 location.href 而不是 replace，确保创建历史记录条目以支持前进后退
+  location.href = '/templates/loading.html?redirect=%2F&status=' + encodeURIComponent('正在返回首页…'); 
+};
 els.logout.onclick = async () => { 
   try{ fetch('/api/logout', { method:'POST', keepalive: true }); }catch{}
   try{ sessionStorage.setItem('mf:just_logged_out', '1'); }catch(_){ }

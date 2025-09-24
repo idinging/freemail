@@ -45,7 +45,7 @@
 ```bash
 # 设置 Resend 密钥（Secret）
 wrangler secret put RESEND_API_KEY
-# 或者使用下面同义变量（不推荐）：RESEND_TOKEN / RESEND
+# 或者使用下面同义变量（不推荐）：RESEND_TOKEN / RESEND 
 
 # 设置普通变量（可写入 wrangler.toml 的 [vars]）
 # 多域名用逗号/空格分隔

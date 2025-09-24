@@ -13,6 +13,7 @@ try {
     currentView: null,
     initialized: false,
     originalHash: null,
+    isHandlingPopstate: false,
     
     // 初始化路由
     init() {
@@ -31,9 +32,22 @@ try {
         }
       } catch(_) {}
       
-      // 监听 hash 变化
-      window.addEventListener('hashchange', () => this.handleRoute());
-      window.addEventListener('popstate', () => this.handleRoute());
+      // 监听 hash 变化和浏览器历史导航
+      window.addEventListener('hashchange', () => {
+        // console.log('hashchange事件触发，当前hash:', location.hash);
+        this.handleRoute();
+      });
+      
+      window.addEventListener('popstate', (event) => {
+        // console.log('popstate事件触发，当前hash:', location.hash, '事件状态:', event.state);
+        // popstate 事件专门处理浏览器的前进/后退按钮
+        this.isHandlingPopstate = true;
+        this.handleRoute();
+        // 重置标记，避免影响后续的主动导航
+        setTimeout(() => {
+          this.isHandlingPopstate = false;
+        }, 100);
+      });
       
       // 延迟初始化路由处理，等待权限验证完成
       setTimeout(() => {
@@ -128,9 +142,13 @@ try {
     showInbox() {
       if (typeof window.switchToInbox === 'function') {
         window.switchToInbox();
-        // 更新 URL
+        // 更新 URL - 只在用户主动导航时创建历史记录，避免重复记录
         if (location.hash !== '#inbox') {
-          history.replaceState({ mfView: 'inbox' }, '', '#inbox');
+          // 检查是否是浏览器前进后退触发，如果是则不再创建新记录
+          const isPopstateNavigation = this.isHandlingPopstate;
+          if (!isPopstateNavigation) {
+            history.pushState({ mfView: 'inbox', timestamp: Date.now() }, '', '#inbox');
+          }
         }
       }
       this.updateActiveNav('inbox');
@@ -140,9 +158,13 @@ try {
     showSent() {
       if (typeof window.switchToSent === 'function') {
         window.switchToSent();
-        // 更新 URL
+        // 更新 URL - 只在用户主动导航时创建历史记录，避免重复记录
         if (location.hash !== '#sent') {
-          history.replaceState({ mfView: 'sent' }, '', '#sent');
+          // 检查是否是浏览器前进后退触发，如果是则不再创建新记录
+          const isPopstateNavigation = this.isHandlingPopstate;
+          if (!isPopstateNavigation) {
+            history.pushState({ mfView: 'sent', timestamp: Date.now() }, '', '#sent');
+          }
         }
       }
       this.updateActiveNav('sent');
@@ -153,7 +175,7 @@ try {
       // 电脑端生成邮箱始终显示，这里主要是更新 URL
       this.updateActiveNav('generate');
       if (location.hash !== '#generate') {
-        history.replaceState({ mfView: 'generate' }, '', '#generate');
+        history.pushState({ mfView: 'generate' }, '', '#generate');
       }
       try {
         const genCard = document.querySelector('.generate-card');
@@ -166,7 +188,7 @@ try {
       // 电脑端历史邮箱始终显示，这里主要是更新 URL
       this.updateActiveNav('history');
       if (location.hash !== '#history') {
-        history.replaceState({ mfView: 'history' }, '', '#history');
+        history.pushState({ mfView: 'history' }, '', '#history');
       }
       try {
         const sidebar = document.querySelector('.sidebar');
@@ -227,12 +249,16 @@ try {
     
     // 导航到指定路由
     navigate(route) {
-      if (location.hash === `#${route}`) {
+      // 确保路由以 # 开头
+      const targetHash = `#${route}`;
+      
+      if (location.hash === targetHash) {
         // 如果已在目标路由，手动触发处理
         this.currentView = null;
         this.handleRoute();
       } else {
         // 更新 URL，会自动触发 hashchange 事件
+        // 直接设置 location.hash 会自动创建历史记录条目
         location.hash = route;
       }
     },
