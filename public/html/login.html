@@ -12,13 +12,40 @@
           var hasToken = document.cookie.split(';').some(function(c){ 
             return c.trim().indexOf('iding-session=') === 0; 
           });
-          if (hasToken){
-            // 立即重定向，阻止页面渲染
+          
+          // 如果有cookie但是从其他页面跳转过来的，先验证有效性再跳转
+          // 避免无效cookie导致的循环跳转和页面闪现
+          if (hasToken && document.referrer) {
+            // 异步验证，不阻止页面渲染
+            (async function(){
+              try{
+                const controller = new AbortController();
+                const tid = setTimeout(function(){ try{ controller.abort(); }catch(_){ } }, 1500);
+                const r = await fetch('/api/session', { 
+                  method: 'GET', 
+                  headers: { 'Cache-Control': 'no-cache' },
+                  credentials: 'include',
+                  signal: controller.signal
+                });
+                clearTimeout(tid);
+                if (r && r.ok){
+                  location.replace('/');
+                } else {
+                  // cookie无效，清除它
+                  document.cookie = 'iding-session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                }
+              }catch(_){ 
+                // 验证失败，保持在登录页面
+              }
+            })();
+            return;
+          } else if (hasToken && !document.referrer) {
+            // 直接访问登录页且有cookie，立即重定向
             location.replace('/');
             return;
           }
           
-          // 即使没有cookie，也做一次网络检查（可能cookie刚设置还没生效）
+          // 没有cookie，做一次网络检查（可能cookie刚设置还没生效）
           fetch('/api/session', { 
             method: 'GET', 
             headers: { 'Cache-Control': 'no-cache' },
@@ -50,11 +77,15 @@
           }
         }catch(_){ }
         // Cookie检查已在页面顶部执行，这里跳过重复检查
-        // 2) 网络兜底，短超时
+        // 2) 网络兜底，延长超时时间减少误判
         try{
           var controller = new AbortController();
-          var tid = setTimeout(function(){ try{ controller.abort(); }catch(_){ } }, 500);
-          fetch('/api/session', { headers: { 'Cache-Control': 'no-cache' }, signal: controller.signal })
+          var tid = setTimeout(function(){ try{ controller.abort(); }catch(_){ } }, 1500); // 从500ms延长到1500ms
+          fetch('/api/session', { 
+            headers: { 'Cache-Control': 'no-cache' }, 
+            signal: controller.signal,
+            credentials: 'include'
+          })
             .then(function(r){
               clearTimeout(tid);
               if (r && r.ok){ location.replace('/'); return; }
@@ -62,8 +93,8 @@
             })
             .catch(function(){ try{ document.documentElement.classList.remove('precheck-hide'); }catch(_){ } });
         }catch(_){ try{ document.documentElement.classList.remove('precheck-hide'); }catch(_){ } }
-        // 最长 1s 兜底显示
-        setTimeout(function(){ try{ document.documentElement.classList.remove('precheck-hide'); }catch(_){ } }, 1000);
+        // 最长 2s 兜底显示（从1s延长到2s）
+        setTimeout(function(){ try{ document.documentElement.classList.remove('precheck-hide'); }catch(_){ } }, 2000);
       })();
     </script>
     
@@ -87,6 +118,8 @@
         <button id="login" class="btn">登录</button>
       </div>
     </div>
+    <div id="toast" class="toast"></div>
+    <script src="/js/toast-utils.js"></script>
     <script src="/js/login.js"></script>
   </body>
   </html>

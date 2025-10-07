@@ -364,27 +364,62 @@ export function extractVerificationCode({ subject = '', text = '', html = '' } =
     }
   }
 
-  // 兜底 1：正文里的分隔/连续数字（优先正文，避免主题中的无关数字抢占）
-  {
-    // 添加数字边界，避免从更长数字尾部截取；放宽分隔符范围
-    const r = new RegExp(`(?<!\\d)([0-9](?:${sepClass}?[0-9]){3,7})(?!\\d)`);
+  // 优先 3：宽松匹配，但需要更明确的验证码上下文（扩展距离范围）
+  // 适用于某些验证码邮件中关键词和数字距离较远的情况
+  const looseBodyOrdereds = [
+    new RegExp(`${kw}[^\n\r\d]{0,80}(?<!\\d)${codeChunk}(?!\\d)`, 'i'),
+    new RegExp(`(?<!\\d)${codeChunk}(?!\\d)[^\n\r\d]{0,80}${kw}`, 'i'),
+  ];
+  for (const r of looseBodyOrdereds){
     const m = sources.body.match(r);
-    if (m){
+    if (m && m[1]){
       const n = normalizeDigits(m[1]);
-      if (n) return n;
+      // 额外过滤：排除明显的年份（2000-2099）和常见误匹配模式
+      if (n && !isLikelyNonVerificationCode(n, sources.body)) {
+        return n;
+      }
     }
   }
 
-  // 兜底 2：subject 里的孤立 4-8 位数字（最后再考虑）
-  {
-    const r = /(?<!\d)(\d{4,8})(?!\d)/;
-    const m = sources.subject.match(r);
-    if (m){
-      const n = normalizeDigits(m[1]);
-      if (n) return n;
-    }
-  }
-
+  // 不再使用无关键词的兜底逻辑，避免误识别年份、地址、电话号码等
+  // 只返回有明确验证码关键词提示的数字
   return '';
 }
+
+/**
+ * 判断数字是否可能不是验证码（用于过滤误匹配）
+ * @param {string} digits - 提取的数字
+ * @param {string} context - 上下文文本
+ * @returns {boolean} 如果可能不是验证码返回true
+ */
+function isLikelyNonVerificationCode(digits, context = '') {
+  if (!digits) return true;
+  
+  // 排除年份（2000-2099，常见于邮件日期、活动年份等）
+  const year = parseInt(digits, 10);
+  if (digits.length === 4 && year >= 2000 && year <= 2099) {
+    return true;
+  }
+  
+  // 排除常见的邮政编码模式（5位数字，且上下文包含地址相关词汇）
+  if (digits.length === 5) {
+    const lowerContext = context.toLowerCase();
+    if (lowerContext.includes('address') || 
+        lowerContext.includes('street') || 
+        lowerContext.includes('zip') ||
+        lowerContext.includes('postal') ||
+        /\b[a-z]{2,}\s+\d{5}\b/i.test(context)) { // 如 "CA 94114"
+      return true;
+    }
+  }
+  
+  // 排除包含在明显的地址格式中的数字（如 "1000 Sofia"）
+  const addressPattern = new RegExp(`\\b${digits}\\s+[A-Z][a-z]+(?:,|\\b)`, 'i');
+  if (addressPattern.test(context)) {
+    return true;
+  }
+  
+  return false;
+}
+
 

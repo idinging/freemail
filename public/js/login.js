@@ -5,45 +5,9 @@ const err = document.getElementById('err');
 
 let isSubmitting = false;
 
-function ensureToastContainer(){
-  let c = document.getElementById('toast');
-  if (!c){
-    c = document.createElement('div');
-    c.id = 'toast';
-    c.className = 'toast';
-    document.body.appendChild(c);
-  }
-  return c;
-}
+// ensureToastContainer 函数已由 toast-utils.js 统一提供
 
-async function showToast(message, type='info'){
-  try{
-    const res = await fetch('/templates/toast.html', { cache: 'no-cache' });
-    const tpl = await res.text();
-    const html = tpl.replace('{{type}}', String(type||'info')).replace('{{message}}', String(message||''));
-    const wrap = document.createElement('div');
-    wrap.innerHTML = html;
-    const styleEl = wrap.querySelector('#toast-style');
-    if (styleEl && !document.getElementById('toast-style')){
-      document.head.appendChild(styleEl);
-    }
-    const toastEl = wrap.querySelector('.toast-item');
-    if (toastEl){
-      ensureToastContainer().appendChild(toastEl);
-      setTimeout(()=>{ 
-        toastEl.style.transition='opacity .3s'; 
-        toastEl.style.opacity='0'; 
-        setTimeout(()=>toastEl.remove(),300); 
-      }, 2000);
-    }
-  }catch(_){
-    const div = document.createElement('div');
-    div.className = `toast-item ${type}`;
-    div.textContent = message;
-    ensureToastContainer().appendChild(div);
-    setTimeout(()=>{ div.style.transition='opacity .3s'; div.style.opacity='0'; setTimeout(()=>div.remove(),300); }, 2000);
-  }
-}
+// showToast 函数已由 toast-utils.js 统一提供
 
 async function doLogin(){
   if (isSubmitting) return;

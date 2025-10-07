@@ -138,6 +138,40 @@ export async function getMailboxIdByAddress(db, address) {
 }
 
 /**
+ * 检查邮箱是否存在以及是否属于特定用户
+ * @param {object} db - 数据库连接对象
+ * @param {string} address - 邮箱地址
+ * @param {number} userId - 用户ID（可选）
+ * @returns {Promise<object>} 包含exists(是否存在)、ownedByUser(是否属于该用户)、mailboxId的对象
+ */
+export async function checkMailboxOwnership(db, address, userId = null) {
+  const normalized = String(address || '').trim().toLowerCase();
+  if (!normalized) return { exists: false, ownedByUser: false, mailboxId: null };
+  
+  // 检查邮箱是否存在
+  const res = await db.prepare('SELECT id FROM mailboxes WHERE address = ?').bind(normalized).all();
+  if (!res.results || res.results.length === 0) {
+    return { exists: false, ownedByUser: false, mailboxId: null };
+  }
+  
+  const mailboxId = res.results[0].id;
+  
+  // 如果没有提供用户ID，只返回存在性检查结果
+  if (!userId) {
+    return { exists: true, ownedByUser: false, mailboxId };
+  }
+  
+  // 检查邮箱是否属于该用户
+  const ownerRes = await db.prepare(
+    'SELECT id FROM user_mailboxes WHERE user_id = ? AND mailbox_id = ?'
+  ).bind(userId, mailboxId).all();
+  
+  const ownedByUser = ownerRes.results && ownerRes.results.length > 0;
+  
+  return { exists: true, ownedByUser, mailboxId };
+}
+
+/**
  * 切换邮箱的置顶状态
  * @param {object} db - 数据库连接对象
  * @param {string} address - 邮箱地址
@@ -389,9 +423,11 @@ export async function deleteUser(db, userId){
  * @param {object} options - 查询选项
  * @param {number} options.limit - 每页数量限制，默认50
  * @param {number} options.offset - 偏移量，默认0
+ * @param {string} options.sort - 排序方向，'asc' 或 'desc'，默认'desc'
  * @returns {Promise<Array<object>>} 用户列表数组
  */
-export async function listUsersWithCounts(db, { limit = 50, offset = 0 } = {}){
+export async function listUsersWithCounts(db, { limit = 50, offset = 0, sort = 'desc' } = {}){
+  const orderDirection = (sort === 'asc') ? 'ASC' : 'DESC';
   const sql = `
     SELECT u.id, u.username, u.role, u.mailbox_limit, u.can_send, u.created_at,
            COALESCE(cnt.c, 0) AS mailbox_count
@@ -399,7 +435,7 @@ export async function listUsersWithCounts(db, { limit = 50, offset = 0 } = {}){
     LEFT JOIN (
       SELECT user_id, COUNT(1) AS c FROM user_mailboxes GROUP BY user_id
     ) cnt ON cnt.user_id = u.id
-    ORDER BY datetime(u.created_at) DESC
+    ORDER BY datetime(u.created_at) ${orderDirection}
     LIMIT ? OFFSET ?
   `;
   const { results } = await db.prepare(sql).bind(Math.max(1, Math.min(100, Number(limit) || 50)), Math.max(0, Number(offset) || 0)).all();
@@ -461,5 +497,62 @@ export async function getUserMailboxes(db, userId){
   `;
   const { results } = await db.prepare(sql).bind(userId).all();
   return results || [];
+}
+
+/**
+ * 取消邮箱分配，解除用户与邮箱的绑定关系
+ * @param {object} db - 数据库连接对象
+ * @param {object} params - 取消分配参数对象
+ * @param {number} params.userId - 用户ID，可选
+ * @param {string} params.username - 用户名，可选（userId和username至少提供一个）
+ * @param {string} params.address - 邮箱地址
+ * @returns {Promise<object>} 取消分配结果对象
+ * @throws {Error} 当邮箱地址无效、用户不存在或邮箱未分配给该用户时抛出异常
+ */
+export async function unassignMailboxFromUser(db, { userId = null, username = null, address }){
+  const normalized = String(address || '').trim().toLowerCase();
+  if (!normalized) throw new Error('邮箱地址无效');
+  
+  // 获取邮箱ID
+  const mailboxId = await getMailboxIdByAddress(db, normalized);
+  if (!mailboxId) throw new Error('邮箱不存在');
+
+  // 获取用户ID
+  let uid = userId;
+  if (!uid){
+    const uname = String(username || '').trim().toLowerCase();
+    if (!uname) throw new Error('缺少用户标识');
+    const r = await db.prepare('SELECT id FROM users WHERE username = ?').bind(uname).all();
+    if (!r.results || !r.results.length) throw new Error('用户不存在');
+    uid = r.results[0].id;
+  }
+
+  // 检查绑定关系是否存在
+  const checkRes = await db.prepare('SELECT id FROM user_mailboxes WHERE user_id = ? AND mailbox_id = ?')
+    .bind(uid, mailboxId).all();
+  if (!checkRes.results || checkRes.results.length === 0) {
+    throw new Error('该邮箱未分配给该用户');
+  }
+
+  // 删除绑定关系
+  await db.prepare('DELETE FROM user_mailboxes WHERE user_id = ? AND mailbox_id = ?')
+    .bind(uid, mailboxId).run();
+  
+  return { success: true };
+}
+
+/**
+ * 获取系统中所有邮箱的总数量
+ * @param {object} db - 数据库连接对象
+ * @returns {Promise<number>} 系统中所有邮箱的总数量
+ */
+export async function getTotalMailboxCount(db) {
+  try {
+    const result = await db.prepare('SELECT COUNT(1) AS count FROM mailboxes').all();
+    return result?.results?.[0]?.count || 0;
+  } catch (error) {
+    console.error('获取系统邮箱总数失败:', error);
+    return 0;
+  }
 }
 

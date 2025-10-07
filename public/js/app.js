@@ -1,4 +1,4 @@
-import { cacheGet, cacheSet, readPrefetch, setCurrentUserKey } from './storage.js';
+import { cacheGet, cacheSet, readPrefetch, setCurrentUserKey, cacheClearForUser, getCurrentUserKey } from './storage.js';
 
 window.__GUEST_MODE__ = false;
 window.__MOCK_STATE__ = { domains: ['example.com'], mailboxes: [], emailsByMailbox: new Map() };
@@ -91,6 +91,13 @@ async function mockApi(path, options){
       const domainIndex = Number(body.domainIndex || 0);
       const domain = (window.__MOCK_STATE__.domains || ['example.com'])[isNaN(domainIndex)?0:Math.max(0, Math.min((window.__MOCK_STATE__.domains||['example.com']).length-1, domainIndex))] || 'example.com';
       const email = `${local}@${domain}`;
+      
+      // 检查邮箱是否已存在
+      const existingMailbox = window.__MOCK_STATE__.mailboxes.find(m => m.address === email);
+      if (existingMailbox) {
+        return new Response('邮箱地址已存在，请选择其他用户名', { status: 409 });
+      }
+      
       const item = { address: email, created_at: new Date().toISOString().replace('T',' ').slice(0,19), is_pinned: 0 };
       window.__MOCK_STATE__.mailboxes.unshift(item);
       return new Response(JSON.stringify({ email, expires: Date.now() + 3600000 }), { headers: jsonHeaders });
@@ -296,6 +303,37 @@ function generateRandomId(length = 8) {
   }
 }
 
+// 用户隔离的邮箱状态管理
+function saveCurrentMailbox(mailbox) {
+  try {
+    const userKey = getCurrentUserKey();
+    if (userKey && userKey !== 'unknown') {
+      sessionStorage.setItem(`mf:currentMailbox:${userKey}`, mailbox);
+    }
+  } catch(_) {}
+}
+
+function loadCurrentMailbox() {
+  try {
+    const userKey = getCurrentUserKey();
+    if (userKey && userKey !== 'unknown') {
+      return sessionStorage.getItem(`mf:currentMailbox:${userKey}`);
+    }
+  } catch(_) {}
+  return null;
+}
+
+function clearCurrentMailbox() {
+  try {
+    const userKey = getCurrentUserKey();
+    if (userKey && userKey !== 'unknown') {
+      sessionStorage.removeItem(`mf:currentMailbox:${userKey}`);
+    }
+    // 兼容性：也清理旧的非隔离键
+    sessionStorage.removeItem('mf:currentMailbox');
+  } catch(_) {}
+}
+
 // 初始化流程将会在模板加载后进行（见 init()）
 
 const app = document.getElementById('app');
@@ -326,8 +364,10 @@ const els = {
   mbSearch: document.getElementById('mb-search'),
   mbLoading: document.getElementById('mb-loading'),
   toast: document.getElementById('toast'),
-  mbMore: document.getElementById('mb-more'),
-  mbMoreText: document.getElementById('mb-more-text'),
+  mbPager: document.getElementById('mb-pager'),
+  mbPrev: document.getElementById('mb-prev'),
+  mbNext: document.getElementById('mb-next'),
+  mbPageInfo: document.getElementById('mb-page-info'),
   listLoading: document.getElementById('list-loading'),
   confirmModal: document.getElementById('confirm-modal'),
   confirmClose: document.getElementById('confirm-close'),
@@ -393,63 +433,6 @@ try{
   }
 }catch(_){ }
 
-// 预取逻辑已抽离至 storage.js
-let __toastTpl = null;
-let __toastTplPromise = null;
-(function preloadToastTemplate(){
-  try{
-    __toastTplPromise = fetch('/templates/toast.html', { cache: 'force-cache' })
-      .then(r => r && r.ok ? r.text() : null)
-      .then(t => { __toastTpl = t; return t; })
-      .catch(()=>null);
-  }catch(_){ }
-})();
-
-async function showToast(message, type='info'){
-  try{
-    // 优先使用已缓存模板，若未缓存则并行预取（命中浏览器缓存）
-    if (!__toastTpl){
-      if (!__toastTplPromise){
-        try{ __toastTplPromise = fetch('/templates/toast.html', { cache: 'force-cache' }).then(r=>r&&r.ok?r.text():null).then(t=>{ __toastTpl=t; return t; }); }catch(_){ }
-      }
-      try{ __toastTpl = await __toastTplPromise; }catch(_){ }
-    }
-    const tpl = __toastTpl || '';
-    const html = tpl.replace('{{type}}', String(type||'info')).replace('{{message}}', String(message||''));
-    const wrapper = document.createElement('div');
-    wrapper.innerHTML = html;
-    // 注入样式（仅一次）
-    const styleEl = wrapper.querySelector('#toast-style');
-    if (styleEl && !document.getElementById('toast-style')){
-      document.head.appendChild(styleEl);
-    }
-    // 插入 toast 元素（容器优先使用模板中的 #toast，其次尝试现有 DOM，再次自动创建）
-    const toastEl = wrapper.querySelector('.toast-item');
-    if (toastEl){
-      let container = null;
-      try{ container = (typeof els !== 'undefined' && els && els.toast) ? els.toast : null; }catch(_){ }
-      if (!container) container = document.getElementById('toast');
-      if (!container){ container = document.createElement('div'); container.id = 'toast'; container.className = 'toast'; document.body.appendChild(container); }
-      container.appendChild(toastEl);
-      setTimeout(()=>{
-        toastEl.style.transition = 'opacity .3s ease';
-        toastEl.style.opacity = '0';
-        setTimeout(()=>toastEl.remove(), 300);
-      }, 2000);
-      return;
-    }
-    // 若模板缺失，降级到简易提示
-    throw new Error('toast template missing');
-  }catch(_){
-    const div = document.createElement('div');
-    div.className = `toast-item ${type}`;
-    div.textContent = message;
-    let container = document.getElementById('toast');
-    if (!container){ container = document.createElement('div'); container.id = 'toast'; container.className = 'toast'; document.body.appendChild(container); }
-    container.appendChild(div);
-    setTimeout(()=>{ div.style.transition='opacity .3s ease'; div.style.opacity='0'; setTimeout(()=>div.remove(),300); }, 2000);
-  }
-}
 
 // 统一提示：改为使用 toast 模板
 function showInlineTip(_anchorEl, message, type = 'info'){
@@ -479,35 +462,77 @@ function restoreButton(button){
   delete button.dataset.originalHtml;
 }
 
+// 当前确认对话框的控制器，避免快速连续操作时的冲突
+let currentConfirmController = null;
+
 // 自定义确认对话框
 function showConfirm(message, onConfirm, onCancel = null) {
   return new Promise((resolve) => {
-    els.confirmMessage.textContent = message;
-    els.confirmModal.classList.add('show');
-    
-    const handleConfirm = () => {
-      els.confirmModal.classList.remove('show');
-      cleanup();
-      resolve(true);
-      if (onConfirm) onConfirm();
-    };
-    
-    const handleCancel = () => {
-      els.confirmModal.classList.remove('show');
-      cleanup();
-      resolve(false);
-      if (onCancel) onCancel();
-    };
-    
-    const cleanup = () => {
-      els.confirmOk.removeEventListener('click', handleConfirm);
-      els.confirmCancel.removeEventListener('click', handleCancel);
-      els.confirmClose.removeEventListener('click', handleCancel);
-    };
-    
-    els.confirmOk.addEventListener('click', handleConfirm);
-    els.confirmCancel.addEventListener('click', handleCancel);
-    els.confirmClose.addEventListener('click', handleCancel);
+    try {
+      // 如果有之前的控制器，先取消
+      if (currentConfirmController) {
+        currentConfirmController.abort();
+      }
+      
+      // 创建新的 AbortController
+      currentConfirmController = new AbortController();
+      const signal = currentConfirmController.signal;
+      
+      // 将回调保存到模态框的属性中，避免闭包变量污染
+      els.confirmModal._currentResolve = resolve;
+      els.confirmModal._currentOnConfirm = onConfirm;
+      els.confirmModal._currentOnCancel = onCancel;
+      
+      els.confirmMessage.textContent = message;
+      els.confirmModal.classList.add('show');
+      
+      const handleConfirm = () => {
+        els.confirmModal.classList.remove('show');
+        currentConfirmController = null;
+        
+        // 从模态框属性中获取回调，避免闭包变量问题
+        const currentResolve = els.confirmModal._currentResolve;
+        const currentOnConfirm = els.confirmModal._currentOnConfirm;
+        
+        // 清理属性
+        delete els.confirmModal._currentResolve;
+        delete els.confirmModal._currentOnConfirm;
+        delete els.confirmModal._currentOnCancel;
+        
+        if (currentResolve) currentResolve(true);
+        if (currentOnConfirm) currentOnConfirm();
+      };
+      
+      const handleCancel = () => {
+        els.confirmModal.classList.remove('show');
+        currentConfirmController = null;
+        
+        // 从模态框属性中获取回调，避免闭包变量问题
+        const currentResolve = els.confirmModal._currentResolve;
+        const currentOnCancel = els.confirmModal._currentOnCancel;
+        
+        // 清理属性
+        delete els.confirmModal._currentResolve;
+        delete els.confirmModal._currentOnConfirm;
+        delete els.confirmModal._currentOnCancel;
+        
+        if (currentResolve) currentResolve(false);
+        if (currentOnCancel) currentOnCancel();
+      };
+      
+      // 使用 AbortController 管理事件监听器，避免重复绑定和闭包污染
+      els.confirmOk.addEventListener('click', handleConfirm, { signal });
+      els.confirmCancel.addEventListener('click', handleCancel, { signal });
+      els.confirmClose.addEventListener('click', handleCancel, { signal });
+      
+    } catch(err) {
+      console.error('确认对话框初始化失败:', err);
+      // 降级到原生confirm
+      const result = confirm(message || '确认执行该操作？');
+      resolve(result);
+      if (result && onConfirm) onConfirm();
+      if (!result && onCancel) onCancel();
+    }
   });
 }
 
@@ -550,11 +575,21 @@ if (els.createCustomOverlay){
       if (!/^[A-Za-z0-9._-]{1,64}$/.test(local)) { showToast('用户名不合法，仅限字母/数字/._-', 'warn'); return; }
       const domainIndex = Number(domainSelect?.value || 0);
       const r = await api('/api/create', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ local, domainIndex }) });
-      if (!r.ok){ const t = await r.text(); throw new Error(t); }
+      if (!r.ok){ 
+        const t = await r.text(); 
+        if (r.status === 409) {
+          // 邮箱已存在的情况
+          throw new Error(t || '');
+        } else if (r.status === 429) {
+          // 邮箱上限的情况
+          throw new Error(t || '已达到邮箱创建上限');
+        }
+        throw new Error(t); 
+      }
       const data = await r.json();
       window.currentMailbox = data.email;
-      // 持久化保存当前邮箱，用于页面刷新恢复
-      try { sessionStorage.setItem('mf:currentMailbox', data.email); } catch(_) {}
+      // 持久化保存当前邮箱，用于页面刷新恢复（用户隔离）
+      saveCurrentMailbox(data.email);
       // 如果已显示在邮箱框中，更新文本节点
       const t = document.getElementById('email-text');
       if (t) t.textContent = data.email; else els.email.textContent = data.email;
@@ -584,8 +619,8 @@ if (els.createCustomOverlay){
         }
       }catch(_){ }
       // 刷新第一页，强制绕过缓存
-      if (typeof mbOffset !== 'undefined') { mbOffset = 0; }
-      await loadMailboxes(false, { forceFresh: true });
+      if (typeof mbPage !== 'undefined') { mbPage = 1; }
+      await loadMailboxes({ forceFresh: true });
     }catch(e){ showToast(String(e?.message || '已达到邮箱上限或创建失败'), 'warn'); }
   };
 }
@@ -626,7 +661,14 @@ async function loadDomains(){
     // 不发任何请求，直接使用 example.com 并且清空历史，避免旧域名显示
     populateDomains(['example.com']);
     try{ els.mbList && (els.mbList.innerHTML = ''); window.__MOCK_STATE__.mailboxes = []; }catch(_){ }
-    try{ const quotaEl = document.getElementById('quota'); if (quotaEl) quotaEl.textContent = '0 / 10'; }catch(_){ }
+    try{ 
+      const quotaEl = document.getElementById('quota'); 
+      if (quotaEl) {
+        quotaEl.textContent = '0 邮箱';
+        quotaEl.title = '演示模式 - 系统邮箱数量';
+        quotaEl.classList.add('admin-quota');
+      }
+    }catch(_){ }
     return;
   }
   let domainSet = false;
@@ -662,13 +704,18 @@ async function loadDomains(){
     populateDomains(list);
   }
 }
-// 延迟到会话判定后再加载域名，避免访客模式提前请求真实接口
 
 // 会话校验与访客模式处理（在模板装载并拿到 DOM 引用之后执行）
 (async () => {
   try {
     const r = await fetch('/api/session');
     if (!r.ok) { 
+      // 认证失败时清理可能的残留数据，防止泄露
+      try {
+        clearCurrentMailbox();
+        window.currentMailbox = '';
+        stopAutoRefresh();
+      } catch(_) {}
       // 如果认证失败，跳转到登录页
       location.replace('/html/login.html'); 
       return; 
@@ -717,10 +764,19 @@ async function loadDomains(){
     // 现在再并行加载域名与历史邮箱（避免在演示模式下发起真实请求）
     await Promise.all([
       (typeof loadDomains === 'function') ? loadDomains() : Promise.resolve(),
-      (typeof loadMailboxes === 'function') ? loadMailboxes(false) : Promise.resolve()
+      (typeof loadMailboxes === 'function') ? loadMailboxes() : Promise.resolve()
     ]);
+    
+    // 会话验证成功后，安全地恢复用户的邮箱状态
+    restoreUserMailboxState();
   } catch (error) {
     console.error('认证检查失败:', error);
+    // 认证失败时清理可能的残留数据，防止泄露
+    try {
+      clearCurrentMailbox();
+      window.currentMailbox = '';
+      stopAutoRefresh();
+    } catch(_) {}
     // 如果认证检查失败，跳转到登录页
     location.replace('/html/login.html');
   }
@@ -774,8 +830,8 @@ els.gen.onclick = async () => {
       }
     }catch(_){ }
     // 强制刷新第一页，确保与服务端一致
-    if (typeof mbOffset !== 'undefined') { mbOffset = 0; }
-    await loadMailboxes(false, { forceFresh: true });
+    if (typeof mbPage !== 'undefined') { mbPage = 1; }
+    await loadMailboxes({ forceFresh: true });
   } catch (e){ showToast(String(e?.message || '已达到邮箱上限或创建失败'), 'warn'); }
   finally { restoreButton(els.gen); }
 }
@@ -800,7 +856,17 @@ if (els.genName) {
         }) 
       });
       
-      if (!r.ok) { const t = await r.text(); throw new Error(t); }
+      if (!r.ok) { 
+        const t = await r.text(); 
+        if (r.status === 409) {
+          // 邮箱已存在的情况
+          throw new Error(t || '邮箱地址已存在');
+        } else if (r.status === 429) {
+          // 邮箱上限的情况
+          throw new Error(t || '已达到邮箱创建上限');
+        }
+        throw new Error(t); 
+      }
       const data = await r.json();
       
       // 持久化选择
@@ -811,8 +877,8 @@ if (els.genName) {
       } catch(_) {}
       
       window.currentMailbox = data.email;
-      // 持久化保存当前邮箱
-      try { sessionStorage.setItem('mf:currentMailbox', data.email); } catch(_) {}
+      // 持久化保存当前邮箱（用户隔离）
+      saveCurrentMailbox(data.email);
       
       const t = document.getElementById('email-text');
       if (t) t.textContent = data.email; else els.email.textContent = data.email;
@@ -850,8 +916,8 @@ if (els.genName) {
       } catch(_) {}
       
       // 强制刷新第一页
-      if (typeof mbOffset !== 'undefined') { mbOffset = 0; }
-      await loadMailboxes(false, { forceFresh: true });
+      if (typeof mbPage !== 'undefined') { mbPage = 1; }
+      await loadMailboxes({ forceFresh: true });
     } catch (e) { showToast(String(e?.message || '已达到邮箱上限或创建失败'), 'warn'); }
     finally { restoreButton(els.genName); }
   };
@@ -862,7 +928,12 @@ els.copy.onclick = async () => {
     try{ showToast('请先生成或选择一个邮箱', 'warn'); }catch(_){ }
     return;
   }
-  try { await navigator.clipboard.writeText(window.currentMailbox); } catch {}
+  try { 
+    await navigator.clipboard.writeText(window.currentMailbox); 
+    showToast(`已复制邮箱地址：${window.currentMailbox}`, 'success');
+  } catch {
+    showToast('复制失败，请重试', 'error');
+  }
   const t = els.copy.textContent; els.copy.textContent='✅ 已复制'; setTimeout(()=>els.copy.textContent=t,1500);
 }
 
@@ -1089,7 +1160,8 @@ try{
     if (enable) {
       console.log('邮箱调试模式已开启');
       console.log('当前状态：', {
-        mbOffset,
+        mbPage,
+        mbLastCount,
         MB_PAGE_SIZE,
         currentMailbox: window.currentMailbox
       });
@@ -1135,16 +1207,14 @@ window.showEmail = async (id) => {
         ${subjLine ? `<span style=\"margin-left:12px\">主题：${subjLine}</span>` : ''}
       </div>
       <div class="email-actions-bar">
-        <button class="btn btn-secondary btn-sm" onclick="copyEmailAllText(this)">
-          <span class="btn-icon">📋</span>
-          <span>复制内容</span>
+        <button class="btn btn-secondary btn-sm" data-code="${code || ''}" onclick="copyFromModal(event, ${id});event.stopPropagation()" title="${code ? '复制验证码' : '复制内容'}">
+          <span class="btn-icon">${code ? '🔐' : '📋'}</span>
+          <span>${code ? '复制验证码' : '复制内容'}</span>
         </button>
-        ${code ? `
-          <button class=\"btn btn-primary btn-sm\" onclick=\"copyCodeInModal('${code}', this)\">
-            <span class=\"btn-icon\">🔐</span>
-            <span>复制验证码</span>
-          </button>
-        ` : ''}
+        <button class="btn btn-ghost btn-sm" onclick="copyEmailAllText(this)">
+          <span class="btn-icon">📄</span>
+          <span>复制全文</span>
+        </button>
         ${downloadBtn}
       </div>
       <div id="email-render-host"></div>
@@ -1253,7 +1323,7 @@ window.copyEmailContentInModal = async (id, btn) => {
     }
   }catch(_){
     if (btn){
-      btn.innerHTML = '<span class="btn-icon">⚠️</span><span>复制失败</span>';
+      btn.innerHTML = '<span class="btn-icon">&#9888;&#65039;</span><span>复制失败</span>';
       setTimeout(()=>{ if (btn){ btn.innerHTML = original; } }, 1200);
     }
   }
@@ -1316,6 +1386,13 @@ if (allMailboxesLink){
 els.logout.onclick = async () => {
   try { fetch('/api/logout', { method:'POST', keepalive: true }); } catch {}
   try {
+    // 清理当前用户的所有数据
+    clearCurrentMailbox();
+    cacheClearForUser();
+    // 清理当前邮箱状态
+    window.currentMailbox = '';
+    // 停止自动刷新
+    stopAutoRefresh();
     // 标记来自登出，登录页跳过 session 检查
     sessionStorage.setItem('mf:just_logged_out', '1');
   } catch(_) {}
@@ -1404,77 +1481,60 @@ window.addEventListener('keydown', (ev) => {
   }
 });
 
-let mbOffset = 0;
+let mbPage = 1;
 const MB_PAGE_SIZE = 10;
+let mbLastCount = 0;
 
 /**
- * 统一更新加载更多按钮的显示逻辑
- * @param {Array} items - 当前返回的数据项
- * @param {boolean} isAppend - 是否为追加模式
+ * 更新邮箱列表分页显示
  */
-function updateLoadMoreButton(items, isAppend = false) {
+function updateMbPagination() {
+  if (!els.mbPager) return;
+  
   try {
-    if (!els.mbMore) return;
-    
-    const itemCount = Array.isArray(items) ? items.length : 0;
-    const wrap = document.getElementById('mb-more-wrap');
-    
-    // 判断是否应该显示加载更多按钮的逻辑：
-    // 1. 如果返回的数据量达到页面大小，说明可能还有更多数据
-    // 2. 在追加模式下，如果数据量小于页面大小，说明已经到底了
-    let shouldShow = false;
-    
-    if (isAppend) {
-      // 追加模式：只有当返回数据量达到页面大小时才继续显示
-      shouldShow = itemCount >= MB_PAGE_SIZE;
-    } else {
-      // 首次加载模式：数据量达到页面大小时显示
-      shouldShow = itemCount >= MB_PAGE_SIZE;
+    // 上一页按钮：始终显示，在第一页时禁用
+    const isFirstPage = mbPage <= 1;
+    if (els.mbPrev) {
+      els.mbPrev.disabled = isFirstPage;
     }
     
-    // 在搜索状态下的特殊处理
-    const isSearching = (els.mbSearch?.value || '').trim().length > 0;
-    if (isSearching && itemCount < MB_PAGE_SIZE) {
-      // 搜索时如果返回数据小于页面大小，说明搜索结果已全部显示
-      shouldShow = false;
+    // 下一页按钮：始终显示，在没有更多数据时禁用
+    const hasMore = mbLastCount === MB_PAGE_SIZE;
+    if (els.mbNext) {
+      els.mbNext.disabled = !hasMore;
     }
     
-    // 统一设置按钮和wrapper的显示状态
-    const displayValue = shouldShow ? 'inline-flex' : 'none';
-    els.mbMore.style.display = displayValue;
-    if (wrap) wrap.style.display = displayValue;
-    
-    // 重置按钮状态
-    els.mbMore.disabled = false;
-    if (els.mbMoreText) els.mbMoreText.textContent = '加载更多';
-    
-    // 调试信息（生产环境可删除）
-    if (window.__DEBUG_MAILBOX__) {
-      console.log('updateLoadMoreButton:', {
-        itemCount,
-        isAppend,
-        isSearching,
-        shouldShow,
-        mbOffset,
-        MB_PAGE_SIZE
-      });
+    // 显示页面信息
+    if (els.mbPageInfo) {
+      if (isFirstPage && !hasMore) {
+        // 只有一页数据，显示统计信息
+        const searchQuery = (els.mbSearch?.value || '').trim();
+        if (searchQuery) {
+          els.mbPageInfo.textContent = mbLastCount > 0 ? `找到 ${mbLastCount} 个邮箱` : '未找到匹配的邮箱';
+        } else {
+          els.mbPageInfo.textContent = mbLastCount > 0 ? `共 ${mbLastCount} 个邮箱` : '暂无邮箱';
+        }
+      } else {
+        // 多页数据，显示当前页码
+        els.mbPageInfo.textContent = `第 ${mbPage} 页`;
+      }
+      els.mbPageInfo.style.textAlign = 'center';
     }
+    
+    // 显示或隐藏分页器（有数据时就显示）
+    els.mbPager.style.display = mbLastCount > 0 ? 'flex' : 'none';
   } catch (error) {
-    console.error('updateLoadMoreButton error:', error);
+    console.error('updateMbPagination error:', error);
   }
 }
 
-async function loadMailboxes(isAppend = false, options = {}){
+async function loadMailboxes(options = {}){
   try{
-    // 初始和分页加载时显示列表加载动画
+    // 显示加载动画
     try{
-      if (!isAppend && els.mbLoading){
+      if (els.mbLoading){
         const tpl = await (await fetch('/templates/loading-inline.html', { cache: 'no-cache' })).text();
         els.mbLoading.innerHTML = tpl;
-      }
-      if (isAppend && els.mbMore){
-        els.mbMore.disabled = true;
-        if (els.mbMoreText) els.mbMoreText.textContent = '正在加载…';
       }
     }catch(_){ }
     // 同步显示配额（增加超时避免阻塞）
@@ -1484,9 +1544,29 @@ async function loadMailboxes(isAppend = false, options = {}){
       const quotaPrefetched = readPrefetch('mf:prefetch:quota');
       const quotaEl = document.getElementById('quota');
       if (quotaEl && quotaCached && typeof quotaCached.used !== 'undefined' && typeof quotaCached.limit !== 'undefined'){
-        quotaEl.textContent = `${quotaCached.used} / ${quotaCached.limit}`;
+        const displayText = quotaCached.isAdmin 
+          ? `${quotaCached.used} 邮箱` 
+          : `${quotaCached.used} / ${quotaCached.limit}`;
+        quotaEl.textContent = displayText;
+        if (quotaCached.isAdmin) {
+          quotaEl.title = '系统总邮箱数量';
+          quotaEl.classList.add('admin-quota');
+        } else {
+          quotaEl.title = `已用邮箱 ${quotaCached.used} / 上限 ${quotaCached.limit}`;
+          quotaEl.classList.remove('admin-quota');
+        }
       } else if (quotaEl && quotaPrefetched && typeof quotaPrefetched.used !== 'undefined' && typeof quotaPrefetched.limit !== 'undefined'){
-        quotaEl.textContent = `${quotaPrefetched.used} / ${quotaPrefetched.limit}`;
+        const displayText = quotaPrefetched.isAdmin 
+          ? `${quotaPrefetched.used} 邮箱` 
+          : `${quotaPrefetched.used} / ${quotaPrefetched.limit}`;
+        quotaEl.textContent = displayText;
+        if (quotaPrefetched.isAdmin) {
+          quotaEl.title = '系统总邮箱数量';
+          quotaEl.classList.add('admin-quota');
+        } else {
+          quotaEl.title = `已用邮箱 ${quotaPrefetched.used} / 上限 ${quotaPrefetched.limit}`;
+          quotaEl.classList.remove('admin-quota');
+        }
       }
       const qController = new AbortController();
       const qTimeout = setTimeout(()=>qController.abort(), 5000);
@@ -1494,14 +1574,27 @@ async function loadMailboxes(isAppend = false, options = {}){
       const q = await qr.json();
       clearTimeout(qTimeout);
       if (quotaEl && q && typeof q.used !== 'undefined' && typeof q.limit !== 'undefined'){
-        quotaEl.textContent = `${q.used} / ${q.limit}`;
+        // 超级管理员显示系统总邮箱数，普通用户显示个人邮箱数
+        const displayText = q.isAdmin 
+          ? `${q.used} 邮箱` 
+          : `${q.used} / ${q.limit}`;
+        quotaEl.textContent = displayText;
+        
+        // 为超级管理员添加特殊样式提示
+        if (q.isAdmin) {
+          quotaEl.title = '系统总邮箱数量';
+          quotaEl.classList.add('admin-quota');
+        } else {
+          quotaEl.title = `已用邮箱 ${q.used} / 上限 ${q.limit}`;
+          quotaEl.classList.remove('admin-quota');
+        }
       }
       try{ cacheSet('quota', q); }catch(_){ }
     }catch(_){ }
 
     // 首屏优先消费缓存/预取的历史邮箱，避免重复等待慢接口
-    if (!isAppend && mbOffset === 0 && !options.forceFresh){
-      const mbCached = cacheGet('mailboxes:offset0', 6*60*60*1000);
+    if (mbPage === 1 && !options.forceFresh){
+      const mbCached = cacheGet('mailboxes:page1', 6*60*60*1000);
       if (Array.isArray(mbCached)){
         const html = (mbCached||[]).map(x => (
           `<div class="mailbox-item ${x.is_pinned ? 'pinned' : ''}" onclick="selectMailbox('${x.address}')">
@@ -1519,8 +1612,9 @@ async function loadMailboxes(isAppend = false, options = {}){
         )).join('');
         els.mbList.innerHTML = html || '<div style="color:#94a3b8">暂无历史邮箱</div>';
         if (els.mbLoading) els.mbLoading.innerHTML = '';
-        // 首屏用缓存渲染时，更新"加载更多"按钮
-        updateLoadMoreButton(mbCached, false);
+        // 首屏用缓存渲染时，更新分页显示
+        mbLastCount = Array.isArray(mbCached) ? mbCached.length : 0;
+        updateMbPagination();
       }
       const mbPrefetched = readPrefetch('mf:prefetch:mailboxes');
       if (!options.forceFresh && Array.isArray(mbPrefetched)){
@@ -1540,8 +1634,9 @@ async function loadMailboxes(isAppend = false, options = {}){
         )).join('');
         els.mbList.innerHTML = html || '<div style="color:#94a3b8">暂无历史邮箱</div>';
         if (els.mbLoading) els.mbLoading.innerHTML = '';
-        // 首屏用预取渲染时，更新"加载更多"按钮
-        updateLoadMoreButton(mbPrefetched, false);
+        // 首屏用预取渲染时，更新分页显示
+        mbLastCount = Array.isArray(mbPrefetched) ? mbPrefetched.length : 0;
+        updateMbPagination();
         // 预取当前邮箱列表前 5 封
         await prefetchTopEmails();
         return;
@@ -1555,7 +1650,7 @@ async function loadMailboxes(isAppend = false, options = {}){
     const q = (els.mbSearch?.value || '').trim();
     const params = new URLSearchParams({ 
       limit: String(MB_PAGE_SIZE), 
-      offset: String(mbOffset) 
+      offset: String((mbPage - 1) * MB_PAGE_SIZE) 
     });
     if (q) params.set('q', q);
     
@@ -1576,25 +1671,27 @@ async function loadMailboxes(isAppend = false, options = {}){
         </div>
       </div>`
     )).join('');
-    if (isAppend) {
-      els.mbList.insertAdjacentHTML('beforeend', html);
-    } else {
-      els.mbList.innerHTML = html || '<div style="color:#94a3b8">暂无历史邮箱</div>';
-    }
+    
+    els.mbList.innerHTML = html || '<div style="color:#94a3b8">暂无历史邮箱</div>';
     if (els.mbLoading) els.mbLoading.innerHTML = '';
-    // 更新加载更多按钮显示逻辑
-    updateLoadMoreButton(items, isAppend);
+    
+    // 更新分页显示逻辑
+    mbLastCount = Array.isArray(items) ? items.length : 0;
+    updateMbPagination();
+    
     // 预取当前邮箱列表前 5 封
     await prefetchTopEmails();
+    
     // 缓存第一页数据
-    if (!isAppend && mbOffset === 0){
-      try{ cacheSet('mailboxes:offset0', items || []); }catch(_){ }
+    if (mbPage === 1){
+      try{ cacheSet('mailboxes:page1', items || []); }catch(_){ }
     }
   }catch(_){ 
     if (els.mbLoading) els.mbLoading.innerHTML = '';
     els.mbList.innerHTML = '<div style="color:#dc2626">加载失败</div>'; 
-    // 加载失败时隐藏"加载更多"按钮
-    updateLoadMoreButton([], isAppend);
+    // 加载失败时隐藏分页器
+    mbLastCount = 0;
+    updateMbPagination();
   }
 }
 
@@ -1603,8 +1700,8 @@ window.selectMailbox = async (addr) => {
   if (window.__lastSelectClick && now - window.__lastSelectClick < 1000){ return; }
   window.__lastSelectClick = now;
   window.currentMailbox = addr;
-  // 持久化保存当前邮箱
-  try { sessionStorage.setItem('mf:currentMailbox', addr); } catch(_) {}
+  // 持久化保存当前邮箱（用户隔离）
+  saveCurrentMailbox(addr);
   const t = document.getElementById('email-text');
   if (t) t.textContent = addr; else els.email.textContent = addr;
   els.email.classList.add('has-email');
@@ -1661,7 +1758,8 @@ window.togglePin = async (ev, address) => {
       const result = await response.json();
       showToast(result.is_pinned ? '📌 邮箱已置顶' : '📍 已取消置顶', 'success');
       
-      // 重新加载邮箱列表以更新排序
+      // 重新加载邮箱列表以更新排序（重置到第一页）
+      mbPage = 1;
       await loadMailboxes();
     } else {
       const errorText = await response.text();
@@ -1707,15 +1805,15 @@ window.deleteMailbox = async (ev, address) => {
           els.emailActions.style.display = 'none';
           els.listCard.style.display = 'none';
           window.currentMailbox = '';
-          // 清除持久化存储
-          try { sessionStorage.removeItem('mf:currentMailbox'); } catch(_) {}
+          // 清除持久化存储（用户隔离）
+          clearCurrentMailbox();
           // 停止自动刷新
           stopAutoRefresh();
         }
         
         // 强制刷新历史邮箱列表，避免假阳性
-        if (typeof mbOffset !== 'undefined') { mbOffset = 0; }
-        await loadMailboxes(false);
+        if (typeof mbPage !== 'undefined') { mbPage = 1; }
+        await loadMailboxes();
       } else {
         showToast(result?.message ? `删除失败: ${result.message}` : '删除失败', 'warn');
       }
@@ -1735,15 +1833,22 @@ window.deleteMailbox = async (ev, address) => {
   }
 }
 
-if (els.mbMore) {
-  els.mbMore.onclick = async () => {
-    // 点击后立即进入加载状态，防止重复点击
-    if (els.mbMore){
-      els.mbMore.disabled = true;
-      if (els.mbMoreText) els.mbMoreText.textContent = '正在加载…';
+// 邮箱列表分页按钮事件绑定
+if (els.mbPrev) {
+  els.mbPrev.onclick = async () => {
+    if (mbPage > 1) {
+      mbPage--;
+      await loadMailboxes();
     }
-    mbOffset += MB_PAGE_SIZE;
-    await loadMailboxes(true);
+  };
+}
+
+if (els.mbNext) {
+  els.mbNext.onclick = async () => {
+    if (mbLastCount === MB_PAGE_SIZE) {
+      mbPage++;
+      await loadMailboxes();
+    }
   };
 }
 
@@ -1756,8 +1861,8 @@ function debouncedMbSearch() {
     clearTimeout(searchTimeout);
   }
   searchTimeout = setTimeout(() => {
-    mbOffset = 0; // 重置分页偏移
-    loadMailboxes(false, { forceFresh: true });
+    mbPage = 1; // 重置分页到第一页
+    loadMailboxes({ forceFresh: true });
   }, 300); // 300ms防抖延迟
 }
 
@@ -1767,8 +1872,8 @@ function immediateMbSearch() {
     clearTimeout(searchTimeout);
     searchTimeout = null;
   }
-  mbOffset = 0; // 重置分页偏移
-  loadMailboxes(false, { forceFresh: true });
+  mbPage = 1; // 重置分页到第一页
+  loadMailboxes({ forceFresh: true });
 }
 
 if (els.mbSearch){
@@ -1780,8 +1885,6 @@ if (els.mbSearch){
     }
   });
 }
-
-mbOffset = 0;
 
 // 自动刷新功能
 let autoRefreshInterval = null;
@@ -2036,7 +2139,7 @@ window.copyCodeInModal = async (code, btn) => {
   }catch(_){
     if (btn){
       const origin = btn.innerHTML;
-      btn.innerHTML = '<span class="btn-icon">⚠️</span><span>复制失败</span>';
+      btn.innerHTML = '<span class="btn-icon">&#9888;&#65039;</span><span>复制失败</span>';
       setTimeout(()=>{ btn.innerHTML = origin; }, 1200);
     }
   }
@@ -2061,19 +2164,74 @@ window.copyFromList = async (ev, id) => {
   }catch(_){ showToast('复制失败', 'warn'); }
 }
 
-// ========== 页面初始化：恢复持久化状态 ==========
-// 在页面加载时恢复保存的当前邮箱
-try {
-  const savedMailbox = sessionStorage.getItem('mf:currentMailbox');
-  if (savedMailbox && !window.currentMailbox) {
-    window.currentMailbox = savedMailbox;
-    // 更新UI显示
-    const t = document.getElementById('email-text');
-    if (t) t.textContent = savedMailbox; 
-    else if (els.email) els.email.textContent = savedMailbox;
-    if (els.email) els.email.classList.add('has-email');
-    if (els.emailActions) els.emailActions.style.display = 'flex';
-    if (els.listCard) els.listCard.style.display = 'block';
+// 模态框复制：与列表复制保持一致的逻辑，优先复制验证码，没有时复制内容
+window.copyFromModal = async (ev, id) => {
+  try{
+    const btn = ev.currentTarget || ev.target;
+    const code = (btn && btn.dataset ? (btn.dataset.code || '') : '').trim();
+    if (code){
+      await navigator.clipboard.writeText(code);
+      const original = btn.innerHTML;
+      btn.innerHTML = '<span class="btn-icon">✅</span><span>已复制</span>';
+      btn.disabled = true;
+      setTimeout(()=>{ btn.innerHTML = original; btn.disabled = false; }, 1200);
+      try{ await showToast('已复制验证码：' + code, 'success'); }catch(_){ }
+      return;
+    }
+    // 回退：无验证码时复制邮件内容
+    await window.copyEmailContentInModal(id, btn);
+  }catch(_){ showToast('复制失败', 'warn'); }
+}
+
+// ========== 安全的邮箱状态恢复函数 ==========
+// 仅在用户身份验证后调用，确保邮箱属于当前用户
+function restoreUserMailboxState() {
+  try {
+    // 检查是否从管理页跳转过来
+    let savedMailbox = null;
+    const fromAdmin = sessionStorage.getItem('mf:fromAdmin');
+    
+    if (fromAdmin === '1') {
+      // 从管理页跳转，使用通用键名读取邮箱
+      savedMailbox = sessionStorage.getItem('mf:currentMailbox');
+      // 清除临时标记
+      sessionStorage.removeItem('mf:fromAdmin');
+      // 如果成功读取，保存到用户隔离的键名中
+      if (savedMailbox) {
+        saveCurrentMailbox(savedMailbox);
+      }
+    } else {
+      // 正常恢复，使用用户隔离的键名
+      savedMailbox = loadCurrentMailbox();
+    }
+    
+    if (savedMailbox && !window.currentMailbox) {
+      console.log('恢复用户邮箱状态:', savedMailbox);
+      window.currentMailbox = savedMailbox;
+      // 更新UI显示
+      const t = document.getElementById('email-text');
+      if (t) t.textContent = savedMailbox; 
+      else if (els.email) els.email.textContent = savedMailbox;
+      if (els.email) els.email.classList.add('has-email');
+      if (els.emailActions) els.emailActions.style.display = 'flex';
+      if (els.listCard) els.listCard.style.display = 'block';
+      
+      // 自动加载该邮箱的邮件列表
+      setTimeout(() => {
+        if (window.currentMailbox === savedMailbox) {
+          console.log('自动加载恢复的邮箱邮件:', savedMailbox);
+          refresh();
+          // 开启自动刷新
+          startAutoRefresh();
+        }
+      }, 100);
+      return true;
+    }
+  } catch(e) {
+    console.warn('恢复邮箱状态失败:', e);
+    // 发生错误时清理可能的脏数据
+    clearCurrentMailbox();
   }
-} catch(_) {}
+  return false;
+}
 

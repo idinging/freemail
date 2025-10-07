@@ -7,14 +7,6 @@
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="/css/app.css" />
   <link rel="stylesheet" href="/css/mailboxes.css" />
-  <style>
-    .card.mailbox { padding: 12px; }
-    .card.mailbox .addr { font-weight: 600; word-break: break-all; }
-    .meta { color:#475569; font-size:12px; margin-top:6px }
-    .topbar .nav-actions .btn { margin-left:8px }
-    .toolbar { display:flex; gap:8px; align-items:center; margin-bottom:12px }
-    .pager { display:flex; justify-content:center; align-items:center; gap:8px; margin-top:12px }
-  </style>
 </head>
 <body class="page-mailboxes">
   <div class="topbar">
@@ -43,6 +35,14 @@
           <div class="searchbar">
             <input id="q" class="search-input" placeholder="搜索邮箱地址（支持模糊）" />
             <button id="search" class="btn btn-primary btn-sm"><span class="btn-icon">🔍</span><span>搜索</span></button>
+          </div>
+          <div class="batch-actions">
+            <button id="batch-allow" class="btn btn-ghost btn-sm" title="批量放行邮箱登录">
+              <span class="btn-icon">✅</span><span>批量放行</span>
+            </button>
+            <button id="batch-deny" class="btn btn-ghost btn-sm" title="批量禁止邮箱登录">
+              <span class="btn-icon">🚫</span><span>批量禁止</span>
+            </button>
           </div>
           <div class="view-toggle">
             <button id="view-grid" class="btn btn-ghost btn-sm active" title="卡片网格视图">
@@ -154,6 +154,119 @@
       </div>
     </div>
   </div>
+  
+  <!-- 批量操作模态框 -->
+  <div class="modal" id="batch-login-modal" style="display:none">
+    <div class="modal-card" style="max-width: 600px;">
+      <div class="modal-header">
+        <div>
+          <span class="modal-icon" id="batch-modal-icon">📝</span>
+          <span id="batch-modal-title">批量操作邮箱登录权限</span>
+        </div>
+        <button id="batch-modal-close" class="close">✕</button>
+      </div>
+      <div class="modal-body">
+        <p id="batch-modal-message" style="margin:0 0 12px 0;color:#334155"></p>
+        <div style="margin-bottom:16px;">
+          <label style="display:block;margin-bottom:6px;color:#374151;font-weight:500;font-size:14px;">
+            邮箱地址列表（一行一个）
+          </label>
+          <textarea id="batch-emails-input" class="form-textarea" 
+                    placeholder="请输入邮箱地址，一行一个&#10;例如：&#10;user1@example.com&#10;user2@example.com&#10;user3@example.com" 
+                    rows="10"
+                    style="width:100%;padding:10px 12px;border:1px solid rgba(226, 232, 240, 0.8);border-radius:8px;font-size:14px;background:rgba(255,255,255,0.9);font-family:monospace;resize:vertical;"></textarea>
+          <div style="margin-top:8px;font-size:12px;color:#64748b;">
+            <span id="batch-count-info">输入邮箱后将显示数量统计</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;justify-content:flex-end">
+          <button id="batch-modal-cancel" class="btn btn-secondary">取消</button>
+          <button id="batch-modal-confirm" class="btn btn-primary" disabled>
+            <span class="batch-btn-text">确定操作</span>
+            <span class="batch-btn-loading" style="display:none;">处理中...</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 分配用户二级页面 -->
+  <div id="assign-user-subpage" class="subpage" style="display: none;">
+    <div class="subpage-overlay"></div>
+    <div class="subpage-content">
+      <div class="subpage-header">
+        <div class="subpage-title">
+          <span class="subpage-icon">👤</span>
+          <span>分配邮箱给用户</span>
+        </div>
+        <button id="assign-subpage-close" class="subpage-close" title="关闭">✕</button>
+      </div>
+      
+      <div class="subpage-body">
+        <!-- 邮箱信息 -->
+        <div class="assign-mailbox-info">
+          <div class="info-label">邮箱地址</div>
+          <div id="assign-subpage-email" class="info-value"></div>
+        </div>
+        
+        <!-- 用户列表 -->
+        <div class="assign-users-section">
+          <div class="section-header">
+            <h3>选择要分配的用户</h3>
+            <div class="selection-actions">
+              <button id="select-all-users" class="btn btn-ghost btn-sm">全选</button>
+              <button id="clear-all-users" class="btn btn-ghost btn-sm">清空</button>
+            </div>
+          </div>
+          
+          <!-- 搜索用户 -->
+          <div class="user-search">
+            <input id="user-search-input" type="text" placeholder="搜索用户名或显示名称..." class="search-input">
+          </div>
+          
+          <!-- 加载状态 -->
+          <div id="users-loading" class="loading-state" style="display: none;">
+            <div class="loading-spinner"></div>
+            <div>正在加载用户列表...</div>
+          </div>
+          
+          <!-- 用户列表 -->
+          <div id="users-list" class="users-list" style="display: none;">
+            <!-- 用户项将由JavaScript动态生成 -->
+          </div>
+          
+          <!-- 空状态 -->
+          <div id="users-empty" class="empty-state" style="display: none;">
+            <div class="empty-icon">👥</div>
+            <div class="empty-title">暂无可分配用户</div>
+          </div>
+        </div>
+        
+        <!-- 已选用户 -->
+        <div id="selected-users-section" class="selected-users-section" style="display: none;">
+          <div class="section-header">
+            <h3>已选择用户 (<span id="selected-count">0</span>)</h3>
+          </div>
+          <div id="selected-users-list" class="selected-users-list">
+            <!-- 已选用户将由JavaScript动态生成 -->
+          </div>
+        </div>
+      </div>
+      
+      <div class="subpage-footer">
+        <div class="footer-actions">
+          <button id="assign-subpage-cancel" class="btn btn-secondary">取消</button>
+          <button id="assign-subpage-confirm" class="btn btn-primary" disabled>
+            <span class="btn-text">确定分配</span>
+            <span class="btn-loading" style="display: none;">分配中...</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+  <script src="/js/toast-utils.js"></script>
   <script type="module" src="/js/mailboxes.js"></script>
 </body>
 </html>

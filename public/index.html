@@ -14,6 +14,7 @@
     <link rel="shortcut icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/css/app.css" />
     <link rel="stylesheet" href="/css/app-mobile.css" media="(max-width: 900px)" />
+    <script src="/js/toast-utils.js"></script>
     <script src="/js/mock.js"></script>
     <!-- 提前内联保存 hash，保证最早阶段即可保留路由信息 -->
     <script>
@@ -53,18 +54,25 @@
             return;
           }
           
-          // 地址栏直接访问或长时间未验证：先尝试快速判断是否已有登录 Cookie
+              // 地址栏直接访问或长时间未验证：先尝试快速判断是否已有登录 Cookie
           if (isDirectAccess){
             try{
               var hasCookie = document.cookie.split(';').some(function(c){ return c.trim().indexOf('iding-session=') === 0; });
               if (hasCookie){
-                // 已有登录 Cookie：先快速查询会话，若为邮箱用户则直接跳往专用页，避免首页内容闪现
+                // 已有登录 Cookie：优化验证逻辑，减少不必要的登录页跳转
                 const controller = new AbortController();
-                const tid = setTimeout(function(){ try{ controller.abort(); }catch(_){ } }, 1200);
+                const tid = setTimeout(function(){ try{ controller.abort(); }catch(_){ } }, 3000); // 延长超时时间到3秒
                 fetch('/api/session', { headers:{'Cache-Control':'no-cache'}, signal: controller.signal, credentials: 'include' })
                   .then(function(r){
                     clearTimeout(tid);
-                    if (!r || !r.ok) { window.location.replace('/html/login.html'); return; }
+                    if (!r || !r.ok) {
+                      // 对于有cookie但验证失败的情况，直接加载应用让其内部处理
+                      // 避免跳转到登录页造成页面闪烁
+                      try{ sessionStorage.setItem('auth_checked','true'); sessionStorage.setItem('auth_checked_ts', String(Date.now())); }catch(_){ }
+                      var s1=document.createElement('script'); s1.type='module'; s1.src='/js/app.js'; document.body.appendChild(s1);
+                      try{ if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches){ var sm=document.createElement('script'); sm.type='module'; sm.src='/js/app-mobile.js'; document.body.appendChild(sm); } }catch(_){ }
+                      return;
+                    }
                     return r.json();
                   })
                   .then(function(s){
@@ -75,7 +83,13 @@
                     var s1=document.createElement('script'); s1.type='module'; s1.src='/js/app.js'; document.body.appendChild(s1);
                     try{ if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches){ var sm=document.createElement('script'); sm.type='module'; sm.src='/js/app-mobile.js'; document.body.appendChild(sm); } }catch(_){ }
                   })
-                  .catch(function(){ window.location.replace('/html/login.html'); });
+                  .catch(function(){
+                    // 网络错误时，如果有cookie就直接加载应用，让应用内部处理认证状态
+                    // 这样避免了网络问题导致的不必要登录页跳转
+                    try{ sessionStorage.setItem('auth_checked','true'); sessionStorage.setItem('auth_checked_ts', String(Date.now())); }catch(_){ }
+                    var s1=document.createElement('script'); s1.type='module'; s1.src='/js/app.js'; document.body.appendChild(s1);
+                    try{ if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches){ var sm=document.createElement('script'); sm.type='module'; sm.src='/js/app-mobile.js'; document.body.appendChild(sm); } }catch(_){ }
+                  });
                 return;
               }
             }catch(_){ }
@@ -86,7 +100,7 @@
             
             // 并行进行权限检查
             const controller = new AbortController();
-            const tid = setTimeout(function(){ try{ controller.abort(); }catch(_){ } }, 1200);
+            const tid = setTimeout(function(){ try{ controller.abort(); }catch(_){ } }, 2500); // 延长超时到2.5秒
             fetch('/api/session', { 
               headers: { 'Cache-Control': 'no-cache' }, 
               signal: controller.signal,
@@ -133,8 +147,11 @@
               });
           } else {
             // 非直接访问：快速权限检查
+            var hasCookie = false;
+            try{ hasCookie = document.cookie.split(';').some(function(c){ return c.trim().indexOf('iding-session=') === 0; }); }catch(_){ }
+            
             const controller = new AbortController();
-            const tid = setTimeout(function(){ try{ controller.abort(); }catch(_){ } }, 800);
+            const tid = setTimeout(function(){ try{ controller.abort(); }catch(_){ } }, 2000); // 延长超时到2秒
             fetch('/api/session', { 
               headers: { 'Cache-Control': 'no-cache' }, 
               signal: controller.signal,
@@ -148,6 +165,13 @@
                     return s;
                   });
                 } else {
+                  // 如果有cookie但验证失败，让应用内部处理而不是立即跳转到登录页
+                  if (hasCookie) {
+                    try{ sessionStorage.setItem('auth_checked','true'); sessionStorage.setItem('auth_checked_ts', String(Date.now())); }catch(_){ }
+                    var s1 = document.createElement('script'); s1.type = 'module'; s1.src = '/js/app.js'; document.body.appendChild(s1);
+                    try{ if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches){ var sm=document.createElement('script'); sm.type='module'; sm.src='/js/app-mobile.js'; document.body.appendChild(sm); } }catch(_){ }
+                    return null;
+                  }
                   window.location.replace('/html/login.html');
                   return null;
                 }
@@ -172,7 +196,14 @@
                 }catch(_){ }
               })
               .catch(function(){ 
-                window.location.replace('/html/login.html'); 
+                // 网络错误时，如果有cookie就直接加载应用
+                if (hasCookie) {
+                  try{ sessionStorage.setItem('auth_checked','true'); sessionStorage.setItem('auth_checked_ts', String(Date.now())); }catch(_){ }
+                  var s1 = document.createElement('script'); s1.type = 'module'; s1.src = '/js/app.js'; document.body.appendChild(s1);
+                  try{ if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches){ var sm=document.createElement('script'); sm.type='module'; sm.src='/js/app-mobile.js'; document.body.appendChild(sm); } }catch(_){ }
+                } else {
+                  window.location.replace('/html/login.html'); 
+                }
               });
           }
         }catch(_){ 

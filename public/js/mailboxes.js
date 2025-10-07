@@ -1,3 +1,5 @@
+import { getCurrentUserKey } from './storage.js';
+
 const els = {
   grid: document.getElementById('grid'),
   empty: document.getElementById('empty'),
@@ -31,24 +33,7 @@ async function api(path){
   return r;
 }
 
-async function showToast(message, type = 'success', duration = 2000){
-  try{
-    const res = await fetch('/templates/toast.html', { cache: 'no-cache' });
-    const tpl = await res.text();
-    const html = tpl.replace('{{type}}', String(type||'info')).replace('{{message}}', String(message||''));
-    const wrapper = document.createElement('div');
-    wrapper.innerHTML = html;
-    const styleEl = wrapper.querySelector('#toast-style');
-    if (styleEl && !document.getElementById('toast-style')){ document.head.appendChild(styleEl); }
-    const toastEl = wrapper.querySelector('.toast-item');
-    if (toastEl){
-      let container = document.getElementById('toast');
-      if (!container){ container = document.createElement('div'); container.id = 'toast'; container.className = 'toast'; document.body.appendChild(container); }
-      container.appendChild(toastEl);
-      setTimeout(()=>{ toastEl.style.transition = 'opacity .3s ease'; toastEl.style.opacity = '0'; setTimeout(()=>toastEl.remove(), 300); }, duration);
-    }
-  }catch(_){ }
-}
+// showToast 函数已由 toast-utils.js 统一提供
 
 // 专门用于跳转的短时间toast
 async function showJumpToast(message){
@@ -106,14 +91,12 @@ function renderGrid(items){
     <div class="mailbox-card" data-address="${x.address}">
       <div class="line addr" title="${x.address}">${x.address}</div>
       <div class="line pwd" title="${x.password_is_default ? '默认密码（邮箱本身）' : '自定义密码'}">密码：${x.password_is_default ? '默认' : '自定义'}</div>
-      <div class="line login" title="邮箱登录权限">登录：${x.can_login ? '<span style="color:#16a34a">✓允许</span>' : '<span style="color:#dc2626">✗禁止</span>'}</div>
+      <div class="line login" title="邮箱登录权限">登录：${x.can_login ? '<span style="color:#16a34a">&#10003;允许</span>' : '<span style="color:#dc2626">&#10007;禁止</span>'}</div>
       <div class="line time" title="${fmt(x.created_at)}">创建：${fmt(x.created_at)}</div>
       ${x.is_pinned ? '<div class="pin-badge" title="已置顶">📌</div>' : ''}
       <div class="actions">
         <button class="btn-icon" title="复制邮箱" onclick="event.stopPropagation(); copyMailboxAddressFromList('${x.address}')">📋</button>
-        <button class="btn-icon" title="重置为默认密码" onclick="event.stopPropagation(); resetMailboxPassword('${x.address}')">🔁</button>
-        <button class="btn-icon ${x.can_login ? 'active' : ''}" title="${x.can_login ? '禁止邮箱登录' : '允许邮箱登录'}" onclick="event.stopPropagation(); toggleMailboxLogin('${x.address}', ${x.can_login ? 'false' : 'true'})">${x.can_login ? '🔓' : '🔒'}</button>
-        <button class="btn-icon" title="修改密码" onclick="event.stopPropagation(); changeMailboxPassword('${x.address}')">🔑</button>
+        <button class="btn-icon ${x.can_login ? 'active' : ''}" title="${x.can_login ? '禁止邮箱登录' : '允许邮箱登录'}" onclick="event.stopPropagation(); toggleMailboxLogin('${x.address}', ${!x.can_login})">${x.can_login ? '🔓' : '🔒'}</button>
       </div>
     </div>
   `).join('');
@@ -129,14 +112,16 @@ function renderList(items){
         <div class="addr" title="${x.address}">${x.address}</div>
         <div class="meta">
           <span class="pwd" title="${x.password_is_default ? '默认密码（邮箱本身）' : '自定义密码'}">密码：${x.password_is_default ? '默认' : '自定义'}</span>
-          <span class="login" title="邮箱登录权限">登录：${x.can_login ? '<span style="color:#16a34a">✓允许</span>' : '<span style="color:#dc2626">✗禁止</span>'}</span>
+          <span class="login" title="邮箱登录权限">登录：${x.can_login ? '<span style="color:#16a34a">&#10003;允许</span>' : '<span style="color:#dc2626">&#10007;禁止</span>'}</span>
           <span class="time" title="${fmt(x.created_at)}">创建：${fmt(x.created_at)}</span>
         </div>
       </div>
       <div class="list-actions">
         <button class="btn btn-ghost btn-sm" title="复制邮箱" onclick="event.stopPropagation(); copyMailboxAddressFromList('${x.address}')">📋</button>
+        <button class="btn btn-ghost btn-sm ${x.is_pinned ? 'active' : ''}" title="${x.is_pinned ? '取消置顶' : '置顶邮箱'}" onclick="event.stopPropagation(); toggleMailboxPin('${x.address}', ${!x.is_pinned})">${x.is_pinned ? '📌' : '📍'}</button>
+        <button class="btn btn-ghost btn-sm" title="分配用户" onclick="event.stopPropagation(); assignMailboxToUser('${x.address}')">👤</button>
         <button class="btn btn-ghost btn-sm" title="重置为默认密码" onclick="event.stopPropagation(); resetMailboxPassword('${x.address}')">🔁</button>
-        <button class="btn btn-ghost btn-sm ${x.can_login ? 'active' : ''}" title="${x.can_login ? '禁止邮箱登录' : '允许邮箱登录'}" onclick="event.stopPropagation(); toggleMailboxLogin('${x.address}', ${x.can_login ? 'false' : 'true'})">${x.can_login ? '🔓' : '🔒'}</button>
+        <button class="btn btn-ghost btn-sm ${x.can_login ? 'active' : ''}" title="${x.can_login ? '禁止邮箱登录' : '允许邮箱登录'}" onclick="event.stopPropagation(); toggleMailboxLogin('${x.address}', ${!x.can_login})">${x.can_login ? '🔓' : '🔒'}</button>
         <button class="btn btn-ghost btn-sm" title="修改密码" onclick="event.stopPropagation(); changeMailboxPassword('${x.address}')">🔑</button>
       </div>
     </div>
@@ -233,8 +218,8 @@ function showLoadingState(show) {
     els.search.disabled = false;
     els.search.innerHTML = '<span class="btn-icon">🔍</span><span>搜索</span>';
     
-    // 隐藏加载占位符
-    els.loadingPlaceholder.classList.remove('show');
+    // 隐藏加载占位符 - 完全重置className确保没有残留类
+    els.loadingPlaceholder.className = 'loading-placeholder';
     
     // 移除加载隐藏类，让CSS类接管显示控制
     els.grid.classList.remove('loading-hidden');
@@ -244,32 +229,29 @@ function showLoadingState(show) {
 }
 
 function updatePagination() {
-  // 显示当前页码
-  els.page.textContent = `第 ${page} 页`;
+  // 上一页按钮：始终显示，在第一页时禁用
+  const isFirstPage = page <= 1;
+  els.prev.disabled = isFirstPage;
   
-  // 判断是否显示上一页按钮
-  const showPrev = page > 1;
-  els.prev.style.display = showPrev ? 'inline-flex' : 'none';
-  els.prev.disabled = !showPrev;
+  // 下一页按钮：始终显示，在没有更多数据时禁用
+  const hasMore = lastCount === PAGE_SIZE;
+  els.next.disabled = !hasMore;
   
-  // 判断是否显示下一页按钮（当返回数据等于PAGE_SIZE时表示可能还有更多数据）
-  const showNext = lastCount === PAGE_SIZE;
-  els.next.style.display = showNext ? 'inline-flex' : 'none';
-  els.next.disabled = !showNext;
-  
-  // 如果两个按钮都不显示，显示统计信息；否则显示页码
-  if (!showPrev && !showNext) {
-    // 检查是否是搜索状态
+  // 显示页面信息
+  if (isFirstPage && !hasMore) {
+    // 只有一页数据，显示统计信息
     const searchQuery = (els.q.value || '').trim();
     if (searchQuery) {
       els.page.textContent = lastCount > 0 ? `找到 ${lastCount} 个邮箱` : '未找到匹配的邮箱';
     } else {
       els.page.textContent = lastCount > 0 ? `共 ${lastCount} 个邮箱` : '暂无邮箱';
     }
-    els.page.style.textAlign = 'center';
   } else {
-    els.page.style.textAlign = 'center';
+    // 多页数据，显示当前页码
+    els.page.textContent = `第 ${page} 页`;
   }
+  
+  els.page.style.textAlign = 'center';
 }
 
 // 防抖搜索函数
@@ -526,7 +508,9 @@ let operationFlags = {
   copying: false,
   resetting: false,
   toggling: false,
-  changing: false
+  changing: false,
+  pinning: false,
+  assigning: false
 };
 
 // 复制单个卡片中的邮箱地址（优化版）
@@ -569,15 +553,23 @@ window.resetMailboxPassword = async function(address){
     const confirmBtn = document.getElementById('reset-confirm');
     if (!modal || !emailEl) return;
     emailEl.textContent = String(address||'');
+    
+    // 将参数保存到模态框的数据属性中，避免闭包变量污染
+    modal.dataset.currentAddress = String(address||'');
+    
     modal.style.display = 'flex';
     
     const close = () => { 
       modal.style.display = 'none';
       currentResetModalController = null;
-      operationFlags.resetting = false;
+      // 不在这里重置 operationFlags.resetting，避免与 finally 块冲突
     };
     
-    const onClose = () => { close(); };
+    const onClose = () => { 
+      close();
+      // 确保状态被重置
+      operationFlags.resetting = false;
+    };
     
     const onConfirm = async () => {
       if (operationFlags.resetting) return;
@@ -587,18 +579,28 @@ window.resetMailboxPassword = async function(address){
         confirmBtn.disabled = true;
         confirmBtn.textContent = '重置中...';
         
-        const r = await fetch('/api/mailboxes/reset-password?address=' + encodeURIComponent(address), { method:'POST' });
+        // 从模态框的数据属性中获取参数，避免闭包变量被覆盖
+        const currentAddress = modal.dataset.currentAddress;
+        
+        const r = await fetch('/api/mailboxes/reset-password?address=' + encodeURIComponent(currentAddress), { method:'POST' });
         if (!r.ok){ 
           const t = await r.text(); 
           showToast('重置失败：' + t, 'error'); 
+          // 失败时也要关闭模态框
+          close();
           return; 
         }
         showToast('已重置为默认密码', 'success');
         close();
-        load();
-      }catch(_){ 
+        // 成功后重新加载列表
+        await load();
+      }catch(err){ 
+        console.error('重置密码异常:', err);
         showToast('重置失败', 'error'); 
+        // 异常时也要关闭模态框
+        close();
       } finally {
+        // 确保按钮状态和操作标志被重置
         confirmBtn.disabled = false;
         confirmBtn.textContent = '确定重置';
         operationFlags.resetting = false;
@@ -611,7 +613,12 @@ window.resetMailboxPassword = async function(address){
     confirmBtn && confirmBtn.addEventListener('click', onConfirm, { signal });
     modal.addEventListener('click', (e) => { if (e.target === modal) onClose(); }, { signal });
     
-  }catch(_){ }
+  }catch(err){
+    console.error('重置密码模态框初始化失败:', err);
+    showToast('操作失败', 'error');
+    // 确保状态被重置
+    operationFlags.resetting = false;
+  }
 }
 
 // 全局变量存储当前的监听器控制器
@@ -659,17 +666,23 @@ window.toggleMailboxLogin = async function(address, canLogin){
     messageEl.textContent = `确定要${action}该邮箱的登录权限吗？${canLogin ? '允许后该邮箱可以登录系统。' : '禁止后该邮箱将无法登录系统。'}`;
     emailEl.textContent = address;
     
+    // 将参数保存到模态框的数据属性中，避免闭包变量污染
+    modal.dataset.currentAddress = address;
+    modal.dataset.currentCanLogin = String(canLogin);
+    
     // 显示模态框
     modal.style.display = 'flex';
     
     const close = () => { 
       modal.style.display = 'none';
       currentLoginModalController = null;
-      operationFlags.toggling = false;
+      // 不在这里重置 operationFlags.toggling，避免与 finally 块冲突
     };
     
     const onClose = () => { 
-      close(); 
+      close();
+      // 确保状态被重置
+      operationFlags.toggling = false;
     };
     
     const onConfirm = async () => {
@@ -680,24 +693,37 @@ window.toggleMailboxLogin = async function(address, canLogin){
         confirmBtn.disabled = true;
         confirmBtn.textContent = `${action}中...`;
         
+        // 从模态框的数据属性中获取参数，避免闭包变量被覆盖
+        const currentAddress = modal.dataset.currentAddress;
+        const currentCanLogin = modal.dataset.currentCanLogin === 'true';
+        
+        const requestData = { address: currentAddress, can_login: currentCanLogin };
+        
         const r = await fetch('/api/mailboxes/toggle-login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ address, can_login: canLogin })
+          body: JSON.stringify(requestData)
         });
         
         if (!r.ok){
           const t = await r.text();
           showToast(`${action}登录权限失败：` + t, 'error');
+          // 失败时也要关闭模态框并重置状态
+          close();
           return;
         }
         
         showToast(`已${action}邮箱登录权限`, 'success');
         close();
-        load(); // 重新加载列表
-      }catch(_){
+        // 成功后重新加载列表
+        await load();
+      }catch(err){
+        console.error('授权操作异常:', err);
         showToast('操作失败', 'error');
+        // 异常时也要关闭模态框
+        close();
       } finally {
+        // 确保按钮状态和操作标志被重置
         confirmBtn.disabled = false;
         confirmBtn.textContent = canLogin ? '允许登录' : '禁止登录';
         operationFlags.toggling = false;
@@ -710,8 +736,11 @@ window.toggleMailboxLogin = async function(address, canLogin){
     confirmBtn && confirmBtn.addEventListener('click', onConfirm, { signal });
     modal.addEventListener('click', (e) => { if (e.target === modal) onClose(); }, { signal });
     
-  }catch(_){
+  }catch(err){
+    console.error('模态框初始化失败:', err);
     showToast('操作失败', 'error');
+    // 确保状态被重置
+    operationFlags.toggling = false;
   }
 }
 
@@ -746,6 +775,9 @@ window.changeMailboxPassword = async function(address){
     // 设置邮箱地址
     emailEl.textContent = address;
     
+    // 将参数保存到模态框的数据属性中，避免闭包变量污染
+    modal.dataset.currentAddress = address;
+    
     // 清空表单
     newPasswordEl.value = '';
     confirmPasswordEl.value = '';
@@ -757,11 +789,13 @@ window.changeMailboxPassword = async function(address){
       modal.style.display = 'none'; 
       form.reset();
       currentChangePasswordModalController = null;
-      operationFlags.changing = false;
+      // 不在这里重置 operationFlags.changing，避免与 finally 块冲突
     };
     
     const onClose = () => { 
-      close(); 
+      close();
+      // 确保状态被重置
+      operationFlags.changing = false;
     };
     
     const onSubmit = async (e) => {
@@ -790,11 +824,14 @@ window.changeMailboxPassword = async function(address){
           submitBtn.textContent = '修改中...';
         }
         
+        // 从模态框的数据属性中获取参数，避免闭包变量被覆盖
+        const currentAddress = modal.dataset.currentAddress;
+        
         const r = await fetch('/api/mailboxes/change-password', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
-            address: address, 
+            address: currentAddress, 
             new_password: newPassword 
           })
         });
@@ -802,15 +839,22 @@ window.changeMailboxPassword = async function(address){
         if (!r.ok){
           const t = await r.text();
           showToast('修改密码失败：' + t, 'error');
+          // 失败时也要关闭模态框
+          close();
           return;
         }
         
         showToast('密码修改成功', 'success');
         close();
-        load(); // 重新加载列表
-      }catch(_){
+        // 成功后重新加载列表
+        await load();
+      }catch(err){
+        console.error('修改密码异常:', err);
         showToast('修改密码失败', 'error');
+        // 异常时也要关闭模态框
+        close();
       } finally {
+        // 确保按钮状态和操作标志被重置
         const submitBtn = document.getElementById('change-password-submit');
         if (submitBtn) {
           submitBtn.disabled = false;
@@ -826,8 +870,11 @@ window.changeMailboxPassword = async function(address){
     form && form.addEventListener('submit', onSubmit, { signal });
     modal.addEventListener('click', (e) => { if (e.target === modal) onClose(); }, { signal });
     
-  }catch(_){
+  }catch(err){
+    console.error('修改密码模态框初始化失败:', err);
     showToast('操作失败', 'error');
+    // 确保状态被重置
+    operationFlags.changing = false;
   }
 }
 
@@ -871,6 +918,428 @@ window.addEventListener('pageshow', function() {
   cleanupTransitionState();
 });
 
+// 页面失去焦点时重置导航状态（处理浏览器回退情况）
+window.addEventListener('blur', function() {
+  setTimeout(() => {
+    isNavigating = false;
+    if (navigationTimer) {
+      clearTimeout(navigationTimer);
+      navigationTimer = null;
+    }
+    // 清理可能残留的动画状态
+    cleanupTransitionState();
+  }, 100);
+});
+
+// 切换邮箱置顶状态（仅管理员可用）
+window.toggleMailboxPin = async function(address, isPinned){
+  // 防止重复操作
+  if (operationFlags.pinning) return;
+  
+  try{
+    operationFlags.pinning = true;
+    const action = isPinned ? '置顶' : '取消置顶';
+    
+     const r = await fetch(`/api/mailboxes/pin?address=${encodeURIComponent(address)}`, {
+       method: 'POST',
+       headers: { 'Content-Type': 'application/json' }
+     });
+    
+    if (!r.ok){
+      const t = await r.text();
+      showToast(`${action}失败：` + t, 'error');
+      return;
+    }
+    
+    showToast(`已${action}邮箱`, 'success');
+    load(); // 重新加载列表
+  }catch(_){
+    showToast('操作失败', 'error');
+  } finally {
+    setTimeout(() => { operationFlags.pinning = false; }, 500);
+  }
+}
+
+// 全局变量存储分配用户模态框的监听器控制器
+let currentAssignModalController = null;
+
+// 二级页面状态管理
+let assignSubpageState = {
+  currentAddress: '',
+  allUsers: [],
+  filteredUsers: [],
+  selectedUsers: new Set(),
+  searchQuery: ''
+};
+
+// 显示分配用户二级页面
+function showAssignSubpage(address) {
+  const subpage = document.getElementById('assign-user-subpage');
+  const emailEl = document.getElementById('assign-subpage-email');
+  
+  if (!subpage || !emailEl) {
+    showToast('分配用户功能暂不可用', 'warn');
+    return;
+  }
+  
+  // 先强制重置所有状态，确保干净的起始状态
+  assignSubpageState = {
+    currentAddress: address,
+    allUsers: [],
+    filteredUsers: [],
+    selectedUsers: new Set(),
+    searchQuery: ''
+  };
+  
+  // 设置邮箱地址
+  emailEl.textContent = address;
+  
+  // 重置用户搜索输入框
+  const searchInput = document.getElementById('user-search-input');
+  if (searchInput) {
+    searchInput.value = '';
+  }
+  
+  // 重置已选用户显示区域
+  const selectedSection = document.getElementById('selected-users-section');
+  const confirmBtn = document.getElementById('assign-subpage-confirm');
+  if (selectedSection) selectedSection.style.display = 'none';
+  if (confirmBtn) confirmBtn.disabled = true;
+  
+  // 显示二级页面
+  subpage.style.display = 'flex';
+  document.body.style.overflow = 'hidden'; // 防止背景滚动
+  
+  // 加载用户列表
+  loadUsersForAssign();
+  
+  // 绑定事件监听器
+  bindAssignSubpageEvents();
+}
+
+// 隐藏分配用户二级页面
+function hideAssignSubpage() {
+  const subpage = document.getElementById('assign-user-subpage');
+  if (subpage) {
+    subpage.style.display = 'none';
+    document.body.style.overflow = ''; // 恢复滚动
+  }
+  
+  // 清理状态
+  assignSubpageState = {
+    currentAddress: '',
+    allUsers: [],
+    filteredUsers: [],
+    selectedUsers: new Set(),
+    searchQuery: ''
+  };
+  
+  // 移除事件监听器
+  unbindAssignSubpageEvents();
+  operationFlags.assigning = false;
+}
+
+// 加载用户列表
+async function loadUsersForAssign() {
+  const usersLoading = document.getElementById('users-loading');
+  const usersList = document.getElementById('users-list');
+  const usersEmpty = document.getElementById('users-empty');
+  
+  try {
+    // 显示加载状态
+    usersLoading.style.display = 'flex';
+    usersList.style.display = 'none';
+    usersEmpty.style.display = 'none';
+    
+    // 确保选择状态是清空的
+    assignSubpageState.selectedUsers.clear();
+    
+    const r = await fetch('/api/users');
+    if (!r.ok) {
+      throw new Error('加载用户列表失败');
+    }
+    
+    const users = await r.json();
+    assignSubpageState.allUsers = Array.isArray(users) ? users : [];
+    assignSubpageState.filteredUsers = [...assignSubpageState.allUsers];
+    
+    // 隐藏加载状态
+    usersLoading.style.display = 'none';
+    
+    if (assignSubpageState.allUsers.length > 0) {
+      renderUsersList();
+      usersList.style.display = 'block';
+      // 确保已选用户显示区域是隐藏的
+      updateSelectedUsersDisplay();
+    } else {
+      usersEmpty.style.display = 'block';
+    }
+    
+  } catch(_) {
+    usersLoading.style.display = 'none';
+    usersEmpty.style.display = 'block';
+    showToast('加载用户列表失败', 'error');
+  }
+}
+
+// 渲染用户列表
+function renderUsersList() {
+  const usersList = document.getElementById('users-list');
+  if (!usersList) return;
+  
+  usersList.innerHTML = assignSubpageState.filteredUsers.map(user => `
+    <div class="user-item ${assignSubpageState.selectedUsers.has(user.username) ? 'selected' : ''}" 
+         data-username="${user.username}">
+      <input type="checkbox" class="user-checkbox" 
+             ${assignSubpageState.selectedUsers.has(user.username) ? 'checked' : ''}>
+      <div class="user-info">
+        <div class="user-name">${user.username}</div>
+        <div class="user-details">${user.display_name || '未设置显示名称'} - ${user.role || '普通用户'}</div>
+      </div>
+    </div>
+  `).join('');
+  
+  // 为每个用户项绑定点击事件
+  usersList.querySelectorAll('.user-item').forEach(item => {
+    item.addEventListener('click', handleUserItemClick);
+  });
+}
+
+// 处理用户项点击
+function handleUserItemClick(e) {
+  if (e.target.type === 'checkbox') return; // 直接点击复选框时不处理
+  
+  const username = e.currentTarget.dataset.username;
+  if (!username) return;
+  
+  const checkbox = e.currentTarget.querySelector('.user-checkbox');
+  checkbox.checked = !checkbox.checked;
+  
+  // 更新选择状态
+  if (checkbox.checked) {
+    assignSubpageState.selectedUsers.add(username);
+    e.currentTarget.classList.add('selected');
+  } else {
+    assignSubpageState.selectedUsers.delete(username);
+    e.currentTarget.classList.remove('selected');
+  }
+  
+  updateSelectedUsersDisplay();
+}
+
+// 更新已选用户显示
+function updateSelectedUsersDisplay() {
+  const selectedSection = document.getElementById('selected-users-section');
+  const selectedCount = document.getElementById('selected-count');
+  const selectedList = document.getElementById('selected-users-list');
+  const confirmBtn = document.getElementById('assign-subpage-confirm');
+  
+  const count = assignSubpageState.selectedUsers.size;
+  
+  if (count > 0) {
+    selectedSection.style.display = 'block';
+    selectedCount.textContent = count;
+    confirmBtn.disabled = false;
+    
+    // 渲染已选用户标签
+    const selectedUserTags = Array.from(assignSubpageState.selectedUsers).map(username => {
+      const user = assignSubpageState.allUsers.find(u => u.username === username);
+      return `
+        <div class="selected-user-tag" data-username="${username}">
+          <span>${username}</span>
+          <button class="remove-btn" type="button" title="移除">✕</button>
+        </div>
+      `;
+    }).join('');
+    
+    selectedList.innerHTML = selectedUserTags;
+    
+    // 为移除按钮绑定事件
+    selectedList.querySelectorAll('.remove-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const username = e.target.closest('.selected-user-tag').dataset.username;
+        removeSelectedUser(username);
+      });
+    });
+  } else {
+    selectedSection.style.display = 'none';
+    confirmBtn.disabled = true;
+  }
+}
+
+// 移除已选用户
+function removeSelectedUser(username) {
+  assignSubpageState.selectedUsers.delete(username);
+  
+  // 更新用户列表中的状态
+  const userItem = document.querySelector(`.user-item[data-username="${username}"]`);
+  if (userItem) {
+    userItem.classList.remove('selected');
+    const checkbox = userItem.querySelector('.user-checkbox');
+    if (checkbox) checkbox.checked = false;
+  }
+  
+  updateSelectedUsersDisplay();
+}
+
+// 搜索用户
+function searchUsers(query) {
+  assignSubpageState.searchQuery = query.toLowerCase();
+  
+  if (!assignSubpageState.searchQuery) {
+    assignSubpageState.filteredUsers = [...assignSubpageState.allUsers];
+  } else {
+    assignSubpageState.filteredUsers = assignSubpageState.allUsers.filter(user => 
+      user.username.toLowerCase().includes(assignSubpageState.searchQuery) ||
+      (user.display_name && user.display_name.toLowerCase().includes(assignSubpageState.searchQuery))
+    );
+  }
+  
+  renderUsersList();
+}
+
+// 全选/清空用户
+function selectAllUsers() {
+  assignSubpageState.filteredUsers.forEach(user => {
+    assignSubpageState.selectedUsers.add(user.username);
+  });
+  renderUsersList();
+  updateSelectedUsersDisplay();
+}
+
+function clearAllUsers() {
+  assignSubpageState.selectedUsers.clear();
+  renderUsersList();
+  updateSelectedUsersDisplay();
+}
+
+// 批量分配用户
+async function performBatchAssign() {
+  if (assignSubpageState.selectedUsers.size === 0) {
+    showToast('请选择要分配的用户', 'warn');
+    return;
+  }
+  
+  try {
+    operationFlags.assigning = true;
+    const confirmBtn = document.getElementById('assign-subpage-confirm');
+    const btnText = confirmBtn.querySelector('.btn-text');
+    const btnLoading = confirmBtn.querySelector('.btn-loading');
+    
+    // 更新按钮状态
+    confirmBtn.disabled = true;
+    btnText.style.display = 'none';
+    btnLoading.style.display = 'inline';
+    
+    const selectedUsernames = Array.from(assignSubpageState.selectedUsers);
+    
+    // 批量分配
+    const promises = selectedUsernames.map(username => 
+      fetch('/api/users/assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          address: assignSubpageState.currentAddress, 
+          username: username 
+        })
+      })
+    );
+    
+    const results = await Promise.allSettled(promises);
+    
+    // 检查结果
+    const failed = [];
+    const succeeded = [];
+    
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i];
+      const username = selectedUsernames[i];
+      
+      if (result.status === 'fulfilled' && result.value.ok) {
+        succeeded.push(username);
+      } else {
+        failed.push(username);
+      }
+    }
+    
+    // 显示结果
+    if (succeeded.length > 0) {
+      showToast(`成功分配给 ${succeeded.length} 个用户：${succeeded.join(', ')}`, 'success');
+    }
+    
+    if (failed.length > 0) {
+      showToast(`分配失败的用户：${failed.join(', ')}`, 'error');
+    }
+    
+    if (succeeded.length > 0) {
+      hideAssignSubpage();
+      load(); // 重新加载列表
+    }
+    
+  } catch(_) {
+    showToast('批量分配失败', 'error');
+  } finally {
+    // 恢复按钮状态
+    const confirmBtn = document.getElementById('assign-subpage-confirm');
+    const btnText = confirmBtn.querySelector('.btn-text');
+    const btnLoading = confirmBtn.querySelector('.btn-loading');
+    
+    confirmBtn.disabled = false;
+    btnText.style.display = 'inline';
+    btnLoading.style.display = 'none';
+    operationFlags.assigning = false;
+  }
+}
+
+// 绑定二级页面事件监听器
+function bindAssignSubpageEvents() {
+  const closeBtn = document.getElementById('assign-subpage-close');
+  const cancelBtn = document.getElementById('assign-subpage-cancel');
+  const confirmBtn = document.getElementById('assign-subpage-confirm');
+  const selectAllBtn = document.getElementById('select-all-users');
+  const clearAllBtn = document.getElementById('clear-all-users');
+  const searchInput = document.getElementById('user-search-input');
+  const overlay = document.querySelector('#assign-user-subpage .subpage-overlay');
+  
+  closeBtn && closeBtn.addEventListener('click', hideAssignSubpage);
+  cancelBtn && cancelBtn.addEventListener('click', hideAssignSubpage);
+  confirmBtn && confirmBtn.addEventListener('click', performBatchAssign);
+  selectAllBtn && selectAllBtn.addEventListener('click', selectAllUsers);
+  clearAllBtn && clearAllBtn.addEventListener('click', clearAllUsers);
+  overlay && overlay.addEventListener('click', hideAssignSubpage);
+  
+  if (searchInput) {
+    let searchTimeout;
+    searchInput.addEventListener('input', (e) => {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        searchUsers(e.target.value);
+      }, 300);
+    });
+  }
+}
+
+// 移除二级页面事件监听器
+function unbindAssignSubpageEvents() {
+  // 由于每次都重新绑定，这里不需要具体移除
+  // 实际的清理在hideAssignSubpage中通过重置状态完成
+}
+
+// 分配邮箱给用户（仅管理员可用）- 更新为显示二级页面
+window.assignMailboxToUser = async function(address){
+  // 防止重复操作
+  if (operationFlags.assigning) return;
+  
+  try{
+    operationFlags.assigning = true;
+    showAssignSubpage(address);
+  }catch(_){
+    showToast('操作失败', 'error');
+    operationFlags.assigning = false;
+  }
+}
+
 /**
  * 选择邮箱并跳转到首页
  * @param {string} address - 邮箱地址
@@ -897,10 +1366,19 @@ window.selectAndGoToHomepage = function(address, event) {
     isNavigating = true;
     lastNavigateTime = now;
     
-    // 保存选中的邮箱到 sessionStorage，首页会自动恢复
+    // 保存选中的邮箱到 sessionStorage，使用与app.js一致的key格式（用户隔离）
     try {
+      const userKey = getCurrentUserKey();
+      if (userKey && userKey !== 'unknown') {
+        sessionStorage.setItem(`mf:currentMailbox:${userKey}`, address);
+      }
+      // 兼容旧版本key，确保跨页面传递邮箱地址
       sessionStorage.setItem('mf:currentMailbox', address);
-    } catch(_) {}
+      // 添加跳转标记，让首页知道这是从邮箱总览页跳转过来的
+      sessionStorage.setItem('mf:fromAdmin', '1');
+    } catch(err) {
+      console.warn('保存邮箱地址失败:', err);
+    }
     
     // 显示短时间跳转提示，确保动画完整播放
     showJumpToast(`正在跳转到：${address}`);
@@ -911,6 +1389,16 @@ window.selectAndGoToHomepage = function(address, event) {
       window.location.href = '/#inbox';
     }, 850);
     
+    // 备用重置机制：3秒后强制重置状态，防止状态卡死
+    setTimeout(() => {
+      isNavigating = false;
+      if (navigationTimer) {
+        clearTimeout(navigationTimer);
+        navigationTimer = null;
+      }
+      cleanupTransitionState();
+    }, 3000);
+    
   } catch(err) {
     console.error('跳转失败:', err);
     showToast('跳转失败', 'error');
@@ -920,6 +1408,235 @@ window.selectAndGoToHomepage = function(address, event) {
       navigationTimer = null;
     }
   }
+}
+
+// =================== 批量登录权限管理 ===================
+
+// 批量操作状态变量
+let batchOperationInProgress = false;
+let currentBatchAction = null; // 'allow' 或 'deny'
+
+/**
+ * 显示批量操作模态框
+ * @param {string} action - 'allow' 或 'deny'
+ */
+function showBatchLoginModal(action) {
+  if (batchOperationInProgress) return;
+  
+  currentBatchAction = action;
+  const modal = document.getElementById('batch-login-modal');
+  const icon = document.getElementById('batch-modal-icon');
+  const title = document.getElementById('batch-modal-title');
+  const message = document.getElementById('batch-modal-message');
+  const textarea = document.getElementById('batch-emails-input');
+  const confirmBtn = document.getElementById('batch-modal-confirm');
+  const countInfo = document.getElementById('batch-count-info');
+  
+  if (!modal || !icon || !title || !message) return;
+  
+  // 设置标题和提示信息
+  if (action === 'allow') {
+    icon.textContent = '✅';
+    icon.className = 'modal-icon unlock';
+    title.textContent = '批量放行邮箱登录';
+    message.textContent = '请输入需要放行登录的邮箱地址，每行一个。确认后这些邮箱将允许登录系统。';
+    confirmBtn.className = 'btn btn-primary';
+  } else {
+    icon.textContent = '🚫';
+    icon.className = 'modal-icon lock';
+    title.textContent = '批量禁止邮箱登录';
+    message.textContent = '请输入需要禁止登录的邮箱地址，每行一个。确认后这些邮箱将无法登录系统。';
+    confirmBtn.className = 'btn btn-danger';
+  }
+  
+  // 重置输入框
+  textarea.value = '';
+  confirmBtn.disabled = true;
+  countInfo.textContent = '输入邮箱后将显示数量统计';
+  
+  // 显示模态框
+  modal.style.display = 'flex';
+}
+
+/**
+ * 关闭批量操作模态框
+ */
+function closeBatchLoginModal() {
+  const modal = document.getElementById('batch-login-modal');
+  const textarea = document.getElementById('batch-emails-input');
+  
+  if (modal) {
+    modal.style.display = 'none';
+  }
+  if (textarea) {
+    textarea.value = '';
+  }
+  
+  currentBatchAction = null;
+}
+
+/**
+ * 解析输入的邮箱地址列表
+ * @param {string} text - 输入的文本
+ * @returns {string[]} 邮箱地址数组
+ */
+function parseEmailList(text) {
+  if (!text) return [];
+  
+  // 按行分割，去除空白，转小写，过滤无效邮箱
+  const lines = text.split('\n')
+    .map(line => line.trim().toLowerCase())
+    .filter(line => line.length > 0);
+  
+  // 简单的邮箱格式验证
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const validEmails = lines.filter(email => emailRegex.test(email));
+  
+  // 去重
+  return [...new Set(validEmails)];
+}
+
+/**
+ * 更新邮箱数量统计信息
+ */
+function updateBatchCountInfo() {
+  const textarea = document.getElementById('batch-emails-input');
+  const countInfo = document.getElementById('batch-count-info');
+  const confirmBtn = document.getElementById('batch-modal-confirm');
+  
+  if (!textarea || !countInfo || !confirmBtn) return;
+  
+  const emails = parseEmailList(textarea.value);
+  const count = emails.length;
+  
+  if (count > 0) {
+    countInfo.textContent = `已识别 ${count} 个有效邮箱地址`;
+    countInfo.style.color = '#16a34a';
+    confirmBtn.disabled = false;
+  } else {
+    countInfo.textContent = '输入邮箱后将显示数量统计';
+    countInfo.style.color = '#64748b';
+    confirmBtn.disabled = true;
+  }
+}
+
+/**
+ * 执行批量操作
+ */
+async function performBatchLoginOperation() {
+  if (batchOperationInProgress) return;
+  
+  const textarea = document.getElementById('batch-emails-input');
+  const confirmBtn = document.getElementById('batch-modal-confirm');
+  const btnText = confirmBtn.querySelector('.batch-btn-text');
+  const btnLoading = confirmBtn.querySelector('.batch-btn-loading');
+  
+  if (!textarea || !confirmBtn) return;
+  
+  const emails = parseEmailList(textarea.value);
+  
+  if (emails.length === 0) {
+    showToast('请输入有效的邮箱地址', 'warn');
+    return;
+  }
+  
+  try {
+    batchOperationInProgress = true;
+    confirmBtn.disabled = true;
+    if (btnText) btnText.style.display = 'none';
+    if (btnLoading) btnLoading.style.display = 'inline';
+    
+    const canLogin = currentBatchAction === 'allow';
+    const actionText = canLogin ? '放行' : '禁止';
+    
+    // 调用批量API
+    const response = await fetch('/api/mailboxes/batch-toggle-login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        addresses: emails, 
+        can_login: canLogin 
+      })
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || '操作失败');
+    }
+    
+    const result = await response.json();
+    
+    // 显示结果
+    const successCount = result.success_count || 0;
+    const failCount = result.fail_count || 0;
+    const totalCount = emails.length;
+    
+    if (successCount > 0 && failCount === 0) {
+      showToast(`成功${actionText} ${successCount} 个邮箱`, 'success');
+    } else if (successCount > 0 && failCount > 0) {
+      showToast(`成功${actionText} ${successCount} 个邮箱，失败 ${failCount} 个`, 'warn');
+    } else {
+      showToast(`${actionText}失败，请检查邮箱地址`, 'error');
+    }
+    
+    // 关闭模态框并刷新列表
+    closeBatchLoginModal();
+    await load();
+    
+  } catch (error) {
+    console.error('批量操作失败:', error);
+    showToast('批量操作失败: ' + error.message, 'error');
+  } finally {
+    batchOperationInProgress = false;
+    if (confirmBtn) {
+      confirmBtn.disabled = false;
+      if (btnText) btnText.style.display = 'inline';
+      if (btnLoading) btnLoading.style.display = 'none';
+    }
+  }
+}
+
+// 绑定批量操作按钮事件
+const batchAllowBtn = document.getElementById('batch-allow');
+const batchDenyBtn = document.getElementById('batch-deny');
+
+if (batchAllowBtn) {
+  batchAllowBtn.addEventListener('click', () => showBatchLoginModal('allow'));
+}
+
+if (batchDenyBtn) {
+  batchDenyBtn.addEventListener('click', () => showBatchLoginModal('deny'));
+}
+
+// 绑定批量模态框事件
+const batchModalClose = document.getElementById('batch-modal-close');
+const batchModalCancel = document.getElementById('batch-modal-cancel');
+const batchModalConfirm = document.getElementById('batch-modal-confirm');
+const batchEmailsInput = document.getElementById('batch-emails-input');
+const batchModal = document.getElementById('batch-login-modal');
+
+if (batchModalClose) {
+  batchModalClose.addEventListener('click', closeBatchLoginModal);
+}
+
+if (batchModalCancel) {
+  batchModalCancel.addEventListener('click', closeBatchLoginModal);
+}
+
+if (batchModalConfirm) {
+  batchModalConfirm.addEventListener('click', performBatchLoginOperation);
+}
+
+if (batchEmailsInput) {
+  batchEmailsInput.addEventListener('input', updateBatchCountInfo);
+}
+
+if (batchModal) {
+  batchModal.addEventListener('click', (e) => {
+    if (e.target === batchModal) {
+      closeBatchLoginModal();
+    }
+  });
 }
 
 

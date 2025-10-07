@@ -663,66 +663,8 @@ function showLoading(show) {
 }
 
 /**
- * 显示Toast消息 - 使用全局toast模板
+ * showToast 函数已由 toast-utils.js 统一提供
  */
-async function showToast(message, type = 'success') {
-  try {
-    const res = await fetch('/templates/toast.html', { cache: 'no-cache' });
-    const tpl = await res.text();
-    const html = tpl.replace('{{type}}', String(type || 'info')).replace('{{message}}', String(message || ''));
-    const wrapper = document.createElement('div');
-    wrapper.innerHTML = html;
-    
-    // 注入样式（仅一次）
-    const styleEl = wrapper.querySelector('#toast-style');
-    if (styleEl && !document.getElementById('toast-style')) {
-      document.head.appendChild(styleEl);
-    }
-    
-    // 插入 toast 元素
-    const toastEl = wrapper.querySelector('.toast-item');
-    if (toastEl) {
-      let container = elements.toast;
-      if (!container) {
-        container = document.getElementById('toast');
-      }
-      if (!container) {
-        container = document.createElement('div');
-        container.id = 'toast';
-        container.className = 'toast';
-        document.body.appendChild(container);
-      }
-      container.appendChild(toastEl);
-      setTimeout(() => {
-        toastEl.style.transition = 'opacity .3s ease';
-        toastEl.style.opacity = '0';
-        setTimeout(() => toastEl.remove(), 300);
-      }, 2000);
-      return;
-    }
-  } catch (_) {
-    // 降级到简易提示
-    const div = document.createElement('div');
-    div.className = `toast-item ${type}`;
-    div.textContent = message;
-    let container = elements.toast;
-    if (!container) {
-      container = document.getElementById('toast');
-    }
-    if (!container) {
-      container = document.createElement('div');
-      container.id = 'toast';
-      container.className = 'toast';
-      document.body.appendChild(container);
-    }
-    container.appendChild(div);
-    setTimeout(() => {
-      div.style.transition = 'opacity .3s ease';
-      div.style.opacity = '0';
-      setTimeout(() => div.remove(), 300);
-    }, 2000);
-  }
-}
 
 /**
  * 显示修改密码模态框

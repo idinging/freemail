@@ -1,7 +1,8 @@
 import { extractEmail, generateRandomId } from './commonUtils.js';
 import { buildMockEmails, buildMockMailboxes, buildMockEmailDetail } from './mockData.js';
 import { getOrCreateMailboxId, getMailboxIdByAddress, recordSentEmail, updateSentEmail, ensureSentEmailsTable, toggleMailboxPin, 
-  listUsersWithCounts, createUser, updateUser, deleteUser, assignMailboxToUser, getUserMailboxes } from './database.js';
+  listUsersWithCounts, createUser, updateUser, deleteUser, assignMailboxToUser, getUserMailboxes, unassignMailboxFromUser, 
+  checkMailboxOwnership, getTotalMailboxCount } from './database.js';
 import { parseEmailBody, extractVerificationCode } from './emailParser.js';
 import { sendEmailWithResend, sendBatchWithResend, sendEmailWithAutoResend, sendBatchWithAutoResend, getEmailFromResend, updateEmailInResend, cancelEmailInResend } from './emailSender.js';
 
@@ -120,11 +121,25 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
 
   // =================== 用户管理（演示模式） ===================
   if (isMock && path === '/api/users' && request.method === 'GET'){
-    const list = (globalThis.__MOCK_USERS__ || []).map(u => {
+    const limit = Math.min(parseInt(url.searchParams.get('limit') || '50', 10), 100);
+    const offset = Math.max(parseInt(url.searchParams.get('offset') || '0', 10), 0);
+    const sort = url.searchParams.get('sort') || 'desc';
+    
+    let list = (globalThis.__MOCK_USERS__ || []).map(u => {
       const boxes = globalThis.__MOCK_USER_MAILBOXES__?.get(u.id) || [];
       return { ...u, mailbox_count: boxes.length };
     });
-    return Response.json(list);
+    
+    // 按创建时间排序
+    list.sort((a, b) => {
+      const dateA = new Date(a.created_at);
+      const dateB = new Date(b.created_at);
+      return sort === 'asc' ? dateA - dateB : dateB - dateA;
+    });
+    
+    // 应用分页
+    const result = list.slice(offset, offset + limit);
+    return Response.json(result);
   }
   if (isMock && path === '/api/users' && request.method === 'POST'){
     try{
@@ -178,6 +193,21 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
       return Response.json({ success: true });
     }catch(_){ return new Response('分配失败', { status: 500 }); }
   }
+  if (isMock && path === '/api/users/unassign' && request.method === 'POST'){
+    try{
+      const body = await request.json();
+      const username = String(body.username || '').trim().toLowerCase();
+      const address = String(body.address || '').trim().toLowerCase();
+      const u = (globalThis.__MOCK_USERS__ || []).find(x => x.username === username);
+      if (!u) return new Response('用户不存在', { status: 404 });
+      const boxes = globalThis.__MOCK_USER_MAILBOXES__?.get(u.id) || [];
+      const index = boxes.findIndex(box => box.address === address);
+      if (index === -1) return new Response('该邮箱未分配给该用户', { status: 400 });
+      boxes.splice(index, 1);
+      globalThis.__MOCK_USER_MAILBOXES__?.set(u.id, boxes);
+      return Response.json({ success: true });
+    }catch(_){ return new Response('取消分配失败', { status: 500 }); }
+  }
   if (isMock && request.method === 'GET' && path.startsWith('/api/users/') && path.endsWith('/mailboxes')){
     const id = Number(path.split('/')[3]);
     const all = globalThis.__MOCK_USER_MAILBOXES__?.get(id) || [];
@@ -223,8 +253,9 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
     if (!isStrictAdmin()) return new Response('Forbidden', { status: 403 });
     const limit = Math.min(parseInt(url.searchParams.get('limit') || '50', 10), 100);
     const offset = Math.max(parseInt(url.searchParams.get('offset') || '0', 10), 0);
+    const sort = url.searchParams.get('sort') || 'desc';
     try{
-      const users = await listUsersWithCounts(db, { limit, offset });
+      const users = await listUsersWithCounts(db, { limit, offset, sort });
       return Response.json(users);
     }catch(e){ return new Response('查询失败', { status: 500 }); }
   }
@@ -280,6 +311,18 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
     }catch(e){ return new Response('分配失败: ' + (e?.message || e), { status: 500 }); }
   }
 
+  if (!isMock && path === '/api/users/unassign' && request.method === 'POST'){
+    if (!isStrictAdmin()) return new Response('Forbidden', { status: 403 });
+    try{
+      const body = await request.json();
+      const username = String(body.username || '').trim();
+      const address = String(body.address || '').trim().toLowerCase();
+      if (!username || !address) return new Response('参数不完整', { status: 400 });
+      const result = await unassignMailboxFromUser(db, { username, address });
+      return Response.json(result);
+    }catch(e){ return new Response('取消分配失败: ' + (e?.message || e), { status: 500 }); }
+  }
+
   if (!isMock && request.method === 'GET' && path.startsWith('/api/users/') && path.endsWith('/mailboxes')){
     const id = Number(path.split('/')[3]);
     if (!id) return new Response('无效ID', { status: 400 });
@@ -300,6 +343,8 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
         const domainIdx = Math.max(0, Math.min(domains.length - 1, Number(body.domainIndex || 0)));
         const chosenDomain = domains[domainIdx] || domains[0];
         const email = `${local}@${chosenDomain}`;
+        // 模拟邮箱存在性检查（Mock模式下允许创建任意邮箱）
+        // 在演示模式中不进行存在性检查，允许用户自由创建
         return Response.json({ email, expires: Date.now() + 3600000 });
       }catch(_){ return new Response('Bad Request', { status: 400 }); }
     }
@@ -312,33 +357,79 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
       const domainIdx = Math.max(0, Math.min(domains.length - 1, Number(body.domainIndex || 0)));
       const chosenDomain = domains[domainIdx] || domains[0];
       const email = `${local}@${chosenDomain}`;
+      
       try{
         const payload = getJwtPayload();
-        if (payload?.userId) {
-          await assignMailboxToUser(db, { userId: payload.userId, address: email });
+        const userId = payload?.userId;
+        
+        // 检查邮箱是否已存在以及权限
+        const ownership = await checkMailboxOwnership(db, email, userId);
+        
+        if (ownership.exists) {
+          // 如果邮箱已存在，所有用户（包括超级管理员）都不允许创建
+          if (userId && ownership.ownedByUser) {
+            // 用户已拥有该邮箱，但仍不允许重复创建
+            return new Response('邮箱地址已存在，使用其他地址', { status: 409 });
+          } else if (userId && !ownership.ownedByUser) {
+            // 普通用户尝试创建已存在但不属于自己的邮箱
+            return new Response('邮箱地址已被占用，请向管理员申请或使用其他地址', { status: 409 });
+          } else {
+            // 超级管理员或无用户ID的情况，邮箱已存在
+            return new Response('邮箱地址已存在，使用其他地址', { status: 409 });
+          }
+        }
+        
+        // 邮箱不存在，可以创建
+        if (userId) {
+          // 普通用户：通过assignMailboxToUser创建并分配
+          await assignMailboxToUser(db, { userId: userId, address: email });
+          return Response.json({ email, expires: Date.now() + 3600000 });
+        } else {
+          // 超级管理员：直接创建邮箱
+          await getOrCreateMailboxId(db, email);
           return Response.json({ email, expires: Date.now() + 3600000 });
         }
-        await getOrCreateMailboxId(db, email);
-        return Response.json({ email, expires: Date.now() + 3600000 });
-      }catch(e){ return new Response(String(e?.message || '创建失败'), { status: 400 }); }
+      }catch(e){ 
+        // 如果是邮箱上限错误，返回更明确的提示
+        if (String(e?.message || '').includes('已达到邮箱上限')) {
+          return new Response('已达到邮箱创建上限', { status: 429 });
+        }
+        return new Response(String(e?.message || '创建失败'), { status: 400 }); 
+      }
     }catch(e){ return new Response('创建失败', { status: 500 }); }
   }
 
   // 当前用户配额：已用/上限
   if (path === '/api/user/quota' && request.method === 'GET'){
     if (isMock){
-      // 演示模式：无法区分用户，返回 0/10
-      return Response.json({ used: 0, limit: 10 });
+      // 演示模式：模拟超级管理员，显示系统邮箱数
+      return Response.json({ used: 0, limit: 999999, isAdmin: true });
     }
     try{
       const payload = getJwtPayload();
       const uid = Number(payload?.userId || 0);
-      if (!uid) return Response.json({ used: 0, limit: 0 });
-      const ures = await db.prepare('SELECT mailbox_limit FROM users WHERE id = ?').bind(uid).all();
-      const limit = ures?.results?.[0]?.mailbox_limit ?? 0;
-      const cres = await db.prepare('SELECT COUNT(1) AS c FROM user_mailboxes WHERE user_id = ?').bind(uid).all();
-      const used = cres?.results?.[0]?.c || 0;
-      return Response.json({ used, limit });
+      const role = payload?.role || 'user';
+      const username = String(payload?.username || '').trim().toLowerCase();
+      const adminName = String(options.adminName || 'admin').trim().toLowerCase();
+      
+      // 检查是否为超级管理员
+      const isSuperAdmin = (role === 'admin' && (username === adminName || username === '__root__'));
+      
+      if (isSuperAdmin) {
+        // 超级管理员：显示系统中所有邮箱的总数
+        const totalUsed = await getTotalMailboxCount(db);
+        return Response.json({ used: totalUsed, limit: 999999, isAdmin: true });
+      } else if (uid) {
+        // 普通用户：显示个人邮箱数和个人上限
+        const ures = await db.prepare('SELECT mailbox_limit FROM users WHERE id = ?').bind(uid).all();
+        const limit = ures?.results?.[0]?.mailbox_limit ?? 0;
+        const cres = await db.prepare('SELECT COUNT(1) AS c FROM user_mailboxes WHERE user_id = ?').bind(uid).all();
+        const used = cres?.results?.[0]?.c || 0;
+        return Response.json({ used, limit, isAdmin: false });
+      } else {
+        // 未登录或无效用户
+        return Response.json({ used: 0, limit: 0, isAdmin: false });
+      }
     }catch(_){ return new Response('查询失败', { status: 500 }); }
   }
 
@@ -781,6 +872,127 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
         .bind(newPasswordHash, address).run();
       
       return Response.json({ success: true });
+    } catch (e) {
+      return new Response('操作失败: ' + e.message, { status: 500 });
+    }
+  }
+
+  // 批量切换邮箱登录权限（仅严格管理员可用）
+  if (path === '/api/mailboxes/batch-toggle-login' && request.method === 'POST') {
+    if (isMock) return new Response('演示模式不可操作', { status: 403 });
+    if (!isStrictAdmin()) return new Response('Forbidden', { status: 403 });
+    try {
+      const body = await request.json();
+      const addresses = body.addresses || [];
+      const canLogin = Boolean(body.can_login);
+      
+      if (!Array.isArray(addresses) || addresses.length === 0) {
+        return new Response('缺少 addresses 参数或地址列表为空', { status: 400 });
+      }
+      
+      // 限制批量操作数量，防止性能问题
+      if (addresses.length > 100) {
+        return new Response('单次最多处理100个邮箱', { status: 400 });
+      }
+      
+      let successCount = 0;
+      let failCount = 0;
+      const results = [];
+      
+      // 先检查所有邮箱是否存在
+      const checkStatements = [];
+      const addressMap = new Map(); // 存储规范化后的地址映射
+      
+      for (const address of addresses) {
+        const normalizedAddress = String(address || '').trim().toLowerCase();
+        if (!normalizedAddress) {
+          failCount++;
+          results.push({ address, success: false, error: '地址为空' });
+          continue;
+        }
+        addressMap.set(normalizedAddress, address);
+        checkStatements.push(
+          db.prepare('SELECT id, address FROM mailboxes WHERE address = ?').bind(normalizedAddress)
+        );
+      }
+      
+      // 批量检查邮箱是否存在
+      let existingMailboxes = new Set();
+      if (checkStatements.length > 0) {
+        try {
+          const checkResults = await db.batch(checkStatements);
+          for (const result of checkResults) {
+            if (result.results && result.results.length > 0) {
+              existingMailboxes.add(result.results[0].address);
+            }
+          }
+        } catch (e) {
+          console.error('批量检查邮箱失败:', e);
+        }
+      }
+      
+      // 准备批量操作语句
+      const batchStatements = [];
+      
+      for (const [normalizedAddress, originalAddress] of addressMap.entries()) {
+        if (existingMailboxes.has(normalizedAddress)) {
+          // 邮箱存在，更新登录权限
+          batchStatements.push({
+            stmt: db.prepare('UPDATE mailboxes SET can_login = ? WHERE address = ?')
+              .bind(canLogin ? 1 : 0, normalizedAddress),
+            address: normalizedAddress,
+            type: 'update'
+          });
+        } else {
+          // 邮箱不存在，创建新邮箱
+          batchStatements.push({
+            stmt: db.prepare('INSERT INTO mailboxes (address, can_login) VALUES (?, ?)')
+              .bind(normalizedAddress, canLogin ? 1 : 0),
+            address: normalizedAddress,
+            type: 'insert'
+          });
+        }
+      }
+      
+      // 使用 D1 的 batch API 批量执行
+      if (batchStatements.length > 0) {
+        try {
+          const batchResults = await db.batch(batchStatements.map(s => s.stmt));
+          
+          // 处理每个操作的结果
+          for (let i = 0; i < batchResults.length; i++) {
+            const result = batchResults[i];
+            const operation = batchStatements[i];
+            
+            if (result.success !== false) {
+              successCount++;
+              results.push({
+                address: operation.address,
+                success: true,
+                [operation.type === 'insert' ? 'created' : 'updated']: true
+              });
+            } else {
+              failCount++;
+              results.push({
+                address: operation.address,
+                success: false,
+                error: result.error || '操作失败'
+              });
+            }
+          }
+        } catch (e) {
+          console.error('批量操作执行失败:', e);
+          return new Response('批量操作失败: ' + e.message, { status: 500 });
+        }
+      }
+      
+      return Response.json({ 
+        success: true, 
+        success_count: successCount, 
+        fail_count: failCount,
+        total: addresses.length,
+        results 
+      });
     } catch (e) {
       return new Response('操作失败: ' + e.message, { status: 500 });
     }

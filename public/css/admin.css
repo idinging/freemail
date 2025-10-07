@@ -1,19 +1,64 @@
-.admin-container{
-	display: grid;
-	grid-template-columns: 360px 1fr;
-	gap: 16px;
-	max-width: 1200px;
-	margin: 0 auto;
-	padding: 32px;
+/* ===========================================
+   管理页面 - 现代化布局设计
+   =========================================== */
+
+/* 顶部导航栏按钮样式 */
+.topbar .btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* 全局二级页面主题（与首页一致的玻璃拟态风格） */
-.admin-page{
-	background: var(--surface);
+.topbar .btn:hover {
+  transform: translateY(-1px);
+}
+
+/* 主容器 - 响应式网格布局 */
+.admin-container {
+	display: grid;
+  grid-template-columns: 2fr 3fr;
+  gap: 24px;
+	max-width: 1200px;
+	margin: 0 auto;
+  padding: 32px 24px;
+  min-height: calc(100vh - 80px);
+}
+
+/* 全局主题设计 */
+.admin-page {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* 动态背景装饰 */
+.admin-page::before {
+  content: '';
+  position: fixed;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(59,130,246,0.08) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(139,92,246,0.06) 0%, transparent 50%),
+    radial-gradient(circle at 60% 80%, rgba(16,185,129,0.05) 0%, transparent 50%),
+    radial-gradient(circle at 30% 70%, rgba(236,72,153,0.04) 0%, transparent 50%);
+  animation: backgroundFloat 25s ease-in-out infinite;
+  z-index: -1;
+}
+
+@keyframes backgroundFloat {
+  0%, 100% { transform: translateX(-20px) translateY(-15px) rotate(0deg); }
+  25% { transform: translateX(15px) translateY(20px) rotate(0.5deg); }
+  50% { transform: translateX(20px) translateY(-10px) rotate(-0.5deg); }
+  75% { transform: translateX(-15px) translateY(25px) rotate(0.3deg); }
 }
 
 /* 禁用文本选择 */
-.admin-page *{
+.admin-page * {
 	-webkit-user-select: none;
 	-moz-user-select: none;
 	-ms-user-select: none;
@@ -34,176 +79,1295 @@
 	user-select: text;
 }
 
-/* 移动端触摸优化 */
-@media (max-width: 768px) {
-	.admin-page button,
-	.admin-page .btn,
-	.admin-page .close {
-		-webkit-touch-callout: none;
-		-webkit-tap-highlight-color: transparent;
-	}
+/* ===========================================
+   卡片设计 - 现代玻璃拟态效果
+   =========================================== */
+.admin-page .card {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 20px;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.08),
+    0 4px 16px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 28px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* 背景动效与首页一致 */
-.admin-page::before{
+.admin-page .card:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.12),
+    0 6px 20px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+/* 卡片顶部装饰线 */
+.admin-page .card::before {
 	content: '';
-	position: fixed;
-	top: -50%;
-	left: -50%;
-	width: 200%;
-	height: 200%;
-	background:
-		radial-gradient(circle at 20% 20%, rgba(59,130,246,0.1) 0%, transparent 40%),
-		radial-gradient(circle at 80% 80%, rgba(139,92,246,0.08) 0%, transparent 40%),
-		radial-gradient(circle at 40% 60%, rgba(16,185,129,0.06) 0%, transparent 40%);
-	animation: backgroundFloat 20s ease-in-out infinite;
-	z-index: -1;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, 
+    #3b82f6 0%, 
+    #8b5cf6 25%, 
+    #ec4899 50%, 
+    #10b981 75%, 
+    #f59e0b 100%
+  );
+  border-radius: 20px 20px 0 0;
 }
 
-@keyframes backgroundFloat {
-	0%, 100% { transform: translateX(-20px) translateY(-10px) rotate(0deg); }
-	33% { transform: translateX(20px) translateY(10px) rotate(1deg); }
-	66% { transform: translateX(-10px) translateY(20px) rotate(-1deg); }
+/* ===========================================
+   左侧区域布局
+   =========================================== */
+.admin-left {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
-.admin-page .card{
-	background: var(--card-glass);
-	backdrop-filter: blur(24px);
-	-webkit-backdrop-filter: blur(24px);
-	border-radius: var(--radius);
-	box-shadow: var(--shadow-glass);
-	border: 1px solid var(--border-glass);
-}
-.admin-page .card::before{ content:''; position:absolute; inset:auto 0 0 0; height:4px; background: linear-gradient(90deg, var(--primary), #8b5cf6, #ec4899); }
 
-/* 输入框美化（与首页风格统一） */
-.admin-page .input, .admin-page .select, .admin-page textarea{
+/* 卡片标题设计 */
+.admin-page .card h2 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 24px 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e293b;
+  letter-spacing: -0.025em;
+}
+
+.admin-page .card h2 .card-icon {
+  font-size: 24px;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* 操作按钮布局 */
+.generate-action {
+  margin-bottom: 16px;
+}
+
+.generate-action:last-child {
+  margin-bottom: 0;
+}
+
+/* 水平按钮行布局 */
+.generate-action-row {
+  display: flex;
+  gap: 12px;
+}
+
+.generate-action-row .btn {
+  flex: 1;
+  min-width: 0;
+}
+
+.generate-action .btn {
+  width: 100%;
+  height: 52px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 14px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.generate-action .btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
 	width: 100%;
-	background: var(--card-glass);
-	backdrop-filter: blur(12px);
-	-webkit-backdrop-filter: blur(12px);
-	border: 1px solid var(--border-glass);
-	border-radius: var(--radius-sm);
-	padding: 12px 14px;
-	font-size: 14px;
-	color: var(--text);
-	box-shadow: var(--shadow-glass);
-	resize: vertical;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s;
 }
-.admin-page .input::placeholder, .admin-page textarea::placeholder{ color: var(--muted2); }
-.admin-page .input:focus, .admin-page .select:focus, .admin-page textarea:focus{
-	outline: none;
-	border-color: var(--primary);
-	box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+
+.generate-action .btn:hover::before {
+  left: 100%;
+}
+
+/* 主要按钮样式 */
+.generate-action .btn-primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  box-shadow: 
+    0 4px 16px rgba(59, 130, 246, 0.3),
+    0 2px 8px rgba(59, 130, 246, 0.2);
+}
+
+.generate-action .btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 8px 25px rgba(59, 130, 246, 0.4),
+    0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* 次要按钮样式 */
+.generate-action .btn-secondary {
+  background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+  box-shadow: 
+    0 4px 16px rgba(100, 116, 139, 0.2),
+    0 2px 8px rgba(100, 116, 139, 0.15);
+}
+
+.generate-action .btn-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 8px 25px rgba(100, 116, 139, 0.3),
+    0 4px 12px rgba(100, 116, 139, 0.2);
+}
+
+/* ===========================================
+   用户邮箱列表区域
+   =========================================== */
+.user-mailboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 400px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 8px;
+}
+
+.user-mailboxes::-webkit-scrollbar {
+  width: 6px;
+}
+
+.user-mailboxes::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 3px;
+}
+
+.user-mailboxes::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.user-mailboxes::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.user-mailbox-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(8px);
+  position: relative;
+}
+
+.user-mailbox-item:hover {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(59, 130, 246, 0.3);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.15);
+  transform: translateY(-2px);
+}
+
+.user-mailbox-item:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+}
+
+/* 点击指示器 */
+.user-mailbox-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(139, 92, 246, 0.05));
+  border-radius: 12px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.user-mailbox-item:hover::before {
+  opacity: 1;
+}
+
+/* 邮箱内容区域 */
+.mailbox-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.mailbox-content .addr {
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 14px;
+}
+
+.mailbox-content .time {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* 邮箱操作按钮区域 */
+.mailbox-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+}
+
+/* 邮箱操作按钮样式 */
+.mailbox-actions .btn {
+  height: 32px;
+  width: 32px;
+  padding: 0;
+  font-size: 14px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mailbox-actions .btn-ghost {
+  background: rgba(100, 116, 139, 0.1);
+  border: 1px solid rgba(100, 116, 139, 0.2);
+  color: #475569;
+}
+
+.mailbox-actions .btn-ghost:hover {
+  background: rgba(100, 116, 139, 0.2);
+  transform: scale(1.1);
+  color: #334155;
+}
+
+.mailbox-actions .btn-danger {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border: none;
+  color: white;
+}
+
+.mailbox-actions .btn-danger:hover {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  transform: scale(1.1);
+}
+
+/* ===========================================
+   右侧区域 - 用户列表
+   =========================================== */
+.admin-right {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+/* 卡片头部布局 */
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 28px 0;
+}
+
+.card-header h2 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* 用户数量显示 */
+.users-count {
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 500;
+  background: rgba(100, 116, 139, 0.1);
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-left: 8px;
+}
+
+/* 邮箱数量显示 */
+.mailboxes-count {
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 500;
+  background: rgba(100, 116, 139, 0.1);
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-left: 8px;
+}
+
+.card-header .btn {
+  height: 40px;
+  padding: 0 16px;
+	font-size: 14px;
+  font-weight: 600;
+  border-radius: 10px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* ===========================================
+   表格设计 - 现代化数据展示
+   =========================================== */
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(8px);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.06),
+    0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.table thead th {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(139, 92, 246, 0.08) 100%);
+  color: #1e293b;
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 14px 8px;
+  border-bottom: 2px solid rgba(59, 130, 246, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 左侧用户列表表头优化 */
+.admin-left .table thead th {
+  font-size: 11px;
+  padding: 10px 6px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(139, 92, 246, 0.12) 100%);
+  border-bottom: 2px solid rgba(59, 130, 246, 0.2);
+}
+
+/* 发件列表头特殊样式 */
+.admin-left .table thead th.col-can {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+/* 用户名列表头居中 */
+.table thead th.col-username {
+  text-align: center;
+}
+.admin-left .table thead th.col-username {
+  text-align: center;
+}
+
+/* 角色列表头居中 - 参考发件列的居中方式 */
+.table thead th.col-role {
+  text-align: center;
+}
+.admin-left .table thead th.col-role {
+  text-align: center;
+}
+
+.table tbody td {
+  padding: 12px 8px;
+  font-size: 13px;
+  color: #334155;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  font-weight: 500;
+  vertical-align: middle;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 角色列需要特殊处理，覆盖通用样式 */
+.table tbody td.col-role {
+  overflow: visible;
+  white-space: normal;
+  text-align: center; /* 添加居中样式 */
+}
+
+/* 确保表格行有统一的高度 */
+.admin-left .table tbody tr {
+  height: 40px;
+}
+
+/* 确保所有表格单元格有统一的高度 */
+.admin-left .table tbody td {
+  min-height: 40px;
+  height: 40px;
+  line-height: 1.2;
+  vertical-align: middle;
+}
+
+
+.table tbody tr {
+  transition: all 0.2s ease;
+}
+
+.table tbody tr:hover {
+  background: rgba(59, 130, 246, 0.04);
+}
+
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* 表格列宽优化 - 紧凑的左侧用户列表布局（隐藏ID列）*/
+.col-id { 
+  width: 0;
+  display: none; /* 隐藏ID列节约空间 */
+}
+.col-username { 
+  width: 22%; 
+  font-weight: 600;
+  color: #1e293b;
+  cursor: help; /* 鼠标悬停时显示help图标，提示有完整信息 */
+  text-align: center; /* 添加居中样式，与其他列保持一致 */
+}
+/* 角色列基础样式 - 参考发件列的居中方式 */
+.col-role { 
+  width: 15%; 
+  font-size: 12px;
+  text-align: center;
+  font-weight: 600;
+}
+
+/* 强制角色列居中 - 使用简单的文本居中方式 */
+.admin-page .admin-left .table tbody td.col-role {
+  /* 覆盖所有通用表格样式 */
+  overflow: visible !important;
+  white-space: normal !important;
+  vertical-align: middle !important;
+  
+  /* 使用传统的文本居中方式 */
+  text-align: center !important;
+  
+  /* 设置尺寸 */
+  padding: 8px 4px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+}
+.col-mailbox { 
+  width: 19%; 
+  font-size: 12px;
+  text-align: center;
+}
+.col-can { 
+  width: 14%; 
+  text-align: center; 
+  font-size: 12px;
+  font-weight: 600;
+}
+.col-created { 
+  width: 0; 
+  display: none; 
+}
+.col-actions { 
+  width: 30%; 
+}
+
+/* 用户操作按钮组 - 优化布局 */
+.user-actions {
+  display: flex;
+  gap: 5px;
+  justify-content: center;
+  flex-wrap: nowrap;
+}
+
+.user-actions .btn {
+  height: 28px;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 5px;
+  transition: all 0.2s ease;
+  min-width: 42px;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-actions .btn-ghost {
+  background: rgba(100, 116, 139, 0.1);
+  border: 1px solid rgba(100, 116, 139, 0.2);
+  color: #475569;
+}
+
+.user-actions .btn-ghost:hover {
+  background: rgba(100, 116, 139, 0.15);
+  transform: translateY(-1px);
+}
+
+.user-actions .btn-secondary {
+  background: linear-gradient(135deg, #64748b, #475569);
+  color: white;
+  border: none;
+}
+
+.user-actions .btn-secondary:hover {
+  background: linear-gradient(135deg, #475569, #334155);
 	transform: translateY(-1px);
 }
 
-/* 帮助文本样式 */
-.help-text{
-	font-size: 12px;
-	color: var(--muted2);
-	margin-top: 4px;
-	line-height: 1.4;
+/* 状态徽章 */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+  color: #475569;
+  border: 1px solid rgba(100, 116, 139, 0.15);
 }
 
-/* 模态框风格统一化 */
-.admin-page .modal-card{
+/* 用户列表专用样式 */
+.admin-left .table tbody td {
+  font-size: 12px;
+}
+
+
+.admin-left .table tbody tr:hover {
+  background: rgba(59, 130, 246, 0.06);
+  transform: translateX(2px);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+}
+
+/* 当前选中的用户行高亮 */
+.admin-left .table tbody tr.active {
+  background: rgba(59, 130, 246, 0.1);
+  border-left: 3px solid #3b82f6;
+}
+
+/* 紧凑表格滚动区域 */
+.admin-left .table-container {
+  max-height: 380px;
+  overflow-y: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+/* 确保表头始终可见 */
+.admin-left .table {
+  position: relative;
+}
+
+.admin-left .table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* 分页控件样式 */
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 0 0 12px 12px;
+}
+
+.pagination-info {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pagination-controls .btn {
+  height: 28px;
+  padding: 0 12px;
+  font-size: 11px;
+  border-radius: 6px;
+}
+
+.pagination-controls .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: rgba(100, 116, 139, 0.05);
+  color: #94a3b8;
+}
+
+.pagination-controls #page-info {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  min-width: 40px;
+  text-align: center;
+}
+
+.admin-left .table-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.admin-left .table-container::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 3px;
+}
+
+.admin-left .table-container::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.admin-left .table-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* 邮箱数量样式优化 */
+.admin-left .col-mailbox {
+  font-weight: 600;
+  color: #3b82f6;
+}
+
+/* 能否发件状态样式 */
+.admin-left .col-can {
+  font-weight: 600;
+}
+
+.admin-left .can-send-yes {
+  color: #10b981;
+  font-weight: 700;
+  background: rgba(16, 185, 129, 0.1);
+  border-radius: 4px;
+  padding: 2px 4px;
+}
+
+.admin-left .can-send-no {
+  color: #ef4444;
+  font-weight: 700;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 4px;
+  padding: 2px 4px;
+}
+
+/* 角色样式 - 使用颜色区分角色类型，保持居中对齐 */
+.admin-page .admin-left .table tbody td.col-role .role-admin,
+.admin-page .admin-left .table tbody td.col-role .role-user {
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  padding: 4px 8px !important;
+  font-size: 11px !important;
+  display: block !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  min-width: auto !important;
+  height: auto !important;
+  line-height: 1.2 !important;
+  margin: 0 auto !important;
+  width: fit-content !important;
+  max-width: 100% !important;
+}
+
+/* 高级角色 - 蓝紫色主题 */
+.admin-page .admin-left .table tbody td.col-role .role-admin {
+  color: #3b82f6 !important;
+  background: rgba(59, 130, 246, 0.1) !important;
+  border: 1px solid rgba(59, 130, 246, 0.2) !important;
+  transition: all 0.2s ease !important;
+}
+
+.admin-page .admin-left .table tbody td.col-role .role-admin:hover {
+  background: rgba(59, 130, 246, 0.15) !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* 普通角色 - 灰色主题 */
+.admin-page .admin-left .table tbody td.col-role .role-user {
+  color: #64748b !important;
+  background: rgba(100, 116, 139, 0.1) !important;
+  border: 1px solid rgba(100, 116, 139, 0.2) !important;
+  transition: all 0.2s ease !important;
+}
+
+.admin-page .admin-left .table tbody td.col-role .role-user:hover {
+  background: rgba(100, 116, 139, 0.15) !important;
+  border-color: rgba(100, 116, 139, 0.3) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* ===========================================
+   表单控件样式
+   =========================================== */
+.admin-page .input,
+.admin-page .select,
+.admin-page textarea {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  border: 1.5px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 14px;
+  color: #1e293b;
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  resize: vertical;
+  font-weight: 500;
+}
+
+.admin-page .input::placeholder,
+.admin-page textarea::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.admin-page .input:focus,
+.admin-page .select:focus,
+.admin-page textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 
+    0 0 0 4px rgba(59, 130, 246, 0.1),
+    0 4px 16px rgba(59, 130, 246, 0.15);
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.95);
+}
+
+/* 帮助文本 */
+.help-text {
+	font-size: 12px;
+  color: #64748b;
+  margin-top: 6px;
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+/* ===========================================
+   模态框设计
+   =========================================== */
+.admin-page .modal-card {
 	background: rgba(255, 255, 255, 0.95);
-	border: 1px solid var(--border-light);
-	border-radius: var(--radius-lg);
-	box-shadow: var(--shadow-lg);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  box-shadow: 
+    0 20px 60px rgba(0, 0, 0, 0.15),
+    0 8px 25px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
   position: relative;
   display: flex;
   flex-direction: column;
-}
-.admin-page .modal-header{
-	background: linear-gradient(135deg, rgba(59,130,246,.14), rgba(139,92,246,.14));
-	border-bottom: 1px solid var(--border-light);
-}
-.user-chip{ margin-left:10px; padding:4px 10px; border-radius:999px; background: var(--primary-light); color: var(--primary); font-weight:700; font-size:13px; border:1px solid rgba(59,130,246,.25); }
-.admin-page .modal-footer{
-	border-top: 1px solid var(--border-light);
-  padding: 12px 16px;
-  background: rgba(255,255,255,.9);
+  backdrop-filter: blur(20px);
+  overflow: hidden;
 }
 
-/* 使内容区域自适应，按钮总是可见 */
-.admin-page .modal-body{ flex: 1 1 auto; overflow-y: auto; }
+.admin-page .modal-header {
+  background: linear-gradient(135deg, 
+    rgba(59, 130, 246, 0.08) 0%, 
+    rgba(139, 92, 246, 0.06) 100%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  padding: 24px 28px;
+  border-radius: 20px 20px 0 0;
+}
 
-/* 二级页面表单栅格布局 */
-.form-grid{ display:grid; grid-template-columns: 1fr; gap: 14px; }
-@media(min-width: 768px){ .form-grid{ grid-template-columns: 1fr 1fr; } }
-.col-span-2{ grid-column: 1 / -1; }
-.field-card{ display:flex; align-items:center; gap:10px; padding:12px 14px; background: var(--card-glass); border:1px solid var(--border-glass); border-radius: var(--radius-sm); }
-.field-card label{ display:flex; align-items:center; gap:8px; font-weight:600; color: var(--text); }
-.hint{ font-size:12px; color: var(--muted2); }
+.admin-page .modal-header > div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 
-/* 底部并排的切换开关样式 */
-.checks-row{ display:flex; gap:16px; flex-wrap:wrap; margin-top:14px; }
-/* 自定义确认框复用全局 confirm-card 样式（app.css 已有） */
-.confirm-card .confirm-body{ text-align:center; }
-.toggle{ display:inline-flex; align-items:center; gap:8px; background: var(--card-glass); border:1px solid var(--border-glass); padding:8px 12px; border-radius: 999px; cursor:pointer; user-select:none; }
-.toggle input{ appearance:none; width:18px; height:18px; border:1px solid var(--border-glass); border-radius:4px; background:#fff; position:relative; }
-.toggle input:checked{ background: var(--primary); border-color: var(--primary); }
-.toggle input:checked::after{ content:'✓'; position:absolute; top:-2px; left:3px; font-size:14px; color:#fff; }
-.toggle span{ font-weight:600; color: var(--text); }
+.admin-page .modal-header .modal-icon {
+  font-size: 24px;
+}
 
-.admin-left{
+.admin-page .modal-header span:not(.modal-icon) {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.admin-page .modal-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 28px;
+}
+
+.admin-page .modal-footer {
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  padding: 20px 28px;
+  background: rgba(248, 250, 252, 0.8);
+  border-radius: 0 0 20px 20px;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+/* 表单布局 */
+.config-form {
 	display: flex;
 	flex-direction: column;
-	gap: 16px;
+  gap: 20px;
 }
 
-.admin-right{
+.config-item {
 	display: flex;
 	flex-direction: column;
-	gap: 16px;
-	min-width: 0; /* 防止表格溢出挤压布局 */
+  gap: 8px;
 }
 
-@media (max-width: 768px){
-	.admin-container{
+.config-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 4px;
+}
+
+/* 表单网格 */
+.form-grid {
+  display: grid;
 		grid-template-columns: 1fr;
-		padding: 20px;
-	}
+  gap: 20px;
 }
 
-/* 细化管理页样式 */
-.table th,.table td{ padding:8px; border-bottom:1px solid var(--border-light); font-size:14px; }
-.table{ width:100%; border-collapse:collapse; table-layout: fixed; }
-.table th, .table td{ white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.table thead th{ position: sticky; top: 0; background: rgba(255,255,255,.9); backdrop-filter: blur(6px); }
-.user-actions{ display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 32px; gap:8px; }
-.user-actions .btn{ width: 100%; justify-content:center; }
-.badge{ display:inline-flex; padding:2px 6px; border-radius:6px; font-size:12px; background:var(--surface); color:var(--text-secondary) }
-.user-mailboxes{ display:flex; flex-direction:column; gap:8px; max-height:320px; overflow-y:auto; overflow-x:hidden; }
-.user-mailbox-item{ display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border:1px solid var(--border-light); border-radius:8px; position: relative; }
-.user-mailbox-item .addr{ font-weight:500; max-width:60%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.user-mailbox-item .time{ color:#64748b; font-size:12px }
+@media (min-width: 900px) {
+  .form-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
 
-/* 悬停显示完整邮箱 + 复制按钮 */
-.user-mailbox-item .mailbox-tooltip{ position:absolute; left:10px; top:50%; transform: translateY(-50%); background: rgba(17,24,39,.95); color:#fff; border-radius:8px; padding:6px 8px; white-space:nowrap; border:1px solid rgba(255,255,255,.1); box-shadow: 0 10px 20px rgba(0,0,0,.18); z-index:999; align-items:center; gap:8px; opacity:0; visibility:hidden; transition: opacity .15s ease, visibility .15s ease; pointer-events:none; }
-.user-mailbox-item:hover .mailbox-tooltip{ opacity:1; visibility:visible; pointer-events:auto; }
-.user-mailbox-item .mailbox-tooltip .btn{ height:28px; padding:0 8px; font-size:12px; }
+.col-span-2 {
+  grid-column: 1 / -1;
+}
 
-/* 管理页卡片标题行（标题在左，操作在右） */
-.card-header{
+/* 切换开关行 */
+.checks-row {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  padding: 12px 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(8px);
+}
+
+.toggle:hover {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(59, 130, 246, 0.2);
+  transform: translateY(-1px);
+}
+
+.toggle input {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.toggle input:checked {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  border-color: #3b82f6;
+}
+
+.toggle input:checked::after {
+  content: '✓';
+  position: absolute;
+  top: -1px;
+  left: 4px;
+  font-size: 14px;
+  color: #fff;
+  font-weight: bold;
+}
+
+.toggle span {
+  font-weight: 600;
+  color: #374151;
+  font-size: 14px;
+}
+
+/* 用户标签 */
+.user-chip {
+  margin-left: 12px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.08));
+  color: #3b82f6;
+  font-weight: 700;
+  font-size: 13px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+/* ===========================================
+   加载指示器
+   =========================================== */
+.loading-indicator {
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
-	gap: 12px;
-	margin: 0 0 24px 0;
+  justify-content: center;
+  gap: 12px;
+		padding: 20px;
+  color: #64748b;
+  font-weight: 500;
 }
-.card-header h2{ margin:0; }
 
-/* 左侧“创建用户 / 分配邮箱”按钮的上下间距 */
-.generate-action + .generate-action{ margin-top:12px; }
+.loading-indicator .spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(59, 130, 246, 0.2);
+  border-top: 2px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
 
-/* 用户列表列宽优化 */
-.col-id{ width:56px; }
-.col-username{ width:18%; }
-.col-role{ width:12%; }
-.col-mailbox{ width:18%; }
-.col-can{ width:12%; }
-.col-created{ width:24%; }
-.col-actions{ width:20%; }
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
 
+/* ===========================================
+   响应式设计
+   =========================================== */
+@media (max-width: 1200px) {
+  .admin-container {
+    max-width: 1000px;
+    padding: 28px 20px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .admin-container {
+    grid-template-columns: 2fr 3fr;
+    gap: 20px;
+    padding: 24px 20px;
+    max-width: 900px;
+  }
+}
+
+@media (max-width: 900px) {
+  .admin-container {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 20px 16px;
+    max-width: none;
+  }
+
+  .admin-page .card {
+    padding: 20px;
+    border-radius: 16px;
+  }
+
+  .user-actions {
+    flex-direction: row;
+    gap: 4px;
+  }
+
+  .user-actions .btn {
+    flex: 1;
+    font-size: 11px;
+    padding: 0 8px;
+    height: 30px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .checks-row {
+    flex-direction: column;
+	gap: 12px;
+  }
+
+  .table {
+    font-size: 12px;
+  }
+
+  .table thead th,
+  .table tbody td {
+    padding: 10px 6px;
+  }
+  
+  /* 移动端表头优化 */
+  .admin-left .table thead th {
+    font-size: 10px;
+    padding: 8px 4px;
+  }
+  
+  /* 移动端显示创建时间列 */
+  .col-created {
+    width: 0;
+    display: none; /* 移动端仍然隐藏创建时间列以节省空间 */
+  }
+  
+  /* 移动端调整列宽（隐藏ID列）*/
+  .col-id { width: 0; display: none; }
+  .col-username { width: 20%; font-size: 11px; text-align: center; }
+  .col-role { width: 14%; font-size: 10px; text-align: center; }
+  .col-mailbox { width: 18%; font-size: 10px; text-align: center; }
+  .col-can { width: 12%; font-size: 10px; font-weight: 600; text-align: center; }
+  .col-actions { width: 36%; }
+  
+  /* 移动端表格容器 */
+  .admin-left .table-container {
+    max-height: 300px;
+  }
+  
+  /* 移动端按钮优化 */
+  .admin-left .user-actions {
+    gap: 5px;
+  }
+  
+  .admin-left .user-actions .btn {
+    height: 26px;
+    font-size: 10px;
+    padding: 0 6px;
+    min-width: 38px;
+    border-radius: 4px;
+  }
+  
+  /* 移动端按钮行样式 */
+  .generate-action-row {
+    gap: 8px;
+  }
+  
+  .generate-action-row .btn {
+    font-size: 14px;
+    height: 46px;
+  }
+  
+  /* 移动端邮箱列表优化 */
+  .user-mailbox-item {
+    padding: 10px 12px;
+  }
+  
+  .mailbox-content .addr {
+    font-size: 13px;
+  }
+  
+  .mailbox-content .time {
+    font-size: 10px;
+  }
+  
+  .mailbox-actions {
+    gap: 4px;
+  }
+  
+  .mailbox-actions .btn {
+    height: 28px;
+    width: 28px;
+    font-size: 12px;
+  }
+  
+  /* 移动端分页优化 */
+  .pagination-container {
+    padding: 8px 12px;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .pagination-info {
+    font-size: 11px;
+    text-align: center;
+  }
+  
+  .pagination-controls .btn {
+    height: 26px;
+    padding: 0 8px;
+    font-size: 10px;
+  }
+  
+  .pagination-controls #page-info {
+    font-size: 11px;
+  }
+  
+  /* 移动端角色样式 - 使用颜色区分角色类型，保持居中对齐 */
+  .admin-page .admin-left .table tbody td.col-role .role-admin,
+  .admin-page .admin-left .table tbody td.col-role .role-user {
+    font-weight: 600 !important;
+    border-radius: 6px !important;
+    padding: 3px 6px !important;
+    font-size: 10px !important;
+    display: block !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    min-width: auto !important;
+    height: auto !important;
+    line-height: 1.2 !important;
+    margin: 0 auto !important;
+    width: fit-content !important;
+    max-width: 100% !important;
+  }
+
+  /* 移动端高级角色 - 蓝紫色主题 */
+  .admin-page .admin-left .table tbody td.col-role .role-admin {
+    color: #3b82f6 !important;
+    background: rgba(59, 130, 246, 0.1) !important;
+    border: 1px solid rgba(59, 130, 246, 0.2) !important;
+    transition: all 0.2s ease !important;
+  }
+
+  .admin-page .admin-left .table tbody td.col-role .role-admin:hover {
+    background: rgba(59, 130, 246, 0.15) !important;
+    border-color: rgba(59, 130, 246, 0.3) !important;
+  }
+
+  /* 移动端普通角色 - 灰色主题 */
+  .admin-page .admin-left .table tbody td.col-role .role-user {
+    color: #64748b !important;
+    background: rgba(100, 116, 139, 0.1) !important;
+    border: 1px solid rgba(100, 116, 139, 0.2) !important;
+    transition: all 0.2s ease !important;
+  }
+
+  .admin-page .admin-left .table tbody td.col-role .role-user:hover {
+    background: rgba(100, 116, 139, 0.15) !important;
+    border-color: rgba(100, 116, 139, 0.3) !important;
+  }
+  
+  /* 移动端角色列居中 - 使用简单的文本居中方式 */
+  .admin-page .admin-left .table tbody td.col-role {
+    /* 覆盖通用表格样式 */
+    overflow: visible !important;
+    white-space: normal !important;
+    vertical-align: middle !important;
+    
+    /* 使用传统的文本居中方式 */
+    text-align: center !important;
+    
+    /* 移动端尺寸 */
+    padding: 6px 2px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+  }
+  
+  /* 移动端表格行高度 */
+  .admin-left .table tbody tr {
+    height: 36px;
+  }
+  
+  /* 移动端所有单元格高度 */
+  .admin-left .table tbody td {
+    height: 36px;
+    min-height: 36px;
+  }
+  
+  /* 移动端用户数量显示 */
+  .users-count {
+    font-size: 12px;
+    padding: 1px 6px;
+    margin-left: 4px;
+  }
+
+  /* 移动端邮箱数量显示 */
+  .mailboxes-count {
+    font-size: 12px;
+    padding: 1px 6px;
+    margin-left: 4px;
+  }
+  
+  /* 移动端卡片标题换行处理 */
+  .card-header h2 {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+}
+
+/* ===========================================
+   动画和过渡效果
+   =========================================== */
+* {
+  scroll-behavior: smooth;
+}
+
+.admin-page .card,
+.admin-page .btn,
+.admin-page .input,
+.admin-page .select,
+.admin-page textarea,
+.user-mailbox-item,
+.table tbody tr {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 页面进入动画 */
+.admin-container {
+  animation: fadeInUp 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 卡片交错动画 */
+.admin-left .card:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.admin-left .card:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.admin-right .card {
+  animation-delay: 0.3s;
+}

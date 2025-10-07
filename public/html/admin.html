@@ -40,12 +40,18 @@
   <body class="admin-page">
     <div class="topbar">
       <div class="brand">
-        <span class="brand-icon">🛠️</span>
+        <span class="brand-icon">🚀</span>
         <span>iDing's临时邮箱 - 用户管理</span>
       </div>
       <div class="nav-actions">
-        <button id="back" class="btn btn-ghost" title="返回邮箱">返回邮箱</button>
-        <button id="logout" class="btn btn-secondary" title="退出登录">退出登录</button>
+        <button id="back" class="btn btn-ghost" title="返回邮箱">
+          <span>📧</span>
+          <span>返回邮箱</span>
+        </button>
+        <button id="logout" class="btn btn-secondary" title="退出登录">
+          <span>👋</span>
+          <span>退出登录</span>
+        </button>
       </div>
     </div>
     <div id="demo-banner" class="demo-banner" style="display:none">当前为演示管理页：所有改动仅在浏览器会话中模拟</div>
@@ -53,44 +59,87 @@
       <div class="admin-left">
         <div class="card">
           <h2><span class="card-icon">👤</span><span>用户管理</span></h2>
-          <div class="generate-action"><button id="u-open" class="btn btn-primary">创建用户</button></div>
-          <div class="generate-action"><button id="a-open" class="btn btn-primary">分配邮箱</button></div>
+          <div class="generate-action">
+            <button id="u-open" class="btn btn-primary">
+              <span>➕</span>
+              <span>创建用户</span>
+            </button>
+          </div>
+          <div class="generate-action generate-action-row">
+            <button id="unassign-open" class="btn btn-secondary">
+              <span>📭</span>
+              <span>取消分配</span>
+            </button>
+            <button id="a-open" class="btn btn-primary">
+              <span>📬</span>
+              <span>分配邮箱</span>
+            </button>
+          </div>
         </div>
    
         <div class="card">
-          <h2><span class="card-icon">📦</span><span>用户的邮箱列表</span></h2>
-          <div id="user-mailboxes-loading" class="loading-indicator" style="margin: 4px 0 8px 0; display:none">
-            <div class="spinner"></div>
-            <span>加载中…</span>
-          </div>
-          <div id="user-mailboxes"></div>
-        </div>
-      </div>
-      <div class="admin-right">
-        <div class="card">
           <div class="card-header">
-            <h2><span class="card-icon">📋</span><span>用户列表</span></h2>
-            <button id="users-refresh" class="btn btn-ghost btn-sm" title="刷新用户列表">刷新</button>
+            <h2><span class="card-icon">📋</span><span>用户列表</span><span id="users-count" class="users-count">（0 用户）</span></h2>
+            <button id="users-refresh" class="btn btn-ghost btn-sm" title="刷新用户列表">
+              <span>🔄</span>
+              <span>刷新</span>
+            </button>
           </div>
           <div id="users-loading" class="loading-indicator" style="margin: 4px 0 8px 0">
             <div class="spinner"></div>
             <span>加载中…</span>
           </div>
-          <div style="overflow:auto; max-height: 420px">
+          <div class="table-container">
             <table class="table">
               <thead>
                 <tr>
-                  <th class="col-id" style="text-align:left;padding:8px;border-bottom:1px solid var(--border-light)">ID</th>
-                  <th class="col-username" style="text-align:left;padding:8px;border-bottom:1px solid var(--border-light)">用户名</th>
-                  <th class="col-role" style="text-align:left;padding:8px;border-bottom:1px solid var(--border-light)">角色</th>
-                  <th class="col-mailbox" style="text-align:left;padding:8px;border-bottom:1px solid var(--border-light)">邮箱数量</th>
-                  <th class="col-can" style="text-align:left;padding:8px;border-bottom:1px solid var(--border-light)">能否发件</th>
-                  <th class="col-created" style="text-align:left;padding:8px;border-bottom:1px solid var(--border-light)">创建时间</th>
-                  <th class="col-actions" style="text-align:left;padding:8px;border-bottom:1px solid var(--border-light)">操作</th>
+                  <th class="col-id">ID</th>
+                  <th class="col-username">用户名</th>
+                  <th class="col-role">角色</th>
+                  <th class="col-mailbox">邮箱数量</th>
+                  <th class="col-can">发件</th>
+                  <th class="col-created">创建时间</th>
+                  <th class="col-actions">操作</th>
                 </tr>
               </thead>
               <tbody id="users-tbody"></tbody>
             </table>
+          </div>
+          <div class="pagination-container" id="users-pagination" style="display:none">
+            <div class="pagination-info">
+              <span id="pagination-text">显示 1-50 条，共 0 条</span>
+            </div>
+            <div class="pagination-controls">
+              <button id="prev-page" class="btn btn-ghost btn-sm" disabled>上一页</button>
+              <span id="page-info">1 / 1</span>
+              <button id="next-page" class="btn btn-ghost btn-sm" disabled>下一页</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="admin-right">
+        <div class="card">
+          <div class="card-header">
+            <h2><span class="card-icon">📦</span><span>用户的邮箱列表</span><span id="mailboxes-count" class="mailboxes-count">（0 邮箱）</span></h2>
+            <button id="mailboxes-refresh" class="btn btn-ghost btn-sm" title="刷新邮箱列表" style="display:none">
+              <span>🔄</span>
+              <span>刷新</span>
+            </button>
+          </div>
+          <div id="user-mailboxes-loading" class="loading-indicator" style="margin: 4px 0 8px 0; display:none">
+            <div class="spinner"></div>
+            <span>加载中…</span>
+          </div>
+          <div id="user-mailboxes"></div>
+          <div class="pagination-container" id="mailboxes-pagination" style="display:none">
+            <div class="pagination-info">
+              <span id="mailboxes-pagination-text">显示 1-20 条，共 0 条</span>
+            </div>
+            <div class="pagination-controls">
+              <button id="mailboxes-prev-page" class="btn btn-ghost btn-sm" disabled>上一页</button>
+              <span id="mailboxes-page-info">1 / 1</span>
+              <button id="mailboxes-next-page" class="btn btn-ghost btn-sm" disabled>下一页</button>
+            </div>
           </div>
         </div>
       </div>
@@ -101,7 +150,7 @@
         <div class="modal-card">
           <div class="modal-header">
             <div>
-              <span class="modal-icon">🛠️</span>
+              <span class="modal-icon">✏️</span>
               <span>编辑用户</span>
               <span id="edit-user-display" class="user-chip"></span>
             </div>
@@ -140,7 +189,7 @@
         <div class="modal-card confirm-card">
           <div class="modal-header confirm-header">
             <div>
-              <span class="modal-icon">⚠️</span>
+              <span class="modal-icon">🔔</span>
               <span>确认操作</span>
             </div>
             <button id="admin-confirm-close" class="close">✕</button>
@@ -202,8 +251,35 @@
           </div>
         </div>
       </div>
+
+      <div class="modal" id="unassign-modal">
+        <div class="modal-card">
+          <div class="modal-header">
+            <div>
+              <span class="modal-icon">📬</span>
+              <span>取消分配邮箱</span>
+            </div>
+            <button id="unassign-close" class="close">✕</button>
+          </div>
+          <div class="modal-body">
+            <div class="config-form">
+              <div class="config-item"><label class="config-label">用户名</label><input id="unassign-name" class="input" placeholder="username" /></div>
+              <div class="config-item">
+                <label class="config-label">邮箱地址</label>
+                <textarea id="unassign-mail" class="input" placeholder="foo@example.com&#10;bar@example.com&#10;baz@example.com" rows="4"></textarea>
+                <div class="help-text">每行一个邮箱地址，支持批量取消分配</div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;padding:12px 16px">
+            <button id="unassign-cancel" class="btn btn-secondary">取消</button>
+            <button id="unassign-submit" class="btn btn-danger">取消分配</button>
+          </div>
+        </div>
+      </div>
     </div>
     <div id="footer-slot"></div>
+    <script src="/js/toast-utils.js"></script>
     <script type="module" src="/js/admin.js"></script>
     <script>
       // 动态加载公共 footer 模板，并在宿主页面设置年份，确保执行

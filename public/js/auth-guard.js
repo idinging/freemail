@@ -57,7 +57,7 @@ try{
   function hasRedirectParam(){
     try{ const u = new URL(location.href); return !!u.searchParams.get('redirect'); }catch(_){ return false; }
   }
-  function pollAuth(maxWaitMs = 1500, intervalMs = 150){
+  function pollAuth(maxWaitMs = 2000, intervalMs = 200){
     const target = getRedirectTarget();
     const shouldWait = hasRedirectParam();
     const start = Date.now();
@@ -65,9 +65,9 @@ try{
     try{ const u = new URL(location.href); isForced = (u.searchParams.get('force') === '1'); }catch(_){ }
     (async function attempt(){
       try{
-        // 为 /api/session 设置更短超时，加快验证速度
+        // 延长超时时间，减少误判
         const controller = new AbortController();
-        const tid = setTimeout(()=>{ try{ controller.abort(); }catch(_){ } }, 400);
+        const tid = setTimeout(()=>{ try{ controller.abort(); }catch(_){ } }, 1500); // 从400ms增加到1500ms
         const response = await fetch('/api/session', { method: 'GET', headers: { 'Cache-Control': 'no-cache' }, signal: controller.signal });
         clearTimeout(tid);
         if (response.ok){
@@ -83,8 +83,16 @@ try{
         }
       }catch(_){ }
       // 强制模式：持续等待，但减少等待时间
-      if (isForced && (Date.now() - start) < 5000){ setTimeout(attempt, intervalMs); return; }
+      if (isForced && (Date.now() - start) < 6000){ setTimeout(attempt, intervalMs); return; }
       if (shouldWait && (Date.now() - start) < maxWaitMs){ setTimeout(attempt, intervalMs); return; }
+      // 在跳转到登录页前，先检查cookie并清理
+      try{
+        var hasCookie = document.cookie.split(';').some(function(c){ return c.trim().indexOf('iding-session=') === 0; });
+        if (hasCookie) {
+          // 如果有cookie但验证失败，说明cookie可能已过期，清除它
+          document.cookie = 'iding-session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+        }
+      }catch(_){}
       // 默认回登录页
       window.location.replace('/html/login.html');
     })();
@@ -96,15 +104,50 @@ try{
       if (location.pathname === '/login' || location.pathname === '/html/login.html'){
         var hasToken = document.cookie.split(';').some(function(c){ return c.trim().indexOf('iding-session=') === 0; });
         if (hasToken){
-          // 立即重定向到首页，尽量保留来源页 hash
-          var target = '/';
-          try{
-            var ph = sessionStorage.getItem('mf:preservedHash') || '';
-            if (!ph && location.hash) ph = location.hash;
-            if (ph) target += ph;
-          }catch(_){ }
-          location.replace(target);
-          return true;
+          // 如果是从其他页面跳转过来的（有referrer），先验证cookie是否真的有效
+          // 避免无效cookie导致的循环跳转
+          if (document.referrer) {
+            // 异步验证cookie有效性
+            (async function(){
+              try{
+                const controller = new AbortController();
+                const tid = setTimeout(()=>{ try{ controller.abort(); }catch(_){ } }, 1500);
+                const r = await fetch('/api/session', { 
+                  method: 'GET', 
+                  headers: { 'Cache-Control': 'no-cache' }, 
+                  signal: controller.signal,
+                  credentials: 'include'
+                });
+                clearTimeout(tid);
+                if (r && r.ok) {
+                  // cookie有效，跳转
+                  var target = '/';
+                  try{
+                    var ph = sessionStorage.getItem('mf:preservedHash') || '';
+                    if (!ph && location.hash) ph = location.hash;
+                    if (ph) target += ph;
+                  }catch(_){ }
+                  location.replace(target);
+                } else {
+                  // cookie无效，清除它
+                  document.cookie = 'iding-session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                }
+              }catch(_){
+                // 验证失败，保持在登录页
+              }
+            })();
+            return true;
+          } else {
+            // 直接访问登录页且有cookie，立即跳转
+            var target = '/';
+            try{
+              var ph = sessionStorage.getItem('mf:preservedHash') || '';
+              if (!ph && location.hash) ph = location.hash;
+              if (ph) target += ph;
+            }catch(_){ }
+            location.replace(target);
+            return true;
+          }
         }
       }
     }catch(_){ }
@@ -133,8 +176,8 @@ try{
           const quickCheck = async () => {
             try{
               const controller = new AbortController();
-              const tid = setTimeout(()=>{ try{ controller.abort(); }catch(_){ } }, 500);
-              const r = await fetch('/api/session', { method:'GET', headers:{ 'Cache-Control':'no-cache' }, signal: controller.signal });
+              const tid = setTimeout(()=>{ try{ controller.abort(); }catch(_){ } }, 1500); // 从500ms延长到1500ms
+              const r = await fetch('/api/session', { method:'GET', headers:{ 'Cache-Control':'no-cache' }, signal: controller.signal, credentials: 'include' });
               clearTimeout(tid);
               if (r && r.ok){
                 try{ sessionStorage.setItem('auth_checked','true'); }catch(_){ }
