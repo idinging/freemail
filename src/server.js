@@ -174,29 +174,20 @@ export default {
         toAddrs = resolvedRecipient || toHeader || '';
       }
 
-      // 检测表列，兼容旧结构（content NOT NULL）和新结构
-      let cols = [];
-      try {
-        const info = await DB.prepare('PRAGMA table_info(messages)').all();
-        cols = (info?.results || []).map(r => ({ name: (r.name || r['name']), notnull: r.notnull ? 1 : 0 }));
-      } catch (_) {}
-      const colSet = new Set(cols.map(c => c.name));
-      const requiresContent = cols.some(c => c.name === 'content' && c.notnull === 1);
-
-      const insertCols = ['mailbox_id', 'sender'];
-      const values = [mailboxId, sender];
-      if (colSet.has('to_addrs')) { insertCols.push('to_addrs'); values.push(String(toAddrs || '')); }
-      insertCols.push('subject'); values.push(subject || '(无主题)');
-      if (colSet.has('verification_code')) { insertCols.push('verification_code'); values.push(verificationCode || null); }
-      if (colSet.has('preview')) { insertCols.push('preview'); values.push(preview || null); }
-      if (colSet.has('r2_bucket')) { insertCols.push('r2_bucket'); values.push('mail-eml'); }
-      if (colSet.has('r2_object_key')) { insertCols.push('r2_object_key'); values.push(objectKey || ''); }
-      if (requiresContent || colSet.has('content')) { insertCols.push('content'); values.push(textContent || htmlContent || subject || '(无内容)'); }
-      if (colSet.has('html_content')) { insertCols.push('html_content'); values.push(htmlContent || null); }
-
-      const placeholders = insertCols.map(()=>'?').join(', ');
-      const sql = `INSERT INTO messages (${insertCols.join(', ')}) VALUES (${placeholders})`;
-      await DB.prepare(sql).bind(...values).run();
+      // 直接使用标准列名插入（表结构已在初始化时固定）
+      await DB.prepare(`
+        INSERT INTO messages (mailbox_id, sender, to_addrs, subject, verification_code, preview, r2_bucket, r2_object_key)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        mailboxId,
+        sender,
+        String(toAddrs || ''),
+        subject || '(无主题)',
+        verificationCode || null,
+        preview || null,
+        'mail-eml',
+        objectKey || ''
+      ).run();
     } catch (err) {
       console.error('Email event handling error:', err);
     }

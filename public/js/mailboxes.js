@@ -11,7 +11,9 @@ const els = {
   page: document.getElementById('page'),
   logout: document.getElementById('logout'),
   viewGrid: document.getElementById('view-grid'),
-  viewList: document.getElementById('view-list')
+  viewList: document.getElementById('view-list'),
+  domainFilter: document.getElementById('domain-filter'),
+  loginFilter: document.getElementById('login-filter')
 };
 
 let page = 1;
@@ -26,6 +28,9 @@ let currentView = localStorage.getItem('mf:mailboxes:view') || 'grid';
 let searchTimeout = null;
 let isLoading = false;
 let lastLoadTime = 0;
+
+// 筛选变量
+let availableDomains = []; // 可用的域名列表（从后端获取）
 
 async function api(path){
   const r = await fetch(path, { headers: { 'Cache-Control':'no-cache' } });
@@ -174,8 +179,13 @@ async function load(){
     showLoadingState(true);
     
     const q = (els.q.value || '').trim();
+    const domainFilter = (els.domainFilter.value || '').trim();
+    const loginFilter = (els.loginFilter.value || '').trim();
+    
     const params = new URLSearchParams({ limit: String(PAGE_SIZE), offset: String((page-1)*PAGE_SIZE) });
     if (q) params.set('q', q);
+    if (domainFilter) params.set('domain', domainFilter);
+    if (loginFilter) params.set('can_login', loginFilter === 'allowed' ? 'true' : loginFilter === 'denied' ? 'false' : '');
     
     const r = await api('/api/mailboxes?' + params.toString());
     const data = await r.json();
@@ -254,6 +264,46 @@ function updatePagination() {
   els.page.style.textAlign = 'center';
 }
 
+/**
+ * 从后端加载域名列表
+ */
+async function loadDomains() {
+  try {
+    const r = await api('/api/domains');
+    const domains = await r.json();
+    if (Array.isArray(domains) && domains.length > 0) {
+      availableDomains = domains.sort();
+      updateDomainFilter();
+    }
+  } catch (error) {
+    console.error('加载域名列表失败:', error);
+    // 加载失败不阻塞主流程，仅在控制台输出
+  }
+}
+
+/**
+ * 更新域名筛选下拉框
+ */
+function updateDomainFilter() {
+  if (!els.domainFilter) return;
+  
+  const currentValue = els.domainFilter.value;
+  
+  // 保留"全部域名"选项，添加其他域名选项
+  const options = ['<option value="">全部域名</option>'];
+  availableDomains.forEach(domain => {
+    const selected = currentValue === domain ? 'selected' : '';
+    options.push(`<option value="${domain}" ${selected}>@${domain}</option>`);
+  });
+  
+  els.domainFilter.innerHTML = options.join('');
+  
+  // 恢复之前选中的值
+  if (currentValue && availableDomains.includes(currentValue)) {
+    els.domainFilter.value = currentValue;
+  }
+}
+
 // 防抖搜索函数
 function debouncedSearch() {
   if (searchTimeout) {
@@ -271,6 +321,12 @@ function immediateSearch() {
     clearTimeout(searchTimeout);
     searchTimeout = null;
   }
+  page = 1;
+  load();
+}
+
+// 筛选器变更处理
+function handleFilterChange() {
   page = 1;
   load();
 }
@@ -300,6 +356,15 @@ els.q.addEventListener('keydown', e => {
     immediateSearch();
   } 
 });
+
+// 筛选器事件监听
+if (els.domainFilter) {
+  els.domainFilter.addEventListener('change', handleFilterChange);
+}
+
+if (els.loginFilter) {
+  els.loginFilter.addEventListener('change', handleFilterChange);
+}
 
 els.logout && (els.logout.onclick = async () => { try{ fetch('/api/logout',{method:'POST'}); }catch(_){ } location.replace('/html/login.html?from=logout'); });
 
@@ -449,6 +514,9 @@ els.grid.addEventListener('click', function(event) {
 // 页面初始加载时显示加载状态
 showLoadingState(true);
 
+// 加载域名列表（与邮箱列表并行加载）
+loadDomains();
+
 load();
 
 // 添加浏览器前进后退按钮支持
@@ -471,6 +539,8 @@ window.addEventListener('beforeunload', function() {
     // 保存当前页面状态，便于历史记录恢复
     sessionStorage.setItem('mf:mailboxes:lastPage', page.toString());
     sessionStorage.setItem('mf:mailboxes:lastQuery', els.q.value || '');
+    sessionStorage.setItem('mf:mailboxes:lastDomain', els.domainFilter?.value || '');
+    sessionStorage.setItem('mf:mailboxes:lastLogin', els.loginFilter?.value || '');
     
     // 清理导航计时器，避免意外跳转
     if (navigationTimer) {
@@ -493,6 +563,8 @@ window.addEventListener('beforeunload', function() {
 try {
   const savedPage = sessionStorage.getItem('mf:mailboxes:lastPage');
   const savedQuery = sessionStorage.getItem('mf:mailboxes:lastQuery');
+  const savedDomain = sessionStorage.getItem('mf:mailboxes:lastDomain');
+  const savedLogin = sessionStorage.getItem('mf:mailboxes:lastLogin');
   
   if (savedPage && !isNaN(Number(savedPage))) {
     page = Math.max(1, Number(savedPage));
@@ -500,6 +572,14 @@ try {
   
   if (savedQuery) {
     els.q.value = savedQuery;
+  }
+  
+  if (savedDomain && els.domainFilter) {
+    els.domainFilter.value = savedDomain;
+  }
+  
+  if (savedLogin && els.loginFilter) {
+    els.loginFilter.value = savedLogin;
   }
 } catch(_) {}
 

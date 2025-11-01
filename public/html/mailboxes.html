@@ -36,6 +36,16 @@
             <input id="q" class="search-input" placeholder="搜索邮箱地址（支持模糊）" />
             <button id="search" class="btn btn-primary btn-sm"><span class="btn-icon">🔍</span><span>搜索</span></button>
           </div>
+          <div class="filter-actions">
+            <select id="domain-filter" class="filter-select" title="按域名后缀筛选">
+              <option value="">全部域名</option>
+            </select>
+            <select id="login-filter" class="filter-select" title="按登录权限筛选">
+              <option value="">全部状态</option>
+              <option value="allowed">允许登录</option>
+              <option value="denied">禁止登录</option>
+            </select>
+          </div>
           <div class="batch-actions">
             <button id="batch-allow" class="btn btn-ghost btn-sm" title="批量放行邮箱登录">
               <span class="btn-icon">✅</span><span>批量放行</span>

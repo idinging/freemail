@@ -1,6 +1,6 @@
 # 临时邮箱 Cloudflare Worker（模块化结构）
 
-当前状态：V4.5 支持多域名发送配置，智能选择API密钥
+当前状态：V4.7 优化sql 大幅降低 行读取数，添加邮箱管理页面根据域名筛选以及登陆权限筛选
 
 `
   注：如果需要支持邮箱用户自行修改密码 将mailbox.html中 77行到80行取消注释
@@ -10,7 +10,7 @@
 
 ## 一键部署
 
-[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/username/repo)
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/idinging/freemail)
 
  ### [点击查看一键部署指南](docs/yijianbushu.md)
 
@@ -161,7 +161,7 @@
 
 ## 部署步骤
 
-[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/username/repo)
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/idinging/freemail)
 
  ### [一键部署指南](docs/yijianbushu.md)
 

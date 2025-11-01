@@ -1,6 +1,6 @@
 import { extractEmail, generateRandomId } from './commonUtils.js';
 import { buildMockEmails, buildMockMailboxes, buildMockEmailDetail } from './mockData.js';
-import { getOrCreateMailboxId, getMailboxIdByAddress, recordSentEmail, updateSentEmail, ensureSentEmailsTable, toggleMailboxPin, 
+import { getOrCreateMailboxId, getMailboxIdByAddress, recordSentEmail, updateSentEmail, toggleMailboxPin, 
   listUsersWithCounts, createUser, updateUser, deleteUser, assignMailboxToUser, getUserMailboxes, unassignMailboxFromUser, 
   checkMailboxOwnership, getTotalMailboxCount } from './database.js';
 import { parseEmailBody, extractVerificationCode } from './emailParser.js';
@@ -45,7 +45,7 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
       const emailId = path.split('/')[3];
       if (emailId && emailId !== 'batch') {
         try {
-          const { results } = await db.prepare('SELECT mailbox_id FROM messages WHERE id = ?').bind(emailId).all();
+          const { results } = await db.prepare('SELECT mailbox_id FROM messages WHERE id = ? LIMIT 1').bind(emailId).all();
           if (!results || results.length === 0) {
             return new Response('邮件不存在', { status: 404 });
           }
@@ -420,12 +420,10 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
         const totalUsed = await getTotalMailboxCount(db);
         return Response.json({ used: totalUsed, limit: 999999, isAdmin: true });
       } else if (uid) {
-        // 普通用户：显示个人邮箱数和个人上限
-        const ures = await db.prepare('SELECT mailbox_limit FROM users WHERE id = ?').bind(uid).all();
-        const limit = ures?.results?.[0]?.mailbox_limit ?? 0;
-        const cres = await db.prepare('SELECT COUNT(1) AS c FROM user_mailboxes WHERE user_id = ?').bind(uid).all();
-        const used = cres?.results?.[0]?.c || 0;
-        return Response.json({ used, limit, isAdmin: false });
+        // 普通用户：使用缓存查询个人邮箱数和上限
+        const { getCachedUserQuota } = await import('./cacheHelper.js');
+        const quota = await getCachedUserQuota(db, uid);
+        return Response.json({ ...quota, isAdmin: false });
       } else {
         // 未登录或无效用户
         return Response.json({ used: 0, limit: 0, isAdmin: false });
@@ -441,14 +439,15 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
     const from = url.searchParams.get('from') || url.searchParams.get('mailbox') || '';
     if (!from){ return new Response('缺少 from 参数', { status: 400 }); }
     try{
-      await ensureSentEmailsTable(db);
+      // 优化：减少默认查询数量
+      const limit = Math.min(parseInt(url.searchParams.get('limit') || '20', 10), 50);
       const { results } = await db.prepare(`
         SELECT id, resend_id, to_addrs as recipients, subject, created_at, status
         FROM sent_emails
         WHERE from_addr = ?
         ORDER BY datetime(created_at) DESC
-        LIMIT 50
-      `).bind(String(from).trim().toLowerCase()).all();
+        LIMIT ?
+      `).bind(String(from).trim().toLowerCase(), limit).all();
       return Response.json(results || []);
     }catch(e){
       console.error('查询发件记录失败:', e);
@@ -473,36 +472,42 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
     }
   }
 
+  // 检查发件权限的辅助函数
+  async function checkSendPermission() {
+    const payload = getJwtPayload();
+    if (!payload) return false;
+    
+    // 管理员默认允许
+    if (payload.role === 'admin') return true;
+    
+    // 普通用户检查 can_send 权限（使用缓存）
+    if (payload.userId) {
+      const { getCachedSystemStat } = await import('./cacheHelper.js');
+      const cacheKey = `user_can_send_${payload.userId}`;
+      
+      const canSend = await getCachedSystemStat(db, cacheKey, async (db) => {
+        const { results } = await db.prepare('SELECT can_send FROM users WHERE id = ?').bind(payload.userId).all();
+        return results?.[0]?.can_send ? 1 : 0;
+      });
+      
+      return canSend === 1;
+    }
+    
+    return false;
+  }
+  
   // 发送单封邮件
   if (path === '/api/send' && request.method === 'POST'){
     if (isMock) return new Response('演示模式不可发送', { status: 403 });
     try{
       if (!RESEND_API_KEY) return new Response('未配置 Resend API Key', { status: 500 });
-      // 校验是否允许发件：根据当前登录用户（从 Cookie 读取 JWT）
-      const cookie = request.headers.get('Cookie') || '';
-      const token = (cookie.split(';').find(s=>s.trim().startsWith('iding-session='))||'').split('=')[1] || '';
-      let jwtPayload = null;
-      try{
-        const parts = token.split('.');
-        if (parts.length === 3){
-          const json = atob(parts[1].replace(/-/g,'+').replace(/_/g,'/'));
-          jwtPayload = JSON.parse(json);
-        }
-      }catch(_){ }
-      if (jwtPayload && jwtPayload.userId){
-        const { results } = await db.prepare('SELECT can_send FROM users WHERE id = ?').bind(jwtPayload.userId).all();
-        const canSend = results?.[0]?.can_send ? 1 : 0;
-        if (!canSend) return new Response('该用户未被授予发件权限', { status: 403 });
-      } else if (jwtPayload && jwtPayload.role === 'admin'){
-        // 管理员默认允许
-      } else {
-        // 无用户身份或访客不允许
-        return new Response('未授权发件', { status: 403 });
-      }
+      
+      // 校验是否允许发件
+      const allowed = await checkSendPermission();
+      if (!allowed) return new Response('未授权发件或该用户未被授予发件权限', { status: 403 });
       const sendPayload = await request.json();
       // 使用智能发送，根据发件人域名自动选择API密钥
       const result = await sendEmailWithAutoResend(RESEND_API_KEY, sendPayload);
-      await ensureSentEmailsTable(db);
       await recordSentEmail(db, {
         resendId: result.id || null,
         fromName: sendPayload.fromName || null,
@@ -525,31 +530,14 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
     if (isMock) return new Response('演示模式不可发送', { status: 403 });
     try{
       if (!RESEND_API_KEY) return new Response('未配置 Resend API Key', { status: 500 });
-      // 同样校验发件权限
-      const cookie = request.headers.get('Cookie') || '';
-      const token = (cookie.split(';').find(s=>s.trim().startsWith('iding-session='))||'').split('=')[1] || '';
-      let payloadJwt = null;
-      try{
-        const parts = token.split('.');
-        if (parts.length === 3){
-          const json = atob(parts[1].replace(/-/g,'+').replace(/_/g,'/'));
-          payloadJwt = JSON.parse(json);
-        }
-      }catch(_){ }
-      if (payloadJwt && payloadJwt.userId){
-        const { results } = await db.prepare('SELECT can_send FROM users WHERE id = ?').bind(payloadJwt.userId).all();
-        const canSend = results?.[0]?.can_send ? 1 : 0;
-        if (!canSend) return new Response('该用户未被授予发件权限', { status: 403 });
-      } else if (payloadJwt && payloadJwt.role === 'admin'){
-        // 管理员默认允许
-      } else {
-        return new Response('未授权发件', { status: 403 });
-      }
+      
+      // 校验是否允许发件
+      const allowed = await checkSendPermission();
+      if (!allowed) return new Response('未授权发件或该用户未被授予发件权限', { status: 403 });
       const items = await request.json();
       // 使用智能批量发送，自动按域名分组并使用对应的API密钥
       const result = await sendBatchWithAutoResend(RESEND_API_KEY, items);
       try{
-        await ensureSentEmailsTable(db);
         // 尝试记录（如果返回结构包含 id 列表）
         const arr = Array.isArray(result) ? result : [];
         for (let i = 0; i < arr.length; i++){
@@ -659,14 +647,17 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
         timeParam = [twentyFourHoursAgo];
       }
       
+      // 优化：减少默认查询数量，降低行读取
+      const limit = Math.min(parseInt(url.searchParams.get('limit') || '20', 10), 50);
+      
       try{
         const { results } = await db.prepare(`
           SELECT id, sender, subject, received_at, is_read, preview, verification_code
           FROM messages 
           WHERE mailbox_id = ?${timeFilter}
           ORDER BY received_at DESC 
-          LIMIT 50
-        `).bind(mailboxId, ...timeParam).all();
+          LIMIT ?
+        `).bind(mailboxId, ...timeParam, limit).all();
         return Response.json(results);
       }catch(e){
         // 旧结构降级查询：从 content/html_content 计算 preview
@@ -679,8 +670,8 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
           FROM messages 
           WHERE mailbox_id = ?${timeFilter}
           ORDER BY received_at DESC 
-          LIMIT 50
-        `).bind(mailboxId, ...timeParam).all();
+          LIMIT ?
+        `).bind(mailboxId, ...timeParam, limit).all();
         return Response.json(results);
       }
     } catch (e) {
@@ -696,6 +687,12 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
       if (!idsParam) return Response.json([]);
       const ids = idsParam.split(',').map(s=>parseInt(s,10)).filter(n=>Number.isInteger(n) && n>0);
       if (!ids.length) return Response.json([]);
+      
+      // 优化：限制批量查询数量，避免单次查询过多行
+      if (ids.length > 50) {
+        return new Response('单次最多查询50封邮件', { status: 400 });
+      }
+      
       if (isMock){
         const arr = ids.map(id => buildMockEmailDetail(id));
         return Response.json(arr);
@@ -731,9 +728,12 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
 
   // 历史邮箱列表（按创建时间倒序）支持分页
   if (path === '/api/mailboxes' && request.method === 'GET') {
-    const limit = Math.min(parseInt(url.searchParams.get('limit') || '10', 10), 100);
+    // 优化：默认查询更少的数据
+    const limit = Math.min(parseInt(url.searchParams.get('limit') || '10', 10), 50);
     const offset = Math.max(parseInt(url.searchParams.get('offset') || '0', 10), 0);
     const q = String(url.searchParams.get('q') || '').trim().toLowerCase();
+    const domain = String(url.searchParams.get('domain') || '').trim().toLowerCase();
+    const canLoginParam = String(url.searchParams.get('can_login') || '').trim();
     if (isMock) {
       return Response.json(buildMockMailboxes(limit, offset, mailDomains));
     }
@@ -744,32 +744,86 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
         const payload = getJwtPayload();
         const adminUid = Number(payload?.userId || 0);
         const like = `%${q.replace(/%/g,'').replace(/_/g,'')}%`;
+        
+        // 构建筛选条件
+        let whereConditions = [];
+        let bindParams = [adminUid || 0];
+        
+        // 搜索条件
+        if (q) {
+          whereConditions.push('LOWER(m.address) LIKE LOWER(?)');
+          bindParams.push(like);
+        }
+        
+        // 域名筛选
+        if (domain) {
+          whereConditions.push('LOWER(m.address) LIKE LOWER(?)');
+          bindParams.push(`%@${domain}`);
+        }
+        
+        // 登录权限筛选
+        if (canLoginParam === 'true') {
+          whereConditions.push('m.can_login = 1');
+        } else if (canLoginParam === 'false') {
+          whereConditions.push('m.can_login = 0');
+        }
+        
+        const whereClause = whereConditions.length > 0 ? 'WHERE ' + whereConditions.join(' AND ') : '';
+        bindParams.push(limit, offset);
+        
         const { results } = await db.prepare(`
           SELECT m.address, m.created_at, COALESCE(um.is_pinned, 0) AS is_pinned,
                  CASE WHEN (m.password_hash IS NULL OR m.password_hash = '') THEN 1 ELSE 0 END AS password_is_default,
                  COALESCE(m.can_login, 0) AS can_login
           FROM mailboxes m
           LEFT JOIN user_mailboxes um ON um.mailbox_id = m.id AND um.user_id = ?
-          WHERE (? = '' OR LOWER(m.address) LIKE LOWER(?))
+          ${whereClause}
           ORDER BY is_pinned DESC, m.created_at DESC
           LIMIT ? OFFSET ?
-        `).bind(adminUid || 0, q ? like : '', q ? like : '', limit, offset).all();
+        `).bind(...bindParams).all();
         return Response.json(results || []);
       }
       const payload = getJwtPayload();
       const uid = Number(payload?.userId || 0);
       if (!uid) return Response.json([]);
       const like = `%${q.replace(/%/g,'').replace(/_/g,'')}%`;
+      
+      // 构建筛选条件
+      let whereConditions = ['um.user_id = ?'];
+      let bindParams = [uid];
+      
+      // 搜索条件
+      if (q) {
+        whereConditions.push('LOWER(m.address) LIKE LOWER(?)');
+        bindParams.push(like);
+      }
+      
+      // 域名筛选
+      if (domain) {
+        whereConditions.push('LOWER(m.address) LIKE LOWER(?)');
+        bindParams.push(`%@${domain}`);
+      }
+      
+      // 登录权限筛选
+      if (canLoginParam === 'true') {
+        whereConditions.push('m.can_login = 1');
+      } else if (canLoginParam === 'false') {
+        whereConditions.push('m.can_login = 0');
+      }
+      
+      const whereClause = 'WHERE ' + whereConditions.join(' AND ');
+      bindParams.push(limit, offset);
+      
       const { results } = await db.prepare(`
         SELECT m.address, m.created_at, um.is_pinned,
                CASE WHEN (m.password_hash IS NULL OR m.password_hash = '') THEN 1 ELSE 0 END AS password_is_default,
                COALESCE(m.can_login, 0) AS can_login
         FROM user_mailboxes um
         JOIN mailboxes m ON m.id = um.mailbox_id
-        WHERE um.user_id = ? AND (? = '' OR LOWER(m.address) LIKE LOWER(?))
+        ${whereClause}
         ORDER BY um.is_pinned DESC, m.created_at DESC
         LIMIT ? OFFSET ?
-      `).bind(uid, q ? like : '', q ? like : '', limit, offset).all();
+      `).bind(...bindParams).all();
       return Response.json(results || []);
     }catch(_){
       return Response.json([]);
@@ -899,8 +953,7 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
       let failCount = 0;
       const results = [];
       
-      // 先检查所有邮箱是否存在
-      const checkStatements = [];
+      // 规范化地址并过滤空地址
       const addressMap = new Map(); // 存储规范化后的地址映射
       
       for (const address of addresses) {
@@ -911,20 +964,20 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
           continue;
         }
         addressMap.set(normalizedAddress, address);
-        checkStatements.push(
-          db.prepare('SELECT id, address FROM mailboxes WHERE address = ?').bind(normalizedAddress)
-        );
       }
       
-      // 批量检查邮箱是否存在
+      // 优化：使用 IN 查询批量检查邮箱是否存在，减少数据库查询次数
       let existingMailboxes = new Set();
-      if (checkStatements.length > 0) {
+      if (addressMap.size > 0) {
         try {
-          const checkResults = await db.batch(checkStatements);
-          for (const result of checkResults) {
-            if (result.results && result.results.length > 0) {
-              existingMailboxes.add(result.results[0].address);
-            }
+          const addressList = Array.from(addressMap.keys());
+          const placeholders = addressList.map(() => '?').join(',');
+          const checkResult = await db.prepare(
+            `SELECT address FROM mailboxes WHERE address IN (${placeholders})`
+          ).bind(...addressList).all();
+          
+          for (const row of (checkResult.results || [])) {
+            existingMailboxes.add(row.address);
           }
         } catch (e) {
           console.error('批量检查邮箱失败:', e);
@@ -1005,6 +1058,8 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
     if (!raw) return new Response('缺少 address 参数', { status: 400 });
     const normalized = String(raw || '').trim().toLowerCase();
     try {
+      const { invalidateMailboxCache } = await import('./cacheHelper.js');
+      
       const mailboxId = await getMailboxIdByAddress(db, normalized);
       // 未找到则明确返回 404，避免前端误判为成功
       if (!mailboxId) return new Response(JSON.stringify({ success: false, message: '邮箱不存在' }), { status: 404 });
@@ -1012,19 +1067,27 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
         // 二级管理员（数据库中的 admin 角色）仅能删除自己绑定的邮箱
         const payload = getJwtPayload();
         if (!payload || payload.role !== 'admin' || !payload.userId) return new Response('Forbidden', { status: 403 });
-        const own = await db.prepare('SELECT 1 FROM user_mailboxes WHERE user_id = ? AND mailbox_id = ?')
+        const own = await db.prepare('SELECT 1 FROM user_mailboxes WHERE user_id = ? AND mailbox_id = ? LIMIT 1')
           .bind(Number(payload.userId), mailboxId).all();
         if (!own?.results?.length) return new Response('Forbidden', { status: 403 });
       }
       // 简易事务，降低并发插入导致的外键失败概率
       try { await db.exec('BEGIN'); } catch(_) {}
       await db.prepare('DELETE FROM messages WHERE mailbox_id = ?').bind(mailboxId).run();
-      await db.prepare('DELETE FROM mailboxes WHERE id = ?').bind(mailboxId).run();
+      const deleteResult = await db.prepare('DELETE FROM mailboxes WHERE id = ?').bind(mailboxId).run();
       try { await db.exec('COMMIT'); } catch(_) {}
 
-      // 确认删除结果
-      const verify = await db.prepare('SELECT COUNT(1) AS c FROM mailboxes WHERE id = ?').bind(mailboxId).all();
-      const deleted = (verify?.results?.[0]?.c || 0) === 0;
+      // 优化：通过 meta.changes 判断删除是否成功，减少 COUNT 查询
+      const deleted = (deleteResult?.meta?.changes || 0) > 0;
+      
+      // 删除成功后使缓存失效
+      if (deleted) {
+        invalidateMailboxCache(normalized);
+        // 使系统统计缓存失效
+        const { invalidateSystemStatCache } = await import('./cacheHelper.js');
+        invalidateSystemStatCache('total_mailboxes');
+      }
+      
       return Response.json({ success: deleted, deleted });
     } catch (e) {
       try { await db.exec('ROLLBACK'); } catch(_) {}
@@ -1128,26 +1191,16 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
     }
     
     try {
-      // 先检查邮件是否存在
-      const existsResult = await db.prepare(`SELECT COUNT(*) as count FROM messages WHERE id = ?`).bind(emailId).all();
-      const existsBefore = existsResult.results[0]?.count || 0;
+      // 优化：直接删除，通过 D1 的 changes 判断是否成功，减少 COUNT 查询
+      const result = await db.prepare(`DELETE FROM messages WHERE id = ?`).bind(emailId).run();
       
-      if (existsBefore === 0) {
-        return Response.json({ success: true, deleted: false, message: '邮件不存在或已被删除' });
-      }
-      
-      await db.prepare(`DELETE FROM messages WHERE id = ?`).bind(emailId).run();
-      
-      // 再次检查确认删除
-      const existsAfterResult = await db.prepare(`SELECT COUNT(*) as count FROM messages WHERE id = ?`).bind(emailId).all();
-      const existsAfter = existsAfterResult.results[0]?.count || 0;
-      
-      const actualDeleted = existsBefore - existsAfter;
+      // D1 的 run() 返回对象中包含 meta.changes 表示受影响的行数
+      const deleted = (result?.meta?.changes || 0) > 0;
       
       return Response.json({ 
         success: true, 
-        deleted: actualDeleted > 0,
-        message: actualDeleted > 0 ? '邮件已删除' : '删除操作未生效'
+        deleted,
+        message: deleted ? '邮件已删除' : '邮件不存在或已被删除'
       });
     } catch (e) {
       console.error('删除邮件失败:', e);
@@ -1166,26 +1219,16 @@ export async function handleApiRequest(request, db, mailDomains, options = { moc
       // 仅当邮箱已存在时才执行清空操作；不存在则直接返回 0 删除
       const mailboxId = await getMailboxIdByAddress(db, normalized);
       if (!mailboxId) {
-        return Response.json({ success: true, deletedCount: 0, previousCount: 0 });
+        return Response.json({ success: true, deletedCount: 0 });
       }
       
-      // 先查询当前有多少邮件
-      const countBeforeResult = await db.prepare(`SELECT COUNT(*) as count FROM messages WHERE mailbox_id = ?`).bind(mailboxId).all();
-      const countBefore = countBeforeResult.results[0]?.count || 0;
-      
-      await db.prepare(`DELETE FROM messages WHERE mailbox_id = ?`).bind(mailboxId).run();
-      
-      // 再次查询确认删除后的数量
-      const countAfterResult = await db.prepare(`SELECT COUNT(*) as count FROM messages WHERE mailbox_id = ?`).bind(mailboxId).all();
-      const countAfter = countAfterResult.results[0]?.count || 0;
-      
-      // 通过前后对比计算实际删除的数量
-      const actualDeletedCount = countBefore - countAfter;
+      // 优化：直接删除，通过 meta.changes 获取删除数量，减少 COUNT 查询
+      const result = await db.prepare(`DELETE FROM messages WHERE mailbox_id = ?`).bind(mailboxId).run();
+      const deletedCount = result?.meta?.changes || 0;
       
       return Response.json({ 
         success: true, 
-        deletedCount: actualDeletedCount, 
-        previousCount: countBefore
+        deletedCount
       });
     } catch (e) {
       console.error('清空邮件失败:', e);
@@ -1339,29 +1382,20 @@ export async function handleEmailReceive(request, db, env) {
       verificationCode = extractVerificationCode({ subject, text, html });
     } catch (_) {}
 
-    // 动态列检测，兼容旧表
-    let cols = [];
-    try {
-      const info = await db.prepare('PRAGMA table_info(messages)').all();
-      cols = (info?.results || []).map(r => ({ name: (r.name || r['name']), notnull: r.notnull ? 1 : 0 }));
-    } catch (_) {}
-    const colSet = new Set(cols.map(c => c.name));
-    const requiresContent = cols.some(c => c.name === 'content' && c.notnull === 1);
-
-    const insertCols = ['mailbox_id', 'sender'];
-    const values = [mailboxId, sender];
-    if (colSet.has('to_addrs')) { insertCols.push('to_addrs'); values.push(String(to || '')); }
-    insertCols.push('subject'); values.push(subject || '(无主题)');
-    if (colSet.has('verification_code')) { insertCols.push('verification_code'); values.push(verificationCode || null); }
-    if (colSet.has('preview')) { insertCols.push('preview'); values.push(preview || null); }
-    if (colSet.has('r2_bucket')) { insertCols.push('r2_bucket'); values.push('mail-eml'); }
-    if (colSet.has('r2_object_key')) { insertCols.push('r2_object_key'); values.push(objectKey || ''); }
-    if (requiresContent || colSet.has('content')) { insertCols.push('content'); values.push(text || html || subject || '(无内容)'); }
-    if (colSet.has('html_content')) { insertCols.push('html_content'); values.push(html || null); }
-
-    const placeholders = insertCols.map(()=>'?').join(', ');
-    const sql = `INSERT INTO messages (${insertCols.join(', ')}) VALUES (${placeholders})`;
-    await db.prepare(sql).bind(...values).run();
+    // 直接使用标准列名插入（表结构已在初始化时固定）
+    await db.prepare(`
+      INSERT INTO messages (mailbox_id, sender, to_addrs, subject, verification_code, preview, r2_bucket, r2_object_key)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      mailboxId,
+      sender,
+      String(to || ''),
+      subject || '(无主题)',
+      verificationCode || null,
+      preview || null,
+      'mail-eml',
+      objectKey || ''
+    ).run();
 
     return Response.json({ success: true });
   } catch (error) {

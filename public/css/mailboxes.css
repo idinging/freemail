@@ -850,6 +850,37 @@
   min-width: 200px;
 }
 
+/* 筛选器区域 */
+.filter-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.filter-select {
+  padding: 8px 12px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 8px;
+  font-size: 14px;
+  color: #475569;
+  background: rgba(255, 255, 255, 0.95);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 140px;
+  outline: none;
+}
+
+.filter-select:hover {
+  border-color: rgba(99, 102, 241, 0.4);
+  background: rgba(255, 255, 255, 1);
+}
+
+.filter-select:focus {
+  border-color: rgba(99, 102, 241, 0.6);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  background: rgba(255, 255, 255, 1);
+}
+
 /* 批量操作按钮区域 */
 .batch-actions {
   display: flex;
@@ -1205,7 +1236,7 @@
   display: none;
 }
 
-/* 响应式设计 - 批量操作按钮 */
+/* 响应式设计 - 批量操作按钮和筛选器 */
 @media (max-width: 768px) {
   .toolbar {
     gap: 6px;
@@ -1214,6 +1245,16 @@
   .toolbar .searchbar {
     max-width: 100%;
     min-width: auto;
+  }
+  
+  .filter-actions {
+    gap: 4px;
+  }
+  
+  .filter-select {
+    min-width: 100px;
+    font-size: 13px;
+    padding: 6px 8px;
   }
   
   .batch-actions {
@@ -1238,6 +1279,16 @@
   .toolbar .searchbar {
     width: 100%;
     max-width: 100%;
+  }
+  
+  .filter-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .filter-select {
+    flex: 1;
+    min-width: auto;
   }
   
   .batch-actions {
