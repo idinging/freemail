@@ -1,35 +1,62 @@
-/* 邮箱用户专用样式 */
+/* =============================================
+   邮箱用户专用样式 v2.0
+   增强视觉效果和交互体验
+   ============================================= */
 
-/* 基础变量继承主样式 */
+/* 增强基础变量 */
 :root {
-  --surface: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 20%, #f1f5f9 100%);
-  --surface-overlay: linear-gradient(135deg, rgba(248, 250, 252, 0.8) 0%, rgba(241, 245, 249, 0.9) 100%);
-  --card: rgba(255, 255, 255, 0.85);
-  --card-hover: rgba(255, 255, 255, 0.95);
-  --card-glass: rgba(255, 255, 255, 0.4);
+  --surface: linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 25%, #f8fafc 50%, #fff1f2 75%, #fef3e8 100%);
+  --surface-overlay: linear-gradient(135deg, rgba(248, 250, 252, 0.85) 0%, rgba(241, 245, 249, 0.92) 100%);
+  --card: rgba(255, 255, 255, 0.88);
+  --card-hover: rgba(255, 255, 255, 0.96);
+  --card-glass: rgba(255, 255, 255, 0.65);
+  --card-glass-hover: rgba(255, 255, 255, 0.85);
   --muted: #64748b;
   --muted2: #94a3b8;
-  --primary: #3b82f6;
-  --primary-hover: #2563eb;
-  --primary-light: rgba(59, 130, 246, 0.1);
-  --primary-glass: rgba(59, 130, 246, 0.05);
+  --primary: #6366f1;
+  --primary-hover: #4f46e5;
+  --primary-light: rgba(99, 102, 241, 0.12);
+  --primary-glass: rgba(99, 102, 241, 0.06);
+  --primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
   --danger: #ef4444;
   --danger-hover: #dc2626;
   --success: #10b981;
   --warning: #f59e0b;
   --border: #e2e8f0;
   --border-light: #f1f5f9;
-  --border-glass: rgba(255, 255, 255, 0.2);
-  --text: #1e293b;
-  --text-light: #475569;
+  --border-glass: rgba(255, 255, 255, 0.25);
+  --text: #0f172a;
+  --text-light: #334155;
+  --text-inverse: #ffffff;
   --radius: 16px;
-  --radius-sm: 8px;
-  --radius-lg: 20px;
-  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  --shadow-glass: 0 8px 32px rgba(31, 38, 135, 0.15);
+  --radius-sm: 10px;
+  --radius-lg: 24px;
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.03);
+  --shadow-glass: 0 8px 32px rgba(99, 102, 241, 0.12);
+  --shadow-glow: 0 0 40px rgba(99, 102, 241, 0.15);
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --blur-md: blur(16px);
+  --blur-lg: blur(24px);
+  --blur-xl: blur(32px);
+}
+
+/* 暗色模式支持 */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: linear-gradient(135deg, #0f172a 0%, #1e1b4b 25%, #1e293b 50%, #18181b 75%, #1c1917 100%);
+    --card: rgba(30, 41, 59, 0.85);
+    --card-hover: rgba(30, 41, 59, 0.95);
+    --card-glass: rgba(30, 41, 59, 0.6);
+    --card-glass-hover: rgba(30, 41, 59, 0.8);
+    --border-glass: rgba(255, 255, 255, 0.1);
+    --text: #f8fafc;
+    --text-light: #e2e8f0;
+    --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
 }
 
 * {
@@ -382,6 +409,16 @@ body {
   margin: 0;
 }
 
+.retention-hint {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  background: var(--primary-light);
+  padding: 4px 10px;
+  border-radius: 20px;
+  margin-left: 4px;
+}
+
 .loading-indicator {
   display: flex;
   align-items: center;
@@ -404,6 +441,12 @@ body {
   100% { transform: rotate(360deg); }
 }
 
+/* 刷新按钮旋转动画 */
+.btn-icon.spinning {
+  display: inline-block;
+  animation: spin 0.8s linear infinite;
+}
+
 /* 邮件列表样式：完全复用首页(app.css)规则，避免覆盖 */
 
 /* 邮件详情样式：完全复用首页(app.css)的 email-meta-inline / email-actions-bar / email-content-area 规则 */
@@ -422,6 +465,16 @@ body {
   justify-content: center;
   z-index: 1000;
   padding: 20px;
+}
+
+/* 确认框层级更高 */
+#confirm-modal {
+  z-index: 1100;
+}
+
+/* Toast 最高层级 */
+.toast-container {
+  z-index: 9999 !important;
 }
 
 .modal.show {
@@ -492,6 +545,25 @@ body {
   padding: 24px;
   overflow-y: auto;
   max-height: calc(80vh - 80px);
+}
+
+/* 密码修改提示 */
+.password-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(251, 191, 36, 0.08) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: var(--radius-sm);
+  color: #b45309;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.password-hint .hint-icon {
+  font-size: 16px;
 }
 
 /* Toast 样式由全局 toast.html 模板提供，无需重复定义 */

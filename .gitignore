@@ -15,7 +15,8 @@ worker-configuration.d.ts
 .env.development.local
 .env.test.local
 .env.production.local
-
+CLAUDE.md
+AGENTS.md
 # Logs
 logs
 *.log

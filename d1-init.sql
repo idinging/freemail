@@ -15,7 +15,9 @@ CREATE TABLE IF NOT EXISTS mailboxes (
   last_accessed_at TEXT,
   expires_at TEXT,
   is_pinned INTEGER DEFAULT 0,
-  can_login INTEGER DEFAULT 0
+  can_login INTEGER DEFAULT 0,
+  forward_to TEXT DEFAULT NULL,
+  is_favorite INTEGER DEFAULT 0
 );
 
 -- 邮件消息表
@@ -79,6 +81,7 @@ CREATE TABLE IF NOT EXISTS sent_emails (
 CREATE INDEX IF NOT EXISTS idx_mailboxes_address ON mailboxes(address);
 CREATE INDEX IF NOT EXISTS idx_mailboxes_is_pinned ON mailboxes(is_pinned DESC);
 CREATE INDEX IF NOT EXISTS idx_mailboxes_address_created ON mailboxes(address, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_mailboxes_is_favorite ON mailboxes(is_favorite DESC);
 
 -- messages 索引
 CREATE INDEX IF NOT EXISTS idx_messages_mailbox_id ON messages(mailbox_id);

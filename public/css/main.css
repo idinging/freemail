@@ -1,0 +1,16 @@
+/**
+ * Freemail CSS 主入口
+ * 导入所有模块化样式
+ */
+
+/* 基础模块 */
+@import url('./base/variables.css');
+@import url('./base/reset.css');
+
+/* 组件模块 */
+@import url('./components/buttons.css');
+@import url('./components/cards.css');
+@import url('./components/forms.css');
+@import url('./components/modal.css');
+@import url('./components/toast.css');
+@import url('./components/skeleton.css');

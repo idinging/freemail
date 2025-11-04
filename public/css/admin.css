@@ -1,6 +1,26 @@
 /* ===========================================
-   管理页面 - 现代化布局设计
+   管理页面 - 现代化布局设计 v2.0
+   增强视觉效果和交互体验
    =========================================== */
+
+/* 增强主题变量 */
+:root {
+  --admin-primary: #6366f1;
+  --admin-primary-hover: #4f46e5;
+  --admin-secondary: #8b5cf6;
+  --admin-accent: #ec4899;
+  --admin-success: #10b981;
+  --admin-warning: #f59e0b;
+  --admin-danger: #ef4444;
+  --admin-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+  --admin-glass: rgba(255, 255, 255, 0.75);
+  --admin-glass-hover: rgba(255, 255, 255, 0.9);
+  --admin-shadow: 0 8px 32px rgba(99, 102, 241, 0.12);
+  --admin-shadow-lg: 0 20px 40px rgba(99, 102, 241, 0.15);
+  --admin-glow: 0 0 40px rgba(99, 102, 241, 0.15);
+  --admin-transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  --admin-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
 
 /* 顶部导航栏按钮样式 */
 .topbar .btn {
@@ -8,32 +28,34 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: var(--admin-transition);
 }
 
 .topbar .btn:hover {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.2);
 }
 
 /* 主容器 - 响应式网格布局 */
 .admin-container {
-	display: grid;
-  grid-template-columns: 2fr 3fr;
-  gap: 24px;
-	max-width: 1200px;
-	margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  max-width: 1400px;
+  margin: 0 auto;
   padding: 32px 24px;
   min-height: calc(100vh - 80px);
 }
 
 /* 全局主题设计 */
 .admin-page {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  background: linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 25%, #f8fafc 50%, #fff1f2 75%, #fef3e8 100%);
+  background-attachment: fixed;
   position: relative;
   overflow-x: hidden;
 }
 
-/* 动态背景装饰 */
+/* 增强动态背景装饰 */
 .admin-page::before {
   content: '';
   position: fixed;
@@ -42,19 +64,33 @@
   width: 200%;
   height: 200%;
   background:
-    radial-gradient(circle at 20% 30%, rgba(59,130,246,0.08) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(139,92,246,0.06) 0%, transparent 50%),
-    radial-gradient(circle at 60% 80%, rgba(16,185,129,0.05) 0%, transparent 50%),
-    radial-gradient(circle at 30% 70%, rgba(236,72,153,0.04) 0%, transparent 50%);
-  animation: backgroundFloat 25s ease-in-out infinite;
+    radial-gradient(ellipse at 20% 30%, rgba(99, 102, 241, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(236, 72, 153, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 60% 80%, rgba(16, 185, 129, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 30% 70%, rgba(245, 158, 11, 0.06) 0%, transparent 50%);
+  animation: backgroundFloat 30s ease-in-out infinite;
+  z-index: -2;
+}
+
+.admin-page::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(99, 102, 241, 0.1), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(236, 72, 153, 0.06), transparent);
   z-index: -1;
+  pointer-events: none;
 }
 
 @keyframes backgroundFloat {
-  0%, 100% { transform: translateX(-20px) translateY(-15px) rotate(0deg); }
-  25% { transform: translateX(15px) translateY(20px) rotate(0.5deg); }
-  50% { transform: translateX(20px) translateY(-10px) rotate(-0.5deg); }
-  75% { transform: translateX(-15px) translateY(25px) rotate(0.3deg); }
+  0%, 100% { transform: translateX(-30px) translateY(-20px) rotate(0deg) scale(1); }
+  25% { transform: translateX(25px) translateY(25px) rotate(0.5deg) scale(1.02); }
+  50% { transform: translateX(30px) translateY(-15px) rotate(-0.5deg) scale(1); }
+  75% { transform: translateX(-20px) translateY(30px) rotate(0.3deg) scale(1.01); }
 }
 
 /* 禁用文本选择 */
@@ -80,48 +116,69 @@
 }
 
 /* ===========================================
-   卡片设计 - 现代玻璃拟态效果
+   卡片设计 - 现代玻璃拟态效果 v2.0
    =========================================== */
 .admin-page .card {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-radius: 20px;
+  background: var(--admin-glass);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-radius: 24px;
   box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.08),
-    0 4px 16px rgba(0, 0, 0, 0.04),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+    var(--admin-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.4);
   padding: 28px;
   position: relative;
   overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: var(--admin-transition);
 }
 
 .admin-page .card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-4px);
+  background: var(--admin-glass-hover);
   box-shadow: 
-    0 12px 40px rgba(0, 0, 0, 0.12),
-    0 6px 20px rgba(0, 0, 0, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    var(--admin-shadow-lg),
+    var(--admin-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  border-color: rgba(99, 102, 241, 0.2);
 }
 
-/* 卡片顶部装饰线 */
+/* 卡片顶部装饰线 - 增强渐变 */
 .admin-page .card::before {
-	content: '';
+  content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, 
-    #3b82f6 0%, 
-    #8b5cf6 25%, 
-    #ec4899 50%, 
-    #10b981 75%, 
-    #f59e0b 100%
-  );
-  border-radius: 20px 20px 0 0;
+  background: var(--admin-gradient);
+  border-radius: 24px 24px 0 0;
+  opacity: 0.9;
+  transition: var(--admin-transition);
+}
+
+.admin-page .card:hover::before {
+  height: 5px;
+  opacity: 1;
+}
+
+/* 卡片内部光晕效果 */
+.admin-page .card::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 0;
+  right: 0;
+  height: 80px;
+  background: linear-gradient(180deg, rgba(99, 102, 241, 0.05) 0%, transparent 100%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.admin-page .card:hover::after {
+  opacity: 1;
 }
 
 /* ===========================================
@@ -262,6 +319,71 @@
 
 .user-mailboxes::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.3);
+}
+
+/* 邮箱列表项样式 */
+.mailbox-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mailbox-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(8px);
+}
+
+.mailbox-item.clickable {
+  cursor: pointer;
+}
+
+.mailbox-item:hover {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+  transform: translateY(-1px);
+}
+
+.mailbox-item .address {
+  color: #1e293b;
+  font-size: 14px;
+  font-weight: 500;
+  transition: color 0.2s ease;
+  flex: 1;
+}
+
+.mailbox-item.clickable:hover .address {
+  color: #3b82f6;
+}
+
+.mailbox-item .btn.danger {
+  padding: 4px 12px;
+  font-size: 12px;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mailbox-item .btn.danger:hover {
+  background: #ef4444;
+  color: white;
+}
+
+.mailbox-list .empty {
+  text-align: center;
+  padding: 24px;
+  color: #94a3b8;
+  font-size: 14px;
 }
 
 .user-mailbox-item {
@@ -598,11 +720,12 @@
   font-weight: 600;
 }
 .col-created { 
-  width: 0; 
-  display: none; 
+  width: 22%; 
+  font-size: 12px;
+  white-space: nowrap;
 }
 .col-actions { 
-  width: 30%; 
+  width: 15%; 
 }
 
 /* 用户操作按钮组 - 优化布局 */
@@ -668,7 +791,12 @@
 }
 
 
-.admin-left .table tbody tr:hover {
+.admin-left .table tbody tr.clickable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.admin-left .table tbody tr.clickable:hover {
   background: rgba(59, 130, 246, 0.06);
   transform: translateX(2px);
   box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
@@ -676,8 +804,12 @@
 
 /* 当前选中的用户行高亮 */
 .admin-left .table tbody tr.active {
-  background: rgba(59, 130, 246, 0.1);
+  background: rgba(59, 130, 246, 0.12) !important;
   border-left: 3px solid #3b82f6;
+}
+
+.admin-left .table tbody tr.active .col-username {
+  color: #3b82f6;
 }
 
 /* 紧凑表格滚动区域 */
@@ -1091,10 +1223,10 @@
 
 @media (max-width: 1024px) {
   .admin-container {
-    grid-template-columns: 2fr 3fr;
+    grid-template-columns: 1fr 1fr;
     gap: 20px;
     padding: 24px 20px;
-    max-width: 900px;
+    max-width: 960px;
   }
 }
 

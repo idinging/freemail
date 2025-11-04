@@ -9,6 +9,23 @@ let isSubmitting = false;
 
 // showToast 函数已由 toast-utils.js 统一提供
 
+// 显示来自其他页面的提示消息
+(function showLoginMessage() {
+  const msg = sessionStorage.getItem('mf:login-message');
+  if (msg) {
+    sessionStorage.removeItem('mf:login-message');
+    // 延迟显示，确保 toast 容器已加载
+    setTimeout(() => {
+      if (typeof showToast === 'function') {
+        showToast(msg, 'info');
+      } else if (err) {
+        err.textContent = msg;
+        err.style.color = '#6366f1';
+      }
+    }, 300);
+  }
+})();
+
 async function doLogin(){
   if (isSubmitting) return;
   const user = (username.value || '').trim();

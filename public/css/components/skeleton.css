@@ -1,0 +1,221 @@
+/* =============================================
+   骨架屏组件样式
+   ============================================= */
+
+/* 骨架屏基础 */
+.skeleton {
+  pointer-events: none;
+}
+
+.skeleton-line {
+  height: 16px;
+  background: linear-gradient(90deg, 
+    var(--border-light) 25%, 
+    var(--border) 50%, 
+    var(--border-light) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* 骨架屏变体 */
+.skeleton-line.title {
+  width: 60%;
+  height: 20px;
+}
+
+.skeleton-line.subtitle {
+  width: 80%;
+}
+
+.skeleton-line.text {
+  width: 100%;
+}
+
+.skeleton-line.short {
+  width: 40%;
+}
+
+.skeleton-line.time {
+  width: 30%;
+  height: 12px;
+}
+
+/* 骨架屏头像 */
+.skeleton-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, 
+    var(--border-light) 25%, 
+    var(--border) 50%, 
+    var(--border-light) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+}
+
+.skeleton-avatar.lg {
+  width: 64px;
+  height: 64px;
+}
+
+.skeleton-avatar.sm {
+  width: 32px;
+  height: 32px;
+}
+
+/* 骨架屏图片 */
+.skeleton-image {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-md);
+  background: linear-gradient(90deg, 
+    var(--border-light) 25%, 
+    var(--border) 50%, 
+    var(--border-light) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+}
+
+/* 骨架屏卡片 */
+.skeleton-card {
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.skeleton-card .skeleton-line {
+  margin-bottom: var(--spacing-sm);
+}
+
+.skeleton-card .skeleton-line:last-child {
+  margin-bottom: 0;
+}
+
+/* 骨架屏列表项 */
+.skeleton-list-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--card);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-sm);
+}
+
+.skeleton-list-item .skeleton-content {
+  flex: 1;
+}
+
+.skeleton-list-item .skeleton-line {
+  margin-bottom: var(--spacing-xs);
+}
+
+.skeleton-list-item .skeleton-line:last-child {
+  margin-bottom: 0;
+}
+
+.skeleton-list-item .skeleton-actions {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.skeleton-list-item .skeleton-actions .skeleton-line {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+}
+
+/* 骨架屏邮件项 */
+.skeleton-email-item {
+  display: flex;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--card);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-sm);
+}
+
+.skeleton-email-item .sender-line {
+  width: 40%;
+  height: 14px;
+}
+
+.skeleton-email-item .subject-line {
+  width: 70%;
+  height: 16px;
+  margin: var(--spacing-xs) 0;
+}
+
+.skeleton-email-item .preview-line {
+  width: 90%;
+  height: 14px;
+}
+
+.skeleton-email-item .time-line {
+  width: 60px;
+  height: 12px;
+  margin-left: auto;
+}
+
+/* 骨架屏表格行 */
+.skeleton-row td {
+  padding: var(--spacing-md);
+}
+
+.skeleton-row .skeleton-line {
+  height: 14px;
+}
+
+/* 骨架屏网格 */
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: var(--spacing-md);
+}
+
+/* 脉冲效果 */
+.skeleton-pulse {
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* 波浪效果 */
+.skeleton-wave .skeleton-line,
+.skeleton-wave .skeleton-avatar,
+.skeleton-wave .skeleton-image {
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-wave .skeleton-line::after,
+.skeleton-wave .skeleton-avatar::after,
+.skeleton-wave .skeleton-image::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(255, 255, 255, 0.3) 50%, 
+    transparent 100%
+  );
+  animation: skeleton-wave 1.5s infinite;
+}
+
+@keyframes skeleton-wave {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}

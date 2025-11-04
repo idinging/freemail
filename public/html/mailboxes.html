@@ -32,35 +32,64 @@
       <div class="card">
         <h2><span class="card-icon">📦</span>所有邮箱</h2>
         <div class="toolbar">
-          <div class="searchbar">
-            <input id="q" class="search-input" placeholder="搜索邮箱地址（支持模糊）" />
-            <button id="search" class="btn btn-primary btn-sm"><span class="btn-icon">🔍</span><span>搜索</span></button>
+          <!-- 第一行：搜索 + 筛选 -->
+          <div class="toolbar-row-1">
+            <div class="searchbar">
+              <input id="q" class="search-input" placeholder="搜索邮箱地址" />
+              <button id="search" class="btn btn-primary btn-sm"><span class="btn-icon">🔍</span><span>搜索</span></button>
+            </div>
+            <div class="filter-actions">
+              <select id="domain-filter" class="filter-select" title="按域名筛选">
+                <option value="">全部域名</option>
+              </select>
+              <select id="login-filter" class="filter-select" title="按登录权限筛选">
+                <option value="">登录状态</option>
+                <option value="allowed">允许登录</option>
+                <option value="denied">禁止登录</option>
+              </select>
+              <select id="favorite-filter" class="filter-select" title="按收藏筛选">
+                <option value="">收藏状态</option>
+                <option value="favorite">已收藏</option>
+                <option value="not-favorite">未收藏</option>
+              </select>
+              <select id="forward-filter" class="filter-select" title="按转发筛选">
+                <option value="">转发状态</option>
+                <option value="has-forward">已设置</option>
+                <option value="no-forward">未设置</option>
+              </select>
+            </div>
           </div>
-          <div class="filter-actions">
-            <select id="domain-filter" class="filter-select" title="按域名后缀筛选">
-              <option value="">全部域名</option>
-            </select>
-            <select id="login-filter" class="filter-select" title="按登录权限筛选">
-              <option value="">全部状态</option>
-              <option value="allowed">允许登录</option>
-              <option value="denied">禁止登录</option>
-            </select>
-          </div>
-          <div class="batch-actions">
-            <button id="batch-allow" class="btn btn-ghost btn-sm" title="批量放行邮箱登录">
-              <span class="btn-icon">✅</span><span>批量放行</span>
-            </button>
-            <button id="batch-deny" class="btn btn-ghost btn-sm" title="批量禁止邮箱登录">
-              <span class="btn-icon">🚫</span><span>批量禁止</span>
-            </button>
-          </div>
-          <div class="view-toggle">
-            <button id="view-grid" class="btn btn-ghost btn-sm active" title="卡片网格视图">
-              <span class="view-icon grid-icon"></span>
-            </button>
-            <button id="view-list" class="btn btn-ghost btn-sm" title="列表行视图">
-              <span class="view-icon list-icon"></span>
-            </button>
+          <!-- 第二行：批量操作 + 视图切换 -->
+          <div class="toolbar-row-2">
+            <div class="toolbar-spacer"></div>
+            <div class="batch-actions">
+              <button id="batch-allow" class="btn btn-ghost btn-sm" title="批量放行邮箱登录">
+                <span class="btn-icon">✅</span><span>批量放行</span>
+              </button>
+              <button id="batch-deny" class="btn btn-ghost btn-sm" title="批量禁止邮箱登录">
+                <span class="btn-icon">🚫</span><span>批量禁止</span>
+              </button>
+              <button id="batch-favorite" class="btn btn-ghost btn-sm" title="批量收藏">
+                <span class="btn-icon">⭐</span><span>批量收藏</span>
+              </button>
+              <button id="batch-unfavorite" class="btn btn-ghost btn-sm" title="批量取消收藏">
+                <span class="btn-icon">☆</span><span>批量取消</span>
+              </button>
+              <button id="batch-forward" class="btn btn-ghost btn-sm" title="批量设置转发">
+                <span class="btn-icon">↪️</span><span>批量转发</span>
+              </button>
+              <button id="batch-clear-forward" class="btn btn-ghost btn-sm" title="批量清除转发">
+                <span class="btn-icon">🚫</span><span>清除转发</span>
+              </button>
+            </div>
+            <div class="view-toggle">
+              <button id="view-grid" class="btn btn-ghost btn-sm active" title="卡片网格视图">
+                <span class="view-icon grid-icon"></span>
+              </button>
+              <button id="view-list" class="btn btn-ghost btn-sm" title="列表行视图">
+                <span class="view-icon list-icon"></span>
+              </button>
+            </div>
           </div>
         </div>
         <div id="grid" class="grid"></div>
@@ -189,11 +218,58 @@
             <span id="batch-count-info">输入邮箱后将显示数量统计</span>
           </div>
         </div>
+        <!-- 转发目标输入框（仅批量转发时显示） -->
+        <div id="batch-forward-input-wrapper" style="display:none;margin-bottom:16px;">
+          <label style="display:block;margin-bottom:6px;color:#374151;font-weight:500;font-size:14px;">
+            转发目标邮箱
+          </label>
+          <input id="batch-forward-target" type="email" class="form-input"
+                 placeholder="所有选中邮箱将转发到此地址" 
+                 style="width:100%;padding:10px 12px;border:1px solid rgba(226, 232, 240, 0.8);border-radius:8px;font-size:14px;background:rgba(255,255,255,0.9);"/>
+        </div>
         <div style="display:flex;gap:12px;justify-content:flex-end">
           <button id="batch-modal-cancel" class="btn btn-secondary">取消</button>
           <button id="batch-modal-confirm" class="btn btn-primary" disabled>
             <span class="batch-btn-text">确定操作</span>
             <span class="batch-btn-loading" style="display:none;">处理中...</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 密码操作模态框 -->
+  <div class="modal" id="password-modal" style="display:none">
+    <div class="modal-card" style="max-width: 420px;">
+      <div class="modal-header">
+        <div>
+          <span class="modal-icon" id="password-modal-icon">🔑</span>
+          <span id="password-modal-title">密码操作</span>
+        </div>
+        <button id="password-modal-close" class="close">✕</button>
+      </div>
+      <div class="modal-body">
+        <p id="password-modal-message" style="margin:0 0 16px 0;color:#334155"></p>
+        <!-- 设置密码输入框 -->
+        <div id="password-input-wrapper" style="display:none;margin-bottom:16px;">
+          <label style="display:block;margin-bottom:6px;color:#374151;font-weight:500;font-size:14px;">
+            新密码
+          </label>
+          <input id="password-new-input" type="password" class="form-input"
+                 placeholder="请输入新密码" 
+                 style="width:100%;padding:10px 12px;border:1px solid rgba(226, 232, 240, 0.8);border-radius:8px;font-size:14px;background:rgba(255,255,255,0.9);"/>
+          <div style="margin-top:8px;">
+            <label style="display:flex;align-items:center;gap:6px;color:#64748b;font-size:12px;cursor:pointer;">
+              <input type="checkbox" id="password-show-toggle" style="cursor:pointer;"/>
+              显示密码
+            </label>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;justify-content:flex-end">
+          <button id="password-modal-cancel" class="btn btn-secondary">取消</button>
+          <button id="password-modal-confirm" class="btn btn-primary">
+            <span class="password-btn-text">确定</span>
+            <span class="password-btn-loading" style="display:none;">处理中...</span>
           </button>
         </div>
       </div>
