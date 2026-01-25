@@ -87,7 +87,8 @@ async function load() {
     
     const data = await fetchMailboxes(params);
     const list = Array.isArray(data) ? data : (data.list || []);
-    lastCount = list.length;
+    const total = data.total ?? list.length;
+    lastCount = total;
     currentData = list;
     
     if (!list.length) {
@@ -110,9 +111,10 @@ async function load() {
 
 // 更新分页器
 function updatePager() {
-  if (els.page) els.page.textContent = `第 ${page} 页`;
+  const totalPages = Math.max(1, Math.ceil(lastCount / PAGE_SIZE));
+  if (els.page) els.page.textContent = `第 ${page} / ${totalPages} 页 (共 ${lastCount} 个)`;
   if (els.prev) els.prev.disabled = page <= 1;
-  if (els.next) els.next.disabled = lastCount < PAGE_SIZE;
+  if (els.next) els.next.disabled = page >= totalPages;
 }
 
 // 绑定卡片事件
@@ -428,7 +430,10 @@ els.search?.addEventListener('click', () => { page = 1; load(); });
 els.q?.addEventListener('input', () => { if (searchTimeout) clearTimeout(searchTimeout); searchTimeout = setTimeout(() => { page = 1; load(); }, 300); });
 els.q?.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); page = 1; load(); }});
 els.prev?.addEventListener('click', () => { if (page > 1 && !isLoading) { page--; load(); }});
-els.next?.addEventListener('click', () => { if (lastCount === PAGE_SIZE && !isLoading) { page++; load(); }});
+els.next?.addEventListener('click', () => { 
+  const totalPages = Math.max(1, Math.ceil(lastCount / PAGE_SIZE));
+  if (page < totalPages && !isLoading) { page++; load(); }
+});
 els.domainFilter?.addEventListener('change', () => { page = 1; load(); });
 els.loginFilter?.addEventListener('change', () => { page = 1; load(); });
 els.favoriteFilter?.addEventListener('change', () => { page = 1; load(); });

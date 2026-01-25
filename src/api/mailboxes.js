@@ -175,10 +175,16 @@ export async function handleMailboxesApi(request, db, mailDomains, url, path, op
   // 获取用户的邮箱列表
   if (path === '/api/mailboxes' && request.method === 'GET') {
     if (isMock) {
+      const searchParam = url.searchParams.get('q');
       const domainParam = url.searchParams.get('domain');
       const favoriteParam = url.searchParams.get('favorite');
       const forwardParam = url.searchParams.get('forward');
       let results = buildMockMailboxes(MOCK_DOMAINS);
+      // 搜索过滤
+      if (searchParam && searchParam.trim()) {
+        const q = searchParam.trim().toLowerCase();
+        results = results.filter(m => m.address.toLowerCase().includes(q));
+      }
       if (domainParam) {
         results = results.filter(m => m.address.endsWith('@' + domainParam));
       }
@@ -192,7 +198,15 @@ export async function handleMailboxesApi(request, db, mailDomains, url, path, op
       } else if (forwardParam === 'false' || forwardParam === '0') {
         results = results.filter(m => !m.forward_to);
       }
-      return Response.json(results);
+      // 分页
+      const pageParam = url.searchParams.get('page');
+      const sizeParam = url.searchParams.get('size');
+      const page = Math.max(1, Number(pageParam || 1));
+      const size = Math.max(1, Math.min(500, Number(sizeParam || 20)));
+      const total = results.length;
+      const start = (page - 1) * size;
+      const pageResult = results.slice(start, start + size);
+      return Response.json({ list: pageResult, total });
     }
 
     const payload = getJwtPayload(request, options);
@@ -209,9 +223,9 @@ export async function handleMailboxesApi(request, db, mailDomains, url, path, op
           WHERE address = ?
           LIMIT 1
         `).bind(payload.mailboxAddress).all();
-        return Response.json(results || []);
+        return Response.json({ list: results || [], total: results?.length || 0 });
       } catch (e) {
-        return Response.json([]);
+        return Response.json({ list: [], total: 0 });
       }
     }
 
@@ -232,10 +246,24 @@ export async function handleMailboxesApi(request, db, mailDomains, url, path, op
         }
       }
 
-      if (!uid && !strictAdmin) return Response.json([]);
+      if (!uid && !strictAdmin) return Response.json({ list: [], total: 0 });
 
-      const limit = Math.max(1, Math.min(500, Number(url.searchParams.get('limit') || 100)));
-      const offset = Math.max(0, Number(url.searchParams.get('offset') || 0));
+      // 支持两种分页参数：page/size 或 limit/offset
+      let limit, offset;
+      const pageParam = url.searchParams.get('page');
+      const sizeParam = url.searchParams.get('size');
+      
+      if (pageParam !== null || sizeParam !== null) {
+        // 使用 page/size 分页
+        const page = Math.max(1, Number(pageParam || 1));
+        const size = Math.max(1, Math.min(500, Number(sizeParam || 20)));
+        limit = size;
+        offset = (page - 1) * size;
+      } else {
+        // 使用 limit/offset 分页
+        limit = Math.max(1, Math.min(500, Number(url.searchParams.get('limit') || 100)));
+        offset = Math.max(0, Number(url.searchParams.get('offset') || 0));
+      }
 
       const bindParams = [];
       const whereConditions = [];
@@ -247,10 +275,17 @@ export async function handleMailboxesApi(request, db, mailDomains, url, path, op
         bindParams.push(uid);
       }
       
+      const searchParam = url.searchParams.get('q');
       const domainParam = url.searchParams.get('domain');
       const loginParam = url.searchParams.get('login');
       const favoriteParam = url.searchParams.get('favorite');
       const forwardParam = url.searchParams.get('forward');
+      
+      // 搜索过滤（模糊匹配邮箱地址）
+      if (searchParam && searchParam.trim()) {
+        whereConditions.push('m.address LIKE ?');
+        bindParams.push(`%${searchParam.trim().toLowerCase()}%`);
+      }
       
       if (domainParam) {
         whereConditions.push('m.domain = ?');
@@ -281,11 +316,25 @@ export async function handleMailboxesApi(request, db, mailDomains, url, path, op
       const whereClause = whereConditions.length > 0 ? 'WHERE ' + whereConditions.join(' AND ') : '';
       bindParams.push(limit, offset);
       
+      // 构建计数查询的参数（不包含 limit 和 offset）
+      const countBindParams = bindParams.slice(0, -2);
+      
       // 严格管理员使用 LEFT JOIN 显示所有邮箱，同时保留自己的置顶状态
       // 普通用户使用 INNER JOIN 只显示自己关联的邮箱
       if (strictAdmin && uid) {
         // 严格管理员：显示所有邮箱，使用 LEFT JOIN 获取自己的置顶状态
         const adminBindParams = [uid, ...bindParams];
+        const adminCountBindParams = [uid, ...countBindParams];
+        
+        // 获取总数
+        const countResult = await db.prepare(`
+          SELECT COUNT(*) as total
+          FROM mailboxes m
+          LEFT JOIN user_mailboxes um ON m.id = um.mailbox_id AND um.user_id = ?
+          ${whereClause}
+        `).bind(...adminCountBindParams).first();
+        const total = countResult?.total || 0;
+        
         const { results } = await db.prepare(`
           SELECT m.id, m.address, m.created_at, COALESCE(um.is_pinned, 0) AS is_pinned,
                  CASE WHEN (m.password_hash IS NULL OR m.password_hash = '') THEN 1 ELSE 0 END AS password_is_default,
@@ -297,9 +346,17 @@ export async function handleMailboxesApi(request, db, mailDomains, url, path, op
           ORDER BY COALESCE(um.is_pinned, 0) DESC, m.created_at DESC
           LIMIT ? OFFSET ?
         `).bind(...adminBindParams).all();
-        return Response.json(results || []);
+        return Response.json({ list: results || [], total });
       } else if (strictAdmin) {
         // 严格管理员但没有 uid（不应该发生，但作为兜底）
+        // 获取总数
+        const countResult = await db.prepare(`
+          SELECT COUNT(*) as total
+          FROM mailboxes m
+          ${whereClause}
+        `).bind(...countBindParams).first();
+        const total = countResult?.total || 0;
+        
         const { results } = await db.prepare(`
           SELECT m.id, m.address, m.created_at, 0 AS is_pinned,
                  CASE WHEN (m.password_hash IS NULL OR m.password_hash = '') THEN 1 ELSE 0 END AS password_is_default,
@@ -310,9 +367,18 @@ export async function handleMailboxesApi(request, db, mailDomains, url, path, op
           ORDER BY m.created_at DESC
           LIMIT ? OFFSET ?
         `).bind(...bindParams).all();
-        return Response.json(results || []);
+        return Response.json({ list: results || [], total });
       } else {
         // 普通用户：只显示自己关联的邮箱
+        // 获取总数
+        const countResult = await db.prepare(`
+          SELECT COUNT(*) as total
+          FROM user_mailboxes um
+          JOIN mailboxes m ON m.id = um.mailbox_id
+          ${whereClause}
+        `).bind(...countBindParams).first();
+        const total = countResult?.total || 0;
+        
         const { results } = await db.prepare(`
           SELECT m.id, m.address, m.created_at, um.is_pinned,
                  CASE WHEN (m.password_hash IS NULL OR m.password_hash = '') THEN 1 ELSE 0 END AS password_is_default,
@@ -324,10 +390,10 @@ export async function handleMailboxesApi(request, db, mailDomains, url, path, op
           ORDER BY um.is_pinned DESC, m.created_at DESC
           LIMIT ? OFFSET ?
         `).bind(...bindParams).all();
-        return Response.json(results || []);
+        return Response.json({ list: results || [], total });
       }
     } catch (_) {
-      return Response.json([]);
+      return Response.json({ list: [], total: 0 });
     }
   }
 

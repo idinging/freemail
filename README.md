@@ -4,7 +4,9 @@
 
 一个基于 Cloudflare Workers + D1 + R2 构建的**开源临时邮箱服务**，支持邮件接收、发送、转发、用户管理等完整功能。
 
-**当前版本：V4.8** - 新增邮件转发和收藏功能
+**当前版本：V4.8** - 新增单个邮件转发和收藏功能
+
+`转发的地址需要在cloudflare Email Addresses中验证`
 
 📖 **[一键部署指南](docs/yijianbushu.md)** | 📬 **[Resend 发件配置](docs/resend.md)** | 📚 **[API 文档](docs/api.md)**
 
@@ -133,7 +135,15 @@ RESEND_API_KEY='{"domain1.com":"re_key1","domain2.com":"re_key2"}'
 <details>
 <summary><strong>FORWARD_RULES 配置格式</strong></summary>
 
-规则按前缀匹配，`*` 为兜底规则。转发目标需在 Cloudflare Email Addresses 中验证。
+规则按前缀匹配，`*` 为兜底规则。
+
+⚠️ **重要**：转发目标邮箱必须在 Cloudflare 控制台中验证后才能使用：
+1. 进入 Cloudflare 控制台 → 域名 → 电子邮件 → 电子邮件路由
+2. 切换到「目标地址」选项卡
+3. 点击「添加目标地址」，输入转发目标邮箱
+4. 前往目标邮箱收取验证邮件并点击确认链接
+
+![转发目标地址验证](pic/resend/zhuanfa.png)
 
 ```bash
 # 键值对格式

@@ -244,10 +244,11 @@ export async function mockApi(path, options = {}) {
     // 分页
     const page = Number(url.searchParams.get('page') || 1);
     const size = Number(url.searchParams.get('size') || 20);
+    const total = result.length;
     const start = (page - 1) * size;
     const pageResult = result.slice(start, start + size);
     
-    return new Response(JSON.stringify(pageResult), { headers: jsonHeaders });
+    return new Response(JSON.stringify({ list: pageResult, total }), { headers: jsonHeaders });
   }
 
   // POST /api/mailboxes/pin

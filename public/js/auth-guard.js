@@ -23,7 +23,7 @@ try{
       const controller = new AbortController();
       const timeout = setTimeout(()=>controller.abort(), 8000);
       const opts = { method: 'GET', headers: { 'Cache-Control': 'no-cache' }, keepalive: true, signal: controller.signal };
-      const mailboxes = fetch('/api/mailboxes?limit=10&offset=0', opts).then(r => r.ok ? r.json() : []).then(data => save('mf:prefetch:mailboxes', Array.isArray(data) ? data : [] )).catch(()=>{});
+      const mailboxes = fetch('/api/mailboxes?limit=10&offset=0', opts).then(r => r.ok ? r.json() : { list: [] }).then(data => save('mf:prefetch:mailboxes', Array.isArray(data) ? data : (data.list || []) )).catch(()=>{});
       const quota = fetch('/api/user/quota', opts).then(r => r.ok ? r.json() : null).then(data => { if (data) save('mf:prefetch:quota', data); }).catch(()=>{});
       const domains = fetch('/api/domains', opts).then(r => r.ok ? r.json() : []).then(list => { if (Array.isArray(list) && list.length) save('mf:prefetch:domains', list); }).catch(()=>{});
       // 不阻塞太久：最多等待 800ms 即跳转，其余继续后台完成（keepalive）
