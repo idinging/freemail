@@ -6,7 +6,7 @@ compatibility_date = "2024-01-01"
 # D1 数据库绑定
 [[d1_databases]]
 binding = "TEMP_MAIL_DB"
-database_name = "maill_free_db" #你的d1数据库名称
+database_name = "mail_free_db_" #你的d1数据库名称
 database_id = "c82663ac-62b6-4ba6-be81-cbe297f2a3dd" # 你的database_id
 # 登录会话过期时间（单位：天，默认7天）
 # 环境变量
@@ -22,9 +22,9 @@ binding = "ASSETS"
 
 
 # R2 存储桶绑定（用于保存完整 EML 内容）
-[[r2_buckets]]
-binding = "MAIL_EML"
-bucket_name = "mail-eml"
+#[[r2_buckets]]
+#binding = "MAIL_EML"
+#bucket_name = "mail-eml"
 
 # wrangler.toml (wrangler v3.88.0^) 日志服务
 # [observability.logs]
