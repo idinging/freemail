@@ -6,7 +6,8 @@
 // 自动刷新状态
 let autoRefreshInterval = null;
 let isAutoRefreshEnabled = true;
-const AUTO_REFRESH_INTERVAL = 15000; // 15秒
+const AUTO_REFRESH_INTERVAL = 1000; // 1秒 tick，实际刷新由回调内部的倒计时控制
+const REAL_REFRESH_INTERVAL = 15000; // 实际刷新周期，用于可见性恢复判断
 
 // 页面可见性追踪
 let isPageVisible = true;
@@ -21,7 +22,7 @@ export function initVisibilityTracking() {
     if (isPageVisible && isAutoRefreshEnabled) {
       // 页面变为可见时，如果距离上次刷新超过间隔时间，立即刷新
       const now = Date.now();
-      if (now - lastRefreshTime > AUTO_REFRESH_INTERVAL) {
+      if (now - lastRefreshTime > REAL_REFRESH_INTERVAL) {
         triggerRefresh();
       }
     }

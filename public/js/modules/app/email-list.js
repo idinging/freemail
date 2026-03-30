@@ -143,7 +143,7 @@ export function renderEmailItem(email, isMobile = false) {
     if (codeMatch) {
       preview = `验证码: ${codeMatch} | ${preview}`;
     }
-    preview = preview.slice(0, 20);
+    preview = preview.slice(0, 40);
   }
   
   const hasContent = preview.length > 0;
