@@ -109,7 +109,7 @@
             }catch(_){ }
             // 显示 loading 界面，同时进行权限检查
             var loadingDiv = document.createElement('div');
-            loadingDiv.innerHTML = '<div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#f8fafc;z-index:9999"><div style="text-align:center"><div style="font-size:3rem;margin-bottom:1rem">📧</div><div style="width:40px;height:40px;border:3px solid rgba(59,130,246,0.2);border-top:3px solid #3b82f6;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto"></div><style>@keyframes spin{to{transform:rotate(360deg)}}</style></div></div>';
+            loadingDiv.innerHTML = '<div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 50%, #f8fafc 100%);z-index:9999"><div style="text-align:center"><div style="width:60px;height:60px;margin:0 auto 16px;background:linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);border-radius:16px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 32px rgba(99,102,241,0.3)"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div><div style="width:40px;height:40px;border:3px solid rgba(99,130,246,0.2);border-top:3px solid #6366f1;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto"></div><style>@keyframes spin{to{transform:rotate(360deg)}}</style></div></div>';
             document.body.appendChild(loadingDiv);
             
             // 并行进行权限检查

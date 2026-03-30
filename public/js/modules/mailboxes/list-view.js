@@ -58,28 +58,28 @@ export function renderMailboxListItem(mailbox, options = {}) {
   return `
     <div class="mailbox-list-item ${isPinned ? 'pinned' : ''}" data-address="${escapedAddress}">
       <div class="item-pin ${isPinned ? 'active' : ''}" data-action="pin" title="${isPinned ? '取消置顶' : '置顶'}">
-        ${isPinned ? '📌' : '📍'}
+        ${isPinned ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><use href="/icons/sprites.svg#icon-pin"/></svg>' : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="/icons/sprites.svg#icon-pin"/></svg>'}
       </div>
-      
+
       <div class="item-content">
         <div class="item-address" title="${escapedAddress}">${displayAddress}</div>
         <div class="item-meta">
           <span class="item-time">${createdAt}</span>
           <span class="item-indicators">
-            ${isFavorite ? '<span class="indicator favorite" title="已收藏">⭐</span>' : ''}
-            ${forwardTo ? `<span class="indicator forward" title="转发至: ${escapeAttr(forwardTo)}">📤</span>` : ''}
-            ${canLogin ? '<span class="indicator login" title="可登录">🔑</span>' : ''}
+            ${isFavorite ? '<span class="indicator favorite" title="已收藏"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><use href="/icons/sprites.svg#icon-star"/></svg></span>' : ''}
+            ${forwardTo ? `<span class="indicator forward" title="转发至: ${escapeAttr(forwardTo)}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="/icons/sprites.svg#icon-forward"/></svg></span>` : ''}
+            ${canLogin ? '<span class="indicator login" title="可登录"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="/icons/sprites.svg#icon-key"/></svg></span>' : '<span class="indicator login-disabled" title="禁止登录"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="/icons/sprites.svg#icon-lock"/></svg></span>'}
           </span>
         </div>
       </div>
-      
+
       <div class="item-actions">
-        <button class="btn btn-sm" data-action="copy" title="复制">📋</button>
-        <button class="btn btn-sm" data-action="jump" title="查看">📧</button>
-        <button class="btn btn-sm ${isFavorite ? 'active' : ''}" data-action="favorite" title="${isFavorite ? '取消收藏' : '收藏'}">⭐</button>
-        <button class="btn btn-sm" data-action="forward" title="转发设置">📤</button>
-        <button class="btn btn-sm" data-action="toggle-login" title="${canLogin ? '禁止登录' : '允许登录'}">🔑</button>
-        <button class="btn btn-sm danger" data-action="delete" title="删除">🗑️</button>
+        <button class="btn btn-sm" data-action="copy" title="复制"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="/icons/sprites.svg#icon-copy"/></svg></button>
+        <button class="btn btn-sm" data-action="jump" title="查看"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="/icons/sprites.svg#icon-mail"/></svg></button>
+        <button class="btn btn-sm ${isFavorite ? 'active' : ''}" data-action="favorite" title="${isFavorite ? '取消收藏' : '收藏'}"><svg width="14" height="14" viewBox="0 0 24 24" fill="${isFavorite ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><use href="/icons/sprites.svg#icon-star-${isFavorite ? '' : 'empty'}"/></svg></button>
+        <button class="btn btn-sm" data-action="forward" title="转发设置"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="/icons/sprites.svg#icon-forward"/></svg></button>
+        <button class="btn btn-sm" data-action="toggle-login" title="${canLogin ? '禁止登录' : '允许登录'}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="/icons/sprites.svg#icon-key"/></svg></button>
+        <button class="btn btn-sm danger" data-action="delete" title="删除"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="/icons/sprites.svg#icon-trash"/></svg></button>
       </div>
     </div>
   `;

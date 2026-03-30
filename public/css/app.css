@@ -1613,16 +1613,13 @@ body::after{
   box-shadow: var(--shadow);
 }
 
-/* 增强选中邮箱高亮效果 */
+/* 选中邮箱高亮效果 */
 .mailbox-item.selected{
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.18) 0%, rgba(139, 92, 246, 0.12) 100%);
-  border: 2px solid var(--primary);
-  border-left: 5px solid var(--primary);
-  box-shadow: 
-    0 4px 16px rgba(99, 102, 241, 0.2),
-    0 0 0 3px rgba(99, 102, 241, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.5);
-  transform: translateX(6px);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.05) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-left: 3px solid var(--primary);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
+  transform: translateX(3px);
   position: relative;
   z-index: 5;
   padding-left: 18px;
@@ -1634,44 +1631,40 @@ body::after{
   left: 0;
   top: 0;
   bottom: 0;
-  width: 5px;
-  background: var(--primary-gradient);
+  width: 3px;
+  background: var(--primary);
   border-radius: 0;
-  opacity: 1;
+  opacity: 0.7;
 }
 
 .mailbox-item.selected .address{
   color: var(--primary);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .mailbox-item.selected .time{
-  color: var(--primary);
-  opacity: 0.85;
+  color: var(--text-muted);
 }
 
 .mailbox-item.selected:hover{
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.22) 0%, rgba(139, 92, 246, 0.16) 100%);
-  box-shadow: 
-    0 6px 20px rgba(99, 102, 241, 0.25),
-    0 0 0 4px rgba(99, 102, 241, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  transform: translateX(8px);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(139, 92, 246, 0.08) 100%);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+  transform: translateX(4px);
 }
 
 /* 同时置顶和选中的邮箱项 */
 .mailbox-item.pinned.selected{
-  background: linear-gradient(135deg, 
-    rgba(99, 102, 241, 0.15) 0%, 
-    rgba(251, 191, 36, 0.08) 50%,
-    rgba(139, 92, 246, 0.1) 100%);
-  border: 2px solid var(--primary);
-  border-left: 5px solid var(--primary);
+  background: linear-gradient(135deg,
+    rgba(99, 102, 241, 0.06) 0%,
+    rgba(251, 191, 36, 0.03) 50%,
+    rgba(139, 92, 246, 0.04) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-left: 3px solid var(--primary);
 }
 
 .mailbox-item.pinned.selected::before{
   display: block;
-  opacity: 1;
+  opacity: 0.7;
 }
 
 .mailbox-item .address{
@@ -3325,10 +3318,14 @@ select:disabled{
   color: inherit;
 }
 
-/* 主要按钮图标颜色 */
-.btn-primary .btn-icon svg,
-.btn-generate .btn-icon svg {
+/* 主要按钮（btn-primary）图标颜色 */
+.btn-primary .btn-icon svg {
   color: #fff;
+}
+
+/* 生成按钮图标颜色 */
+.btn-generate .btn-icon svg {
+  color: var(--primary);
 }
 
 /* 次要按钮图标颜色 */
@@ -3481,4 +3478,36 @@ select:disabled{
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
+}
+
+/* ===== 空状态样式 ===== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  color: var(--text-muted);
+  gap: 16px;
+}
+
+.empty-state .empty-icon {
+  opacity: 0.4;
+  color: var(--primary);
+  margin-bottom: 4px;
+}
+
+.empty-state .empty-text {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+/* 列表视图空状态 */
+.list-viewport .empty-state {
+  padding: 32px 16px;
+}
+
+.list-viewport .empty-state .empty-icon {
+  width: 40px;
+  height: 40px;
 }

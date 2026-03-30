@@ -96,7 +96,16 @@ async function refresh() {
     const ctrl = new AbortController(); const timeout = setTimeout(() => ctrl.abort(), 8000);
     let emails = [];
     try { const r = await api(url, { signal: ctrl.signal }); emails = await r.json(); } finally { clearTimeout(timeout); }
-    if (!Array.isArray(emails) || !emails.length) { els.list.innerHTML = '<div style="text-align:center;color:#64748b">📭 暂无邮件</div>'; if (els.pager) els.pager.style.display = 'none'; return; }
+    if (!Array.isArray(emails) || !emails.length) {
+      els.list.innerHTML = `<div class="empty-state">
+        <svg class="empty-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <use href="/icons/sprites.svg#icon-inbox"/>
+        </svg>
+        <span class="empty-text">暂无邮件</span>
+      </div>`;
+      if (els.pager) els.pager.style.display = 'none';
+      return;
+    }
     const isMobile = window.matchMedia?.('(max-width: 900px)').matches;
     els.list.innerHTML = sliceByPage(emails, els).map(e => renderEmailItem(e, isMobile)).join('');
     if (!isSentViewActive()) prefetchEmails(emails, api);

@@ -23,19 +23,19 @@ export async function showEmailDetail(id, elements, api, showToast) {
       email = await r.json();
       setEmailCache(id, email);
     }
-    
-    modalSubject.innerHTML = `<span class="modal-icon">📧</span><span>${escapeHtml(email.subject || '(无主题)')}</span>`;
+
+    modalSubject.innerHTML = `<span class="modal-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="/icons/sprites.svg#icon-mail"/></svg></span><span>${escapeHtml(email.subject || '(无主题)')}</span>`;
 
     const code = email.verification_code || extractCode(email.content || email.html_content || '');
 
     let metaHtml = `<div class="email-meta-inline">`;
-    if (email.sender) metaHtml += `<span>👤 ${escapeHtml(email.sender)}</span>`;
+    if (email.sender) metaHtml += `<span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="/icons/sprites.svg#icon-user"/></svg> ${escapeHtml(email.sender)}</span>`;
     if (email.received_at) {
       const d = new Date((email.received_at.includes('T') ? email.received_at : email.received_at.replace(' ', 'T')) + 'Z');
       const timeStr = new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false, year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(d);
-      metaHtml += `<span>🕐 ${timeStr}</span>`;
+      metaHtml += `<span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="/icons/sprites.svg#icon-clock"/></svg> ${timeStr}</span>`;
     }
-    if (email.download) metaHtml += `<span><a href="${email.download}" download style="color:var(--primary);text-decoration:none">⬇️ 下载 EML</a></span>`;
+    if (email.download) metaHtml += `<span><a href="${email.download}" download style="color:var(--primary);text-decoration:none"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="/icons/sprites.svg#icon-download"/></svg> 下载 EML</a></span>`;
     metaHtml += `</div>`;
 
     let codeHtml = '';
