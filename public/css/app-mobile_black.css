@@ -1,0 +1,301 @@
+/* =============================================
+   移动端暗黑模式样式
+   ============================================= */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* ===== 移动端背景系统 ===== */
+    --surface: linear-gradient(135deg, #0f172a 0%, #1e1b4b 25%, #1e293b 50%, #18181b 75%, #1c1917 100%);
+
+    /* ===== 移动端卡片系统 ===== */
+    --card: rgba(30, 41, 59, 0.85);
+    --card-hover: rgba(30, 41, 59, 0.95);
+    --card-glass: rgba(30, 41, 59, 0.6);
+    --card-glass-hover: rgba(30, 41, 59, 0.8);
+    --card-gradient: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%);
+
+    /* ===== 颜色变量 ===== */
+    --primary-light: rgba(99, 102, 241, 0.2);
+    --primary-glass: rgba(99, 102, 241, 0.1);
+
+    /* ===== 文字颜色 ===== */
+    --text: #f8fafc;
+    --text-light: #e2e8f0;
+    --text-muted: #94a3b8;
+    --text-secondary: #64748b;
+    --text-disabled: #475569;
+    --text-inverse: #0f172a;
+
+    /* ===== 边框系统 ===== */
+    --border: #334155;
+    --border-light: #1e293b;
+    --border-glass: rgba(255, 255, 255, 0.1);
+    --border-glass-hover: rgba(255, 255, 255, 0.15);
+
+    /* ===== 阴影系统 ===== */
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.35), 0 4px 6px -2px rgba(0, 0, 0, 0.25);
+    --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+    --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(99, 102, 241, 0.1);
+
+    /* ===== 其他变量 ===== */
+    --muted: #94a3b8;
+    --muted2: #64748b;
+  }
+}
+
+/* ===== 暗黑模式移动端覆盖 ===== */
+:root.dark {
+  --surface: linear-gradient(135deg, #0f172a 0%, #1e1b4b 25%, #1e293b 50%, #18181b 75%, #1c1917 100%);
+  --card: rgba(30, 41, 59, 0.85);
+  --card-glass: rgba(30, 41, 59, 0.6);
+  --text: #f8fafc;
+  --text-light: #e2e8f0;
+  --text-muted: #94a3b8;
+  --border: #334155;
+  --border-light: #1e293b;
+  --border-glass: rgba(255, 255, 255, 0.1);
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.35), 0 4px 6px -2px rgba(0, 0, 0, 0.25);
+  --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(99, 102, 241, 0.1);
+  --muted: #94a3b8;
+  --muted2: #64748b;
+}
+
+/* ===== 移动端特定覆盖 ===== */
+@media (max-width: 900px) and (prefers-color-scheme: dark),
+       (max-width: 900px) and (.dark) {
+  body {
+    background: var(--surface);
+  }
+
+  body::before {
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.12), transparent),
+      radial-gradient(ellipse 60% 40% at 100% 100%, rgba(236, 72, 153, 0.08), transparent),
+      radial-gradient(ellipse 50% 60% at 0% 80%, rgba(16, 185, 129, 0.08), transparent);
+  }
+
+  body::after {
+    display: none;
+  }
+
+  /* 顶部栏 */
+  .topbar {
+    background: rgba(30, 41, 59, 0.9);
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+  }
+
+  /* 侧边栏 */
+  .sidebar {
+    background: rgba(30, 41, 59, 0.95);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  /* 卡片 */
+  .card {
+    background: rgba(30, 41, 59, 0.85);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .generate-card {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.05));
+  }
+
+  .inbox-card {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.06), rgba(6, 182, 212, 0.04));
+  }
+
+  /* 输入框 */
+  .input,
+  .select,
+  .textarea {
+    background: rgba(15, 23, 42, 0.6);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #f8fafc;
+  }
+
+  .input::placeholder,
+  .textarea::placeholder {
+    color: #64748b;
+  }
+
+  /* 邮箱显示 */
+  .email-display {
+    background: rgba(15, 23, 42, 0.6);
+    border-color: #475569;
+    color: #e2e8f0;
+  }
+
+  .email-display.has-email {
+    background: rgba(99, 102, 241, 0.15);
+    border-color: #6366f1;
+    color: #a5b4fc;
+  }
+
+  /* 邮箱项目 */
+  .mailbox-item {
+    background: rgba(30, 41, 59, 0.6);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .mailbox-item:hover {
+    background: rgba(30, 41, 59, 0.85);
+    border-color: #6366f1;
+  }
+
+  .mailbox-item .address {
+    color: #f8fafc;
+  }
+
+  .mailbox-item .time {
+    color: #64748b;
+  }
+
+  /* 邮件项目 */
+  .email-item {
+    background: rgba(30, 41, 59, 0.6);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .email-item:hover {
+    background: rgba(30, 41, 59, 0.85);
+    border-color: #6366f1;
+  }
+
+  .email-sender {
+    color: #f8fafc;
+  }
+
+  .email-subject {
+    color: #f8fafc;
+  }
+
+  .email-preview {
+    color: #94a3b8;
+  }
+
+  /* 搜索框 */
+  .search-input {
+    background: rgba(15, 23, 42, 0.6);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #f8fafc;
+  }
+
+  .search-input::placeholder {
+    color: #64748b;
+  }
+
+  /* 模态框 */
+  .modal {
+    background: rgba(0, 0, 0, 0.75);
+  }
+
+  .modal-card {
+    background: rgba(30, 41, 59, 0.98);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .modal-body {
+    background: linear-gradient(180deg, transparent 0%, rgba(99, 102, 241, 0.05) 100%);
+  }
+
+  /* 表单 */
+  .field-input,
+  .field-textarea {
+    background: rgba(15, 23, 42, 0.6);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #f8fafc;
+  }
+
+  /* 按钮 */
+  .btn-ghost {
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #e2e8f0;
+  }
+
+  .btn-ghost:hover {
+    background: rgba(99, 102, 241, 0.15);
+    border-color: #6366f1;
+    color: #a5b4fc;
+  }
+
+  /* 分页 */
+  .pager .muted {
+    color: #94a3b8;
+  }
+
+  /* 状态显示 */
+  .loading-indicator {
+    color: #e2e8f0;
+  }
+
+  .spinner {
+    border-color: rgba(99, 102, 241, 0.2);
+    border-top-color: #6366f1;
+  }
+
+  /* 视图切换 */
+  .view-switch {
+    background: rgba(30, 41, 59, 0.6);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .seg-btn {
+    color: #94a3b8;
+  }
+
+  .seg-btn[aria-pressed="true"] {
+    background: rgba(99, 102, 241, 0.15);
+    color: #a5b4fc;
+  }
+
+  /* 角色徽章 */
+  .role-user {
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(51, 65, 85, 0.8));
+    border-color: #475569;
+    color: #e2e8f0;
+  }
+
+  /* 空状态 */
+  .empty-state {
+    color: #64748b;
+  }
+
+  .empty-state .empty-text {
+    color: #64748b;
+  }
+
+  /* 配置表单 */
+  .config-form {
+    background: rgba(30, 41, 59, 0.7);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .config-label {
+    color: #e2e8f0;
+  }
+
+  /* 范围滑块 */
+  .range-display {
+    background: rgba(99, 102, 241, 0.15);
+    border-color: rgba(99, 102, 241, 0.25);
+  }
+
+  .len-value {
+    color: #a5b4fc;
+  }
+
+  /* 邮箱操作 */
+  .mailbox-actions .btn-ghost {
+    background: rgba(71, 85, 105, 0.2);
+    color: #e2e8f0;
+    border-color: #475569;
+  }
+
+  .mailbox-actions .btn-ghost:hover {
+    background: rgba(99, 102, 241, 0.15);
+    color: #a5b4fc;
+    border-color: #6366f1;
+  }
+}

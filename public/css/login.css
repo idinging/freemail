@@ -379,3 +379,49 @@ h1 {
   outline: none;
   box-shadow: 0 12px 28px rgba(99, 102, 241, 0.4), 0 0 0 3px rgba(99, 102, 241, 0.3);
 }
+
+/* ===== 主题切换按钮 ===== */
+.theme-toggle-login {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 100;
+}
+
+.theme-toggle-login:hover {
+  transform: scale(1.1) rotate(15deg);
+  box-shadow: 0 6px 24px rgba(99, 102, 241, 0.3);
+  background: #6366f1;
+  border-color: #6366f1;
+}
+
+.theme-toggle-login:hover svg {
+  color: white;
+}
+
+.theme-toggle-login svg {
+  color: #6366f1;
+  transition: color 0.3s ease;
+}
+
+/* 暗黑模式 */
+:root.dark .theme-toggle-login {
+  background: rgba(30, 41, 59, 0.9);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+:root.dark .theme-toggle-login:hover {
+  background: #6366f1;
+  border-color: #6366f1;
+}

@@ -108,10 +108,20 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Open+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="/css/login.css" />
+    <!-- 暗黑模式样式 -->
+    <link rel="stylesheet" href="/css/login_black.css" />
+    <!-- 主题切换支持 -->
+    <script src="/js/theme-toggle.js"></script>
   </head>
   <body>
     <div class="bg"></div>
     <div class="center">
+      <!-- 主题切换按钮 -->
+      <button id="theme-toggle" class="theme-toggle-login" aria-label="切换主题" title="切换主题">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <use href="/icons/sprites.svg#icon-moon"/>
+        </svg>
+      </button>
       <div class="card">
         <div class="logo">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

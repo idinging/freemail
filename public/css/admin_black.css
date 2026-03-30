@@ -1,0 +1,402 @@
+/* =============================================
+   Admin 页面暗黑模式样式
+   ============================================= */
+
+:root.dark {
+  /* 页面背景 - 与首页一致 */
+  --surface: linear-gradient(135deg, #0f172a 0%, #1e1b4b 25%, #1e293b 50%, #18181b 75%, #1c1917 100%);
+  --surface-mesh:
+    radial-gradient(at 40% 20%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+    radial-gradient(at 80% 0%, rgba(236, 72, 153, 0.1) 0px, transparent 50%),
+    radial-gradient(at 0% 50%, rgba(16, 185, 129, 0.1) 0px, transparent 50%),
+    radial-gradient(at 80% 50%, rgba(245, 158, 11, 0.08) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(59, 130, 246, 0.12) 0px, transparent 50%);
+  --admin-bg: var(--surface);
+  --admin-sidebar-bg: rgba(30, 41, 59, 0.85);
+  --card: rgba(30, 41, 59, 0.85);
+  --card-hover: rgba(30, 41, 59, 0.95);
+  --card-glass: rgba(30, 41, 59, 0.6);
+  --text: #f8fafc;
+  --text-light: #e2e8f0;
+  --text-muted: #94a3b8;
+  --border: #334155;
+  --border-light: #1e293b;
+  --border-glass: rgba(255, 255, 255, 0.1);
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.35), 0 4px 6px -2px rgba(0, 0, 0, 0.25);
+  --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(99, 102, 241, 0.1);
+  --primary: #6366f1;
+  --primary-light: rgba(99, 102, 241, 0.2);
+  --primary-glass: rgba(99, 102, 241, 0.1);
+}
+
+:root.dark body {
+  background: var(--surface);
+  background-attachment: fixed;
+}
+
+:root.dark body::before {
+  content: '';
+  position: fixed;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: var(--surface-mesh);
+  animation: backgroundFloat 25s ease-in-out infinite;
+  z-index: -2;
+  pointer-events: none;
+}
+
+:root.dark body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.15), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(236, 72, 153, 0.1), transparent),
+    radial-gradient(ellipse 50% 60% at 0% 80%, rgba(16, 185, 129, 0.1), transparent);
+  z-index: -1;
+  pointer-events: none;
+  animation: backgroundPulse 15s ease-in-out infinite alternate;
+}
+
+@keyframes backgroundFloat {
+  0%, 100% { transform: translateX(-30px) translateY(-20px) rotate(0deg) scale(1); }
+  25% { transform: translateX(30px) translateY(20px) rotate(1deg) scale(1.02); }
+  50% { transform: translateX(-20px) translateY(30px) rotate(-0.5deg) scale(1); }
+  75% { transform: translateX(20px) translateY(-15px) rotate(0.5deg) scale(1.01); }
+}
+
+@keyframes backgroundPulse {
+  0% { opacity: 0.8; }
+  100% { opacity: 1; }
+}
+
+/* 顶部导航栏 */
+:root.dark .topbar {
+  background: rgba(30, 41, 59, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 侧边栏 */
+:root.dark .sidebar,
+:root.dark .admin-sidebar {
+  background: rgba(30, 41, 59, 0.9);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+:root.dark .sidebar-item {
+  color: #e2e8f0;
+}
+
+:root.dark .sidebar-item:hover {
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+}
+
+:root.dark .sidebar-item.active {
+  background: rgba(99, 102, 241, 0.2);
+  color: #818cf8;
+  border-left-color: #6366f1;
+}
+
+/* 卡片 */
+:root.dark .card,
+:root.dark .admin-card {
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+:root.dark .card-icon {
+  color: #818cf8;
+}
+
+:root.dark .generate-card,
+:root.dark .inbox-card {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.05));
+}
+
+/* 表格 */
+:root.dark .table,
+:root.dark table {
+  background: rgba(30, 41, 59, 0.7);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+:root.dark .table th,
+:root.dark table th {
+  background: rgba(15, 23, 42, 0.8);
+  color: #e2e8f0;
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+:root.dark .table td,
+:root.dark table td {
+  color: #f8fafc;
+  border-bottom-color: rgba(255, 255, 255, 0.05);
+}
+
+:root.dark .table tr:hover td,
+:root.dark table tr:hover td {
+  background: rgba(99, 102, 241, 0.1);
+}
+
+/* 搜索框 */
+:root.dark .search-input {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+}
+
+:root.dark .search-input::placeholder {
+  color: #64748b;
+}
+
+:root.dark .search-input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  background: rgba(15, 23, 42, 0.8);
+}
+
+/* 操作按钮 */
+:root.dark .action-btn,
+:root.dark .edit-btn,
+:root.dark .delete-btn {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+}
+
+:root.dark .edit-btn:hover {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: #6366f1;
+  color: #818cf8;
+}
+
+:root.dark .delete-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: #ef4444;
+  color: #f87171;
+}
+
+/* 分页 */
+:root.dark .pagination,
+:root.dark .pager {
+  color: #94a3b8;
+}
+
+:root.dark .pagination button,
+:root.dark .pager button {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+}
+
+:root.dark .pagination button:hover:not(:disabled),
+:root.dark .pager button:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: #6366f1;
+  color: #a5b4fc;
+}
+
+:root.dark .pagination button:disabled,
+:root.dark .pager button:disabled {
+  color: #475569;
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+/* 统计卡片 */
+:root.dark .stat-card {
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+:root.dark .stat-value {
+  color: #a5b4fc;
+}
+
+:root.dark .stat-label {
+  color: #94a3b8;
+}
+
+/* 状态标签 */
+:root.dark .status {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+}
+
+/* 工具栏 */
+:root.dark .toolbar {
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* 下拉菜单 */
+:root.dark .dropdown,
+:root.dark .dropdown-menu {
+  background: rgba(30, 41, 59, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+:root.dark .dropdown-item {
+  color: #e2e8f0;
+}
+
+:root.dark .dropdown-item:hover {
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+}
+
+/* 用户头像 */
+:root.dark .avatar {
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+}
+
+/* 时间显示 */
+:root.dark .time,
+:root.dark .timestamp {
+  color: #64748b;
+}
+
+/* 空状态 */
+:root.dark .empty-state {
+  color: #64748b;
+}
+
+/* 加载状态 */
+:root.dark .loading {
+  color: #6366f1;
+}
+
+/* 确认对话框 */
+:root.dark .confirm-dialog {
+  background: rgba(30, 41, 59, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+:root.dark .confirm-message {
+  color: #f8fafc;
+}
+
+/* 输入框 */
+:root.dark .input,
+:root.dark input[type="text"],
+:root.dark input[type="password"],
+:root.dark input[type="email"] {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+}
+
+:root.dark .input::placeholder,
+:root.dark input::placeholder {
+  color: #64748b;
+}
+
+:root.dark .input:focus,
+:root.dark input:focus {
+  background: rgba(15, 23, 42, 0.8);
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+/* 下拉框 */
+:root.dark .select,
+:root.dark select {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+}
+
+/* 按钮 */
+:root.dark .btn {
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+}
+
+:root.dark .btn:hover {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.3);
+  color: #a5b4fc;
+}
+
+:root.dark .btn-ghost {
+  background: transparent;
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  color: #94a3b8;
+}
+
+:root.dark .btn-ghost:hover {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: #6366f1;
+  color: #a5b4fc;
+}
+
+:root.dark .btn-secondary {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+}
+
+:root.dark .btn-primary {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  border: none;
+}
+
+:root.dark .btn-primary:hover {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+}
+
+/* ===== 模态框样式 ===== */
+:root.dark .modal-card {
+  background: rgba(30, 41, 59, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+:root.dark .modal-header {
+  background: rgba(30, 41, 59, 0.8);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+}
+
+:root.dark .modal-header .modal-icon {
+  color: #818cf8;
+}
+
+:root.dark .modal-body {
+  background: rgba(30, 41, 59, 0.95);
+  color: #e2e8f0;
+}
+
+:root.dark .modal-body .input {
+  background: rgba(15, 23, 42, 0.9);
+  border-color: rgba(99, 102, 241, 0.3);
+  color: #f8fafc;
+}
+
+:root.dark .modal-body .input::placeholder {
+  color: #64748b;
+}
+
+:root.dark .modal-footer {
+  background: rgba(30, 41, 59, 0.6);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+:root.dark .modal-header .close {
+  color: #94a3b8;
+}
+
+:root.dark .modal-header .close:hover {
+  color: #f8fafc;
+}

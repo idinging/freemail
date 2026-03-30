@@ -1,0 +1,216 @@
+/* =============================================
+   Login 页面暗黑模式样式
+   ============================================= */
+
+:root.dark {
+  /* 登录页面背景 */
+  --login-bg: linear-gradient(135deg, #0f172a 0%, #1e1b4b 25%, #1e293b 50%, #18181b 75%, #1c1917 100%);
+  --login-card-bg: rgba(30, 41, 59, 0.85);
+  --login-border: rgba(255, 255, 255, 0.1);
+}
+
+:root.dark body {
+  background: var(--login-bg);
+}
+
+:root.dark body::before {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.2), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(236, 72, 153, 0.15), transparent),
+    radial-gradient(ellipse 50% 60% at 0% 80%, rgba(16, 185, 129, 0.15), transparent);
+}
+
+/* 登录卡片 */
+:root.dark .login-card,
+:root.dark .login-box,
+:root.dark .card {
+  background: var(--login-card-bg);
+  border: 1px solid var(--login-border);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* Logo */
+:root.dark .logo {
+  color: #a5b4fc;
+}
+
+/* 标题 */
+:root.dark .login h1,
+:root.dark .login-title {
+  color: #f8fafc;
+}
+
+/* 副标题 */
+:root.dark .login-subtitle,
+:root.dark .login h2 {
+  color: #94a3b8;
+}
+
+/* 表单标签 */
+:root.dark .field-label,
+:root.dark label {
+  color: #e2e8f0;
+}
+
+/* 输入框 */
+:root.dark .input,
+:root.dark input[type="text"],
+:root.dark input[type="password"],
+:root.dark input[type="email"] {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+}
+
+:root.dark .input::placeholder,
+:root.dark input::placeholder {
+  color: #64748b;
+}
+
+:root.dark .input:focus,
+:root.dark input:focus {
+  background: rgba(15, 23, 42, 0.8);
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+/* 下拉框 */
+:root.dark .select,
+:root.dark select {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+}
+
+/* 按钮 */
+:root.dark .btn {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+}
+
+:root.dark .btn:hover {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: #6366f1;
+  color: #a5b4fc;
+}
+
+:root.dark .btn-primary {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+  color: white;
+  border: none;
+}
+
+:root.dark .btn-primary:hover {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #9333ea 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+}
+
+:root.dark .btn-secondary {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+}
+
+:root.dark .btn-secondary:hover {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: #6366f1;
+  color: #a5b4fc;
+}
+
+/* 错误提示 */
+:root.dark .error,
+:root.dark .error-message {
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+/* 提示文字 */
+:root.dark .hint,
+:root.dark .field-hint {
+  color: #64748b;
+}
+
+/* 链接 */
+:root.dark a,
+:root.dark .link {
+  color: #818cf8;
+}
+
+:root.dark a:hover,
+:root.dark .link:hover {
+  color: #a5b4fc;
+}
+
+/* 加载动画 */
+:root.dark .loading {
+  color: #6366f1;
+}
+
+/* 页脚 */
+:root.dark .login-footer,
+:root.dark .footer {
+  color: #64748b;
+}
+
+/* 分割线 */
+:root.dark .divider,
+:root.dark hr {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* 社交登录按钮 */
+:root.dark .social-btn {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+}
+
+:root.dark .social-btn:hover {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+/* 复选框 */
+:root.dark input[type="checkbox"] {
+  background: rgba(15, 23, 42, 0.6);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+:root.dark input[type="checkbox"]:checked {
+  background: #6366f1;
+  border-color: #6366f1;
+}
+
+/* 记住我标签 */
+:root.dark .remember-me label,
+:root.dark .remember-me {
+  color: #94a3b8;
+}
+
+/* 管理员链接 */
+:root.dark .admin-link {
+  color: #64748b;
+}
+
+:root.dark .admin-link:hover {
+  color: #818cf8;
+}
+
+/* Toast 提示 */
+:root.dark .toast {
+  background: rgba(30, 41, 59, 0.95);
+  color: #f8fafc;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+:root.dark .toast.toast-success {
+  border-color: rgba(16, 185, 129, 0.5);
+}
+
+:root.dark .toast.toast-error {
+  border-color: rgba(239, 68, 68, 0.5);
+}

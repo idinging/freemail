@@ -6,6 +6,8 @@
     <title>加载中 - 临时邮箱</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="shortcut icon" href="/favicon.svg" type="image/svg+xml" />
+    <!-- 主题切换支持 -->
+    <script src="/js/theme-toggle.js"></script>
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body {
@@ -15,7 +17,7 @@
       }
       body::before {
         content: ''; position: fixed; top: -50%; left: -50%; width: 200%; height: 200%;
-        background: 
+        background:
           radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.1) 0%, transparent 40%),
           radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 40%),
           radial-gradient(circle at 40% 60%, rgba(16, 185, 129, 0.06) 0%, transparent 40%);
@@ -33,6 +35,47 @@
       @keyframes spin { to { transform: rotate(360deg);} }
       @keyframes bounce { 0%, 20%, 50%, 80%, 100% { transform: translateY(0);} 40% { transform: translateY(-10px);} 60% { transform: translateY(-5px);} }
       @keyframes progress { 0% { width: 0%; } 50% { width: 70%; } 100% { width: 100%; } }
+
+      /* 暗黑模式 */
+      :root.dark body {
+        background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 25%, #1e293b 50%, #18181b 75%, #1c1917 100%);
+        color: #f8fafc;
+      }
+      :root.dark body::before {
+        background:
+          radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
+          radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.12) 0%, transparent 40%),
+          radial-gradient(circle at 40% 60%, rgba(16, 185, 129, 0.1) 0%, transparent 40%);
+      }
+      :root.dark footer {
+        color: #64748b;
+      }
+      :root.dark .loading-container {
+        background: rgba(30, 41, 59, 0.85);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      }
+      :root.dark .logo {
+        color: #818cf8;
+        filter: drop-shadow(0 4px 8px rgba(99, 102, 241, 0.3));
+      }
+      :root.dark .title {
+        color: #f8fafc;
+      }
+      :root.dark .spinner {
+        border-color: rgba(99, 102, 241, 0.2);
+        border-top-color: #6366f1;
+      }
+      :root.dark .status {
+        color: #94a3b8;
+      }
+      :root.dark .progress {
+        background: rgba(99, 102, 241, 0.1);
+        border-color: rgba(99, 102, 241, 0.2);
+      }
+      :root.dark .progress-bar {
+        background: linear-gradient(90deg, #6366f1, #4f46e5);
+      }
     </style>
   </head>
   <body>

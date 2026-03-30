@@ -1,0 +1,302 @@
+/* =============================================
+   Mailbox 页面暗黑模式样式
+   ============================================= */
+
+:root.dark {
+  /* 页面背景 - 与首页一致 */
+  --surface: linear-gradient(135deg, #0f172a 0%, #1e1b4b 25%, #1e293b 50%, #18181b 75%, #1c1917 100%);
+  --surface-mesh:
+    radial-gradient(at 40% 20%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+    radial-gradient(at 80% 0%, rgba(236, 72, 153, 0.1) 0px, transparent 50%),
+    radial-gradient(at 0% 50%, rgba(16, 185, 129, 0.1) 0px, transparent 50%),
+    radial-gradient(at 80% 50%, rgba(245, 158, 11, 0.08) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(59, 130, 246, 0.12) 0px, transparent 50%);
+  --mailbox-bg: var(--surface);
+  --card: rgba(30, 41, 59, 0.85);
+  --card-glass: rgba(30, 41, 59, 0.6);
+  --text: #f8fafc;
+  --text-light: #e2e8f0;
+  --text-muted: #94a3b8;
+  --border: #334155;
+  --border-glass: rgba(255, 255, 255, 0.1);
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.35), 0 4px 6px -2px rgba(0, 0, 0, 0.25);
+  --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(99, 102, 241, 0.1);
+  --primary: #6366f1;
+  --primary-light: rgba(99, 102, 241, 0.2);
+}
+
+:root.dark body {
+  background: var(--mailbox-bg);
+  background-attachment: fixed;
+}
+
+:root.dark body::before {
+  content: '';
+  position: fixed;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: var(--surface-mesh);
+  animation: backgroundFloat 25s ease-in-out infinite;
+  z-index: -2;
+  pointer-events: none;
+}
+
+:root.dark body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.15), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(236, 72, 153, 0.1), transparent),
+    radial-gradient(ellipse 50% 60% at 0% 80%, rgba(16, 185, 129, 0.1), transparent);
+  z-index: -1;
+  pointer-events: none;
+  animation: backgroundPulse 15s ease-in-out infinite alternate;
+}
+
+@keyframes backgroundFloat {
+  0%, 100% { transform: translateX(-30px) translateY(-20px) rotate(0deg) scale(1); }
+  25% { transform: translateX(30px) translateY(20px) rotate(1deg) scale(1.02); }
+  50% { transform: translateX(-20px) translateY(30px) rotate(-0.5deg) scale(1); }
+  75% { transform: translateX(20px) translateY(-15px) rotate(0.5deg) scale(1.01); }
+}
+
+@keyframes backgroundPulse {
+  0% { opacity: 0.8; }
+  100% { opacity: 1; }
+}
+
+/* 顶部栏 */
+:root.dark .topbar {
+  background: rgba(30, 41, 59, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+:root.dark .brand {
+  color: #f8fafc;
+}
+
+/* 顶部栏内部 */
+:root.dark .topbar-inner {
+  background: transparent;
+}
+
+/* 邮箱地址显示 */
+:root.dark .mailbox-address {
+  background: rgba(15, 23, 42, 0.6);
+  border: 2px dashed #475569;
+  color: #a5b4fc;
+}
+
+:root.dark .mailbox-address.has-email {
+  border-style: solid;
+  border-color: #6366f1;
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+}
+
+/* 按钮 */
+:root.dark .btn-copy,
+:root.dark .btn-compose {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+}
+
+:root.dark .btn-copy:hover,
+:root.dark .btn-compose:hover {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: #6366f1;
+  color: #a5b4fc;
+}
+
+:root.dark .btn-primary {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  border: none;
+}
+
+:root.dark .btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+}
+
+:root.dark .btn-danger {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  border: none;
+}
+
+:root.dark .btn-danger:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+}
+
+:root.dark .btn-secondary {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+}
+
+:root.dark .btn-secondary:hover {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: #6366f1;
+  color: #a5b4fc;
+}
+
+/* 邮件列表 */
+:root.dark .email-list {
+  background: rgba(30, 41, 59, 0.7);
+}
+
+:root.dark .email-item {
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+:root.dark .email-item:hover {
+  background: rgba(30, 41, 59, 0.85);
+  border-color: #6366f1;
+}
+
+:root.dark .email-item.unread {
+  border-left: 3px solid #6366f1;
+}
+
+:root.dark .email-sender {
+  color: #f8fafc;
+}
+
+:root.dark .email-subject {
+  color: #f8fafc;
+}
+
+:root.dark .email-preview {
+  color: #94a3b8;
+}
+
+:root.dark .email-time {
+  color: #64748b;
+}
+
+/* 空状态 */
+:root.dark .empty-state {
+  color: #64748b;
+}
+
+:root.dark .empty-icon {
+  color: #475569;
+}
+
+/* 加载状态 */
+:root.dark .loading {
+  color: #6366f1;
+}
+
+/* 搜索框 */
+:root.dark .search-input {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+}
+
+:root.dark .search-input::placeholder {
+  color: #64748b;
+}
+
+/* 模态框 */
+:root.dark .modal {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+:root.dark .modal-content {
+  background: rgba(30, 41, 59, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 邮件详情 */
+:root.dark .email-header {
+  background: rgba(30, 41, 59, 0.8);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+:root.dark .email-meta {
+  color: #94a3b8;
+}
+
+:root.dark .email-body {
+  background: rgba(30, 41, 59, 0.9);
+  color: #f8fafc;
+}
+
+:root.dark .email-body a {
+  color: #818cf8;
+}
+
+/* 验证码高亮 */
+:root.dark .code-highlight {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 182, 212, 0.12));
+  border-color: #10b981;
+  color: #34d399;
+}
+
+/* 收件箱/发件箱切换 */
+:root.dark .tab-switch {
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+:root.dark .tab-btn {
+  color: #94a3b8;
+}
+
+:root.dark .tab-btn.active {
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+}
+
+/* 刷新按钮 */
+:root.dark .refresh-btn {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+}
+
+:root.dark .refresh-btn:hover {
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+}
+
+/* 退出登录 */
+:root.dark .logout-btn {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #f87171;
+}
+
+:root.dark .logout-btn:hover {
+  background: #ef4444;
+  color: white;
+}
+
+/* 卡片 */
+:root.dark .card {
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 标题 */
+:root.dark h1,
+:root.dark h2,
+:root.dark h3 {
+  color: #f8fafc;
+}

@@ -593,8 +593,62 @@ body::after{
 
 .nav-actions{
   display: flex;
-  gap: 12px;
+  gap: 8px;
   margin-left: auto;
+  align-items: center;
+}
+
+/* ===== 主题切换按钮 ===== */
+.theme-toggle-btn {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--card-glass);
+  border: 1px solid var(--border-glass);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-xs);
+  flex-shrink: 0;
+}
+
+.theme-toggle-btn:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  transform: scale(1.15) rotate(20deg);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
+}
+
+.theme-toggle-btn:hover .btn-icon svg {
+  color: var(--primary) !important;
+}
+
+.theme-toggle-btn .btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+}
+
+.theme-toggle-btn .btn-icon svg {
+  color: var(--text-muted);
+  transition: color 0.3s ease, transform 0.3s ease;
+}
+
+/* 暗黑模式下按钮样式 */
+:root.dark .theme-toggle-btn {
+  background: rgba(30, 41, 59, 0.85);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+:root.dark .theme-toggle-btn:hover {
+  background: rgba(99, 102, 241, 0.25);
+  border-color: #6366f1;
 }
 
 .btn-ghost{
