@@ -105,19 +105,19 @@
 }
 
 :root.dark .search-input {
-  background: rgba(15, 23, 42, 0.7) !important;
-  color: #f8fafc !important;
-  border-color: rgba(255, 255, 255, 0.15) !important;
+  background: rgba(15, 23, 42, 0.7)
+  color: #f8fafc
+  border-color: rgba(255, 255, 255, 0.15)
 }
 
 :root.dark .search-input::placeholder {
-  color: #64748b !important;
+  color: #64748b
 }
 
 :root.dark .search-input:focus {
-  background: rgba(15, 23, 42, 0.9) !important;
-  border-color: rgba(99, 102, 241, 0.6) !important;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
+  background: rgba(15, 23, 42, 0.9)
+  border-color: rgba(99, 102, 241, 0.6)
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15)
 }
 
 /* 搜索按钮 */
@@ -156,21 +156,21 @@
 
 /* 卡片悬停时的操作按钮 */
 :root.dark .mailbox-card .actions {
-  background: rgba(30, 41, 59, 0.95) !important;
-  border: 1px solid rgba(99, 102, 241, 0.3) !important;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4) !important;
+  background: rgba(30, 41, 59, 0.95)
+  border: 1px solid rgba(99, 102, 241, 0.3)
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4)
 }
 
 :root.dark .mailbox-card .actions .btn-icon {
-  background: rgba(15, 23, 42, 0.8) !important;
-  border-color: rgba(99, 102, 241, 0.3) !important;
-  color: #94a3b8 !important;
+  background: rgba(15, 23, 42, 0.8)
+  border-color: rgba(99, 102, 241, 0.3)
+  color: #94a3b8
 }
 
 :root.dark .mailbox-card .actions .btn-icon:hover {
-  background: rgba(99, 102, 241, 0.2) !important;
-  border-color: rgba(99, 102, 241, 0.5) !important;
-  color: #818cf8 !important;
+  background: rgba(99, 102, 241, 0.2)
+  border-color: rgba(99, 102, 241, 0.5)
+  color: #818cf8
 }
 
 /* 列表视图 */
@@ -300,7 +300,7 @@
 }
 
 :root.dark .mailbox-list-item:hover {
-  background: rgba(30, 41, 59, 0.9) !important;
+  background: rgba(30, 41, 59, 0.9)
   border-color: rgba(99, 102, 241, 0.3);
   transform: translateY(-1px);
 }
@@ -411,7 +411,7 @@
 :root.dark h1,
 :root.dark h2,
 :root.dark h3 {
-  color: #f8fafc !important;
+  color: #f8fafc
 }
 
 /* 链接 */
@@ -425,47 +425,47 @@
 
 /* ===== 筛选框样式 ===== */
 :root.dark .filter-actions {
-  background: rgba(30, 41, 59, 0.6) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: rgba(30, 41, 59, 0.6)
+  border: 1px solid rgba(255, 255, 255, 0.08)
   border-radius: 12px;
   padding: 8px 12px;
 }
 
 :root.dark .filter-select {
-  padding: 8px 12px !important;
-  border: 1px solid rgba(255, 255, 255, 0.15) !important;
-  border-radius: 8px !important;
-  font-size: 13px !important;
-  color: #e2e8f0 !important;
-  background-color: rgba(15, 23, 42, 0.9) !important;
-  background: rgba(15, 23, 42, 0.9) !important;
-  cursor: pointer !important;
+  padding: 8px 12px
+  border: 1px solid rgba(255, 255, 255, 0.15)
+  border-radius: 8px
+  font-size: 13px
+  color: #e2e8f0
+  background-color: rgba(15, 23, 42, 0.9)
+  background: rgba(15, 23, 42, 0.9)
+  cursor: pointer
   transition: all 0.2s ease;
   min-width: 100px;
-  outline: none !important;
-  -webkit-appearance: none !important;
-  -moz-appearance: none !important;
-  appearance: none !important;
+  outline: none
+  -webkit-appearance: none
+  -moz-appearance: none
+  appearance: none
 }
 
 :root.dark .filter-select:hover {
-  border-color: rgba(99, 102, 241, 0.5) !important;
-  background-color: rgba(15, 23, 42, 1) !important;
-  background: rgba(15, 23, 42, 1) !important;
+  border-color: rgba(99, 102, 241, 0.5)
+  background-color: rgba(15, 23, 42, 1)
+  background: rgba(15, 23, 42, 1)
 }
 
 :root.dark .filter-select:focus {
-  border-color: rgba(99, 102, 241, 0.6) !important;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
-  background-color: rgba(15, 23, 42, 1) !important;
-  background: rgba(15, 23, 42, 1) !important;
+  border-color: rgba(99, 102, 241, 0.6)
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15)
+  background-color: rgba(15, 23, 42, 1)
+  background: rgba(15, 23, 42, 1)
 }
 
 /* 下拉选项在暗黑模式下的颜色 */
 :root.dark .filter-select option {
-  background: rgba(30, 41, 59, 0.95) !important;
-  color: #f8fafc !important;
-  padding: 8px !important;
+  background: rgba(30, 41, 59, 0.95)
+  color: #f8fafc
+  padding: 8px
 }
 
 /* 批量操作按钮区域 */
@@ -477,161 +477,161 @@
 
 :root.dark .batch-actions .btn,
 :root.dark .batch-actions .btn-ghost {
-  background: rgba(30, 41, 59, 0.8) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  color: #e2e8f0 !important;
+  background: rgba(30, 41, 59, 0.8)
+  border: 1px solid rgba(255, 255, 255, 0.1)
+  color: #e2e8f0
 }
 
 :root.dark .batch-actions .btn:hover,
 :root.dark .batch-actions .btn-ghost:hover {
-  background: rgba(99, 102, 241, 0.15) !important;
-  border-color: #6366f1 !important;
-  color: #a5b4fc !important;
+  background: rgba(99, 102, 241, 0.15)
+  border-color: #6366f1
+  color: #a5b4fc
 }
 
 /* 视图切换按钮 */
 :root.dark .view-toggle {
-  background: rgba(30, 41, 59, 0.6) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: rgba(30, 41, 59, 0.6)
+  border: 1px solid rgba(255, 255, 255, 0.08)
 }
 
 :root.dark .view-btn {
-  color: #94a3b8 !important;
+  color: #94a3b8
 }
 
 :root.dark .view-btn.active {
-  background: rgba(99, 102, 241, 0.15) !important;
-  color: #818cf8 !important;
+  background: rgba(99, 102, 241, 0.15)
+  color: #818cf8
 }
 
 :root.dark .view-btn:hover:not(.active) {
-  color: #e2e8f0 !important;
+  color: #e2e8f0
 }
 
 /* ===== 模态框内联样式覆盖 ===== */
 /* 批量操作模态框 textarea */
 :root.dark #batch-emails-input {
-  background: rgba(15, 23, 42, 0.9) !important;
-  color: #f8fafc !important;
-  border-color: rgba(99, 102, 241, 0.3) !important;
+  background: rgba(15, 23, 42, 0.9)
+  color: #f8fafc
+  border-color: rgba(99, 102, 241, 0.3)
 }
 
 /* 转发目标输入框 */
 :root.dark #batch-forward-target {
-  background: rgba(15, 23, 42, 0.9) !important;
-  color: #f8fafc !important;
-  border-color: rgba(99, 102, 241, 0.3) !important;
+  background: rgba(15, 23, 42, 0.9)
+  color: #f8fafc
+  border-color: rgba(99, 102, 241, 0.3)
 }
 
 /* 模态框标题 */
 :root.dark .modal-header {
-  background: rgba(30, 41, 59, 0.8) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background: rgba(30, 41, 59, 0.8)
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1)
 }
 
 :root.dark .modal-header > div {
-  color: #f8fafc !important;
+  color: #f8fafc
 }
 
 :root.dark .modal-header .modal-icon {
-  color: #818cf8 !important;
+  color: #818cf8
 }
 
 /* 模态框内容区域 - 标签颜色 */
 :root.dark .modal-body label {
-  color: #e2e8f0 !important;
+  color: #e2e8f0
 }
 
 :root.dark .modal-body p {
-  color: #94a3b8 !important;
+  color: #94a3b8
 }
 
 /* 模态框内邮箱信息卡片 */
 :root.dark .modal-body > div[style*="border:1px solid"] {
-  background: rgba(15, 23, 42, 0.6) !important;
-  border-color: rgba(99, 102, 241, 0.3) !important;
+  background: rgba(15, 23, 42, 0.6)
+  border-color: rgba(99, 102, 241, 0.3)
 }
 
 :root.dark .modal-body > div[style*="border:1px solid"] div:first-child {
-  color: #94a3b8 !important;
+  color: #94a3b8
 }
 
 :root.dark .modal-body > div[style*="border:1px solid"] div:last-child {
-  color: #f8fafc !important;
+  color: #f8fafc
 }
 
 /* 输入框 placeholder */
 :root.dark #batch-emails-input::placeholder,
 :root.dark #batch-forward-target::placeholder {
-  color: #64748b !important;
+  color: #64748b
 }
 
 /* 批量操作模态框 */
 :root.dark #batch-login-modal .modal-card {
-  background: rgba(30, 41, 59, 0.98) !important;
+  background: rgba(30, 41, 59, 0.98)
 }
 
 :root.dark #batch-login-modal .modal-body {
-  background: rgba(30, 41, 59, 0.95) !important;
+  background: rgba(30, 41, 59, 0.95)
 }
 
 /* 密码操作模态框 */
 :root.dark #password-modal .modal-card {
-  background: rgba(30, 41, 59, 0.98) !important;
+  background: rgba(30, 41, 59, 0.98)
 }
 
 :root.dark #password-modal .modal-body {
-  background: rgba(30, 41, 59, 0.95) !important;
+  background: rgba(30, 41, 59, 0.95)
 }
 
 /* 修改密码模态框 */
 :root.dark #change-password-modal .modal-card {
-  background: rgba(30, 41, 59, 0.98) !important;
+  background: rgba(30, 41, 59, 0.98)
 }
 
 :root.dark #change-password-modal .modal-body {
-  background: rgba(30, 41, 59, 0.95) !important;
+  background: rgba(30, 41, 59, 0.95)
 }
 
 /* 重置密码模态框 */
 :root.dark #reset-modal .modal-card {
-  background: rgba(30, 41, 59, 0.98) !important;
+  background: rgba(30, 41, 59, 0.98)
 }
 
 :root.dark #reset-modal .modal-body {
-  background: rgba(30, 41, 59, 0.95) !important;
+  background: rgba(30, 41, 59, 0.95)
 }
 
 /* 登录权限确认模态框 */
 :root.dark #login-confirm-modal .modal-card {
-  background: rgba(30, 41, 59, 0.98) !important;
+  background: rgba(30, 41, 59, 0.98)
 }
 
 :root.dark #login-confirm-modal .modal-body {
-  background: rgba(30, 41, 59, 0.95) !important;
+  background: rgba(30, 41, 59, 0.95)
 }
 
 /* 模态框关闭按钮 */
 :root.dark .modal-header .close {
-  color: #94a3b8 !important;
+  color: #94a3b8
 }
 
 :root.dark .modal-header .close:hover {
-  color: #f8fafc !important;
+  color: #f8fafc
 }
 
 /* 新密码输入框 (form-input 类) */
 :root.dark .form-input {
-  background: rgba(15, 23, 42, 0.9) !important;
-  color: #f8fafc !important;
-  border-color: rgba(99, 102, 241, 0.3) !important;
+  background: rgba(15, 23, 42, 0.9)
+  color: #f8fafc
+  border-color: rgba(99, 102, 241, 0.3)
 }
 
 :root.dark .form-input::placeholder {
-  color: #64748b !important;
+  color: #64748b
 }
 
 /* 显示密码复选框标签 */
 :root.dark label:has(input[type="checkbox"]) {
-  color: #94a3b8 !important;
+  color: #94a3b8
 }

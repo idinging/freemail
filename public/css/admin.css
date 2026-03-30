@@ -961,8 +961,8 @@
 }
 
 .confirm-icon {
-  background: rgba(239, 68, 68, 0.1) !important;
-  color: #ef4444 !important;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
 }
 
 .confirm-body {

@@ -571,7 +571,7 @@ body::after{
 }
 
 .theme-toggle-btn:hover .btn-icon svg {
-  color: var(--primary) !important;
+  color: var(--primary);
 }
 
 .theme-toggle-btn .btn-icon {
@@ -1092,7 +1092,7 @@ body::after{
 
 /* 确保在任何状态下"加载更多"按钮都可见 */
 .sidebar.collapsed.list-collapsed #mb-more-wrap {
-  display: block !important;
+  display: block;
   margin-top: 8px;
   padding: 0 4px;
 }
@@ -1569,7 +1569,7 @@ body::after{
 }
 
 .mailbox-item:hover .mailbox-actions{
-  opacity: 1 !important;
+  opacity: 1;
   pointer-events: auto;
 }
 
@@ -1704,7 +1704,7 @@ body::after{
 }
 
 .mailbox-item:hover .mailbox-actions .del{
-  opacity: 1 !important;
+  opacity: 1;
   pointer-events: auto;
 }
 
@@ -1910,8 +1910,8 @@ body::after{
 }
 
 .mailbox-actions{
-  display: grid !important;
-  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   justify-content: center;
   align-items: stretch;
@@ -3110,8 +3110,8 @@ select:disabled{
   .sidebar.list-collapsed #mb-loading { display:none; }
   
   /* 移动端列表折叠时仍显示加载更多按钮 */
-  .sidebar.list-collapsed #mb-more-wrap { 
-    display: block !important;
+  .sidebar.list-collapsed #mb-more-wrap {
+    display: block;
     margin-top: 8px;
     text-align: center;
   }
@@ -3133,8 +3133,8 @@ select:disabled{
   }
   
   .mailbox-actions{
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
   }
   

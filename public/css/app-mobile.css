@@ -12,7 +12,7 @@
   body.is-mobile .mailbox-config-section .section-header{ margin-bottom: 8px; }
   body.is-mobile .mailbox-config-section .config-item{ margin: 8px 0; }
   body.is-mobile .range-container{ gap: 8px; }
-  body.is-mobile .mailbox-actions{ gap: 6px !important; }
+  body.is-mobile .mailbox-actions{ gap: 6px }
   body.is-mobile .mailbox-actions .btn{ height: 44px; }
   body.is-mobile .email-display{ padding: 12px; min-height: 64px; }
   /* 主功能切换条（历史/生成） */
@@ -53,7 +53,7 @@
   .sidebar.history-inline #mb-list .mailbox-item{ border-radius: 12px; }
   .sidebar.history-inline #mb-more-wrap{ margin-top: 12px; }
   /* 移动端彻底隐藏历史邮箱折叠按钮 */
-  #mb-toggle{ display:none !important; }
+  #mb-toggle{ display:none }
   /* 列表加载提示不挤压布局：改为绝对定位到标题右侧 */
   #list-loading{ position: relative; }
   @media (max-width: 900px){
@@ -89,7 +89,7 @@
   .sidebar .sidebar-header{ cursor: pointer; }
   .mailbox-display-section,
   .mailbox-config-section{ min-height: auto; }
-  .mailbox-actions{ display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px; align-items: stretch; }
+  .mailbox-actions{ display: grid grid-template-columns: repeat(2, minmax(0, 1fr)) gap: 8px; align-items: stretch; }
   .mailbox-actions .btn{ width: 100%; height: 48px; }
   .range-container{ flex-direction: column; align-items: stretch; gap: 12px; }
   .range-display{ justify-content: center; min-width: auto; }
