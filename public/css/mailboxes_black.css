@@ -432,40 +432,40 @@
 }
 
 :root.dark .filter-select {
-  padding: 8px 12px
-  border: 1px solid rgba(255, 255, 255, 0.15)
-  border-radius: 8px
-  font-size: 13px
-  color: #e2e8f0
-  background-color: rgba(15, 23, 42, 0.9)
-  background: rgba(15, 23, 42, 0.9)
-  cursor: pointer
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  font-size: 13px;
+  color: #e2e8f0;
+  background-color: rgba(15, 23, 42, 0.9);
+  background: rgba(15, 23, 42, 0.9);
+  cursor: pointer;
   transition: all 0.2s ease;
   min-width: 100px;
-  outline: none
-  -webkit-appearance: none
-  -moz-appearance: none
-  appearance: none
+  outline: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
 
 :root.dark .filter-select:hover {
-  border-color: rgba(99, 102, 241, 0.5)
-  background-color: rgba(15, 23, 42, 1)
-  background: rgba(15, 23, 42, 1)
+  border-color: rgba(99, 102, 241, 0.5);
+  background-color: rgba(15, 23, 42, 1);
+  background: rgba(15, 23, 42, 1);
 }
 
 :root.dark .filter-select:focus {
-  border-color: rgba(99, 102, 241, 0.6)
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15)
-  background-color: rgba(15, 23, 42, 1)
-  background: rgba(15, 23, 42, 1)
+  border-color: rgba(99, 102, 241, 0.6);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  background-color: rgba(15, 23, 42, 1);
+  background: rgba(15, 23, 42, 1);
 }
 
 /* 下拉选项在暗黑模式下的颜色 */
 :root.dark .filter-select option {
-  background: rgba(30, 41, 59, 0.95)
-  color: #f8fafc
-  padding: 8px
+  background: rgba(30, 41, 59, 0.95);
+  color: #f8fafc;
+  padding: 8px;
 }
 
 /* 批量操作按钮区域 */
@@ -634,4 +634,33 @@
 /* 显示密码复选框标签 */
 :root.dark label:has(input[type="checkbox"]) {
   color: #94a3b8
+}
+/* === Modal 工具类 暗色模式 === */
+:root.dark .modal-desc {
+  color: #94a3b8;
+}
+
+:root.dark .modal-info-box {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.6) 100%);
+  border-color: rgba(99, 102, 241, 0.2);
+}
+
+:root.dark .modal-info-label {
+  color: #64748b;
+}
+
+:root.dark .modal-email-value {
+  color: #f1f5f9;
+}
+
+:root.dark .form-label {
+  color: #cbd5e1;
+}
+
+:root.dark .form-hint {
+  color: #64748b;
+}
+
+:root.dark .show-password-label {
+  color: #64748b;
 }

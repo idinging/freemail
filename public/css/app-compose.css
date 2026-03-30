@@ -1,0 +1,399 @@
+/* ==============================================
+   Freemail - 按钮 / 邮件列表 / 发件样式
+   ============================================== */
+
+/* ===== 增强按钮系统 ===== */
+.btn{
+  background: var(--card-glass);
+  color: var(--text);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  padding: 14px 24px;
+  cursor: pointer;
+  transition: all 0.25s var(--ease-out-expo);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 48px;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  backdrop-filter: var(--blur-md);
+  -webkit-backdrop-filter: var(--blur-md);
+}
+
+.btn::before{
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  transition: left 0.5s var(--ease-out-expo);
+}
+
+.btn::after{
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, transparent 50%);
+  border-radius: inherit;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.btn:hover{
+  background: var(--card-glass-hover);
+  box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  border-color: var(--border-focus);
+  transform: translateY(-2px);
+}
+
+.btn:hover::before{
+  left: 100%;
+}
+
+.btn:active{
+  transform: translateY(0) scale(0.98);
+  box-shadow: var(--shadow-xs), inset 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition-duration: 0.1s;
+}
+
+.btn:focus-visible{
+  outline: none;
+  box-shadow: var(--shadow-md), 0 0 0 3px var(--primary-light);
+}
+
+/* 主要按钮 - 鲜艳渐变 */
+.btn-primary{
+  background: var(--primary-gradient);
+  color: var(--text-inverse);
+  border: none;
+  box-shadow: var(--shadow-button);
+}
+
+.btn-primary::after{
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2) 0%, transparent 60%);
+}
+
+.btn-primary:hover{
+  background: linear-gradient(135deg, var(--primary-hover) 0%, #7c3aed 50%, #a855f7 100%);
+  box-shadow: var(--shadow-button-hover);
+  transform: translateY(-3px);
+  border: none;
+}
+
+.btn-primary:active{
+  background: linear-gradient(135deg, var(--primary-active) 0%, #6d28d9 100%);
+  box-shadow: var(--shadow), inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 次要按钮 - 透明玻璃 */
+.btn-secondary{
+  background: var(--card-glass);
+  color: var(--text);
+  border: 1px solid var(--border-glass);
+  backdrop-filter: var(--blur-lg);
+  -webkit-backdrop-filter: var(--blur-lg);
+  box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.btn-secondary:hover{
+  background: var(--card-glass-hover);
+  border-color: var(--primary);
+  color: var(--primary);
+  box-shadow: var(--shadow-md), 0 0 0 1px var(--primary-light);
+  transform: translateY(-2px);
+}
+
+.btn-secondary:active{
+  background: var(--primary-light);
+}
+
+/* 危险按钮 - 红色渐变 */
+.btn-danger{
+  background: var(--danger-gradient);
+  color: var(--text-inverse);
+  border: none;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.btn-danger::after{
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2) 0%, transparent 60%);
+}
+
+.btn-danger:hover{
+  background: linear-gradient(135deg, var(--danger-hover) 0%, #f87171 100%);
+  box-shadow: 0 8px 25px rgba(239, 68, 68, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transform: translateY(-3px);
+  border: none;
+}
+
+.btn-danger:active{
+  background: linear-gradient(135deg, var(--danger-active) 0%, #dc2626 100%);
+}
+
+.btn-sm{
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  height: 32px;
+  gap: 4px;
+}
+
+.btn-group{
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.list{
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  /* 防止内部卡片溢出重叠 */
+  overflow: visible;
+}
+
+.pager{
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.pager .btn{ min-width: 90px; }
+.pager .muted{ color: var(--muted); font-size: 13px; }
+
+/* ===== 增强邮件列表项 ===== */
+.email-item{
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  background: var(--card-glass);
+  backdrop-filter: var(--blur-lg);
+  -webkit-backdrop-filter: var(--blur-lg);
+  box-shadow: var(--shadow-xs);
+  transition: all 0.25s var(--ease-out-expo);
+  position: relative;
+  z-index: 0;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px 12px;
+}
+
+.email-item .email-actions{ grid-column: 2; align-self: center; }
+.email-item .email-content{ grid-column: 1 / span 1; }
+
+.email-item::before{
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--primary-gradient);
+  opacity: 0;
+  transition: all 0.25s var(--ease-out-expo);
+  border-radius: 0 2px 2px 0;
+}
+
+.email-item::after{
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--card-gradient-accent);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+
+.email-item:hover::before{
+  opacity: 1;
+  width: 5px;
+}
+
+.email-item:hover::after{
+  opacity: 1;
+}
+
+.email-item:hover{
+  transform: translateX(4px);
+  box-shadow: var(--shadow-md), 0 0 0 1px var(--primary-light);
+  border-color: var(--primary);
+  background: var(--card-glass-hover);
+  z-index: 2;
+}
+
+.email-item.clickable{
+  cursor: pointer;
+}
+
+.email-item.clickable:active{
+  transform: translateX(2px) scale(0.995);
+  transition-duration: 0.1s;
+}
+
+.email-meta{  
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.email-meta{ /* 统一左对齐布局：发件人标签/发件人内容/时间 */
+  display: grid; 
+  grid-template-columns: 1fr auto; /* 左侧内容自适应，右侧时间固定自动宽度 */
+  gap: 10px;
+  align-items: center;
+}
+.email-meta .meta-from{ 
+  display: flex; 
+  align-items: center; 
+  gap: 6px; 
+  min-width: 0; /* 允许收缩 */
+  overflow: hidden; /* 防止内容溢出 */
+}
+.email-meta .meta-label{ 
+  font-size: 12px; 
+  color: var(--text-light); 
+  background: var(--card-glass); 
+  border: 1px solid var(--border-glass); 
+  border-radius: 999px; 
+  padding: 2px 8px;
+  white-space: nowrap;
+  flex-shrink: 0; /* 标签不收缩 */
+}
+.email-meta .meta-from-text{ 
+  color: var(--text); 
+  font-weight: 600; 
+  white-space: nowrap; 
+  overflow: hidden; 
+  text-overflow: ellipsis;
+  min-width: 0; /* 允许收缩 */
+}
+.email-time{
+  color: var(--muted2);
+  font-size: 0.85em;
+  font-weight: 500;
+  justify-self: end; /* 时间右对齐 */
+  text-align: right;
+  white-space: nowrap; /* 防止时间换行 */
+}
+
+.email-actions{
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+  transition: var(--transition);
+}
+
+.email-item:hover .email-actions{ opacity: 1; }
+
+.email-sender{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.sender-icon, .time-icon, .subject-icon{
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.sender-name{
+  color: var(--text);
+  font-size: 14px;
+}
+
+.email-content{
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
+  gap: 8px;
+}
+
+.email-main{
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.email-subject{
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.email-preview{
+  color: var(--text-light);
+  font-size: 13px;
+  line-height: 1.4;
+  display: block; /* 配合左对齐布局，避免高度不一导致错位 */
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* 列表三行布局：发件人/主题/内容 - 与meta区域对齐 */
+.email-line{ 
+  display: grid; 
+  grid-template-columns: 52px 1fr; /* 与email-meta的第一列和第二列宽度对应 */
+  align-items: center; 
+  gap: 8px; 
+  margin: 1px 0; 
+  min-width: 0; 
+}
+.label-chip{ 
+  width: 52px; 
+  justify-self: start; 
+  text-align: center; 
+  padding: 1px 6px; 
+  font-size: 11px; 
+  color: var(--text-light); 
+  background: var(--card-glass); 
+  border: 1px solid var(--border-glass); 
+  border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.value-text{ 
+  min-width: 0; 
+  overflow: hidden; 
+  text-overflow: ellipsis;
+  word-break: break-word; /* 允许长单词换行 */
+}
+.value-text.from{ color: var(--text); font-weight: 600; }
+.value-text.subject{ 
+  color: var(--text); 
+  font-weight: 700; 
+  white-space: nowrap; /* 主题保持单行 */
+}
+/* 内容预览允许多行显示 */
+.email-preview.value-text{
+  white-space: normal;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* 最多显示2行 */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+

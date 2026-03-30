@@ -1,0 +1,451 @@
+/* ==============================================
+   Freemail - 响应式样式
+   ============================================== */
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .container{
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 12px 12px 20px;
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+  
+  .sidebar{
+    position: relative;
+    top: auto;
+    max-height: none;
+    overflow: visible;
+    overscroll-behavior: auto;
+  }
+  
+  .topbar{
+    padding: 12px 20px;
+  }
+  /* 顶栏：移动端仅显示图标 */
+  .brand-text{ display:none; }
+  .nav-actions .btn .btn-text{ display:none; }
+  .nav-actions .btn{ padding-left: 10px; padding-right: 10px; }
+  
+  .card{ padding: 16px; }
+  
+  /* 邮箱布局响应式 */
+  .mailbox-layout{
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  /* 主区域在移动端占据第一列，避免残留第二列引起的水平滚动 */
+  .main{ grid-column: 1; }
+
+  /* 配置区默认折叠，点击标题展开 */
+  .mailbox-config-section.collapsed .config-form{ display:none; }
+  .mailbox-config-section .section-header{ cursor: pointer; }
+
+  /* 历史邮箱列表默认折叠（侧栏未完全收起时） */
+  .sidebar.list-collapsed #mb-list,
+  .sidebar.list-collapsed #mb-loading { display:none; }
+  
+  /* 移动端列表折叠时仍显示加载更多按钮 */
+  .sidebar.list-collapsed #mb-more-wrap {
+    display: block;
+    margin-top: 8px;
+    text-align: center;
+  }
+  
+  .sidebar.list-collapsed #mb-more {
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 12px;
+    border-radius: 8px;
+    background: var(--primary-light);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    color: var(--primary);
+  }
+  .sidebar .sidebar-header{ cursor: pointer; }
+  
+  .mailbox-display-section,
+  .mailbox-config-section{
+    min-height: auto;
+  }
+  
+  .mailbox-actions{
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  
+  .range-container{
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .range-display{
+    justify-content: center;
+    min-width: auto;
+  }
+  
+  .control-row{
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .btn-group{
+    flex-direction: column;
+  }
+  /* 移动端常显列表操作按钮，避免悬停触发不便 */
+  .email-item .email-actions{ opacity: 1; }
+  
+  /* Toast 响应式规则已随模板迁移 */
+  
+  .modal{
+    padding: 12px;
+  }
+  
+  .modal-header{
+    padding: 16px 20px;
+  }
+  
+  .modal-body{
+    padding: 20px;
+  }
+  
+  /* 邮件详情响应式 */
+  .email-meta-card{
+    padding: 16px;
+    gap: 12px;
+  }
+  
+  .meta-item{
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 6px 0;
+  }
+  
+  .meta-label{
+    font-size: 12px;
+    min-width: auto;
+  }
+  
+  .meta-value{
+    width: 100%;
+    padding: 8px 12px;
+  }
+  
+  .email-actions-bar{
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .email-actions-bar .btn{
+    width: 100%;
+    min-width: auto;
+    justify-content: center;
+  }
+  
+  .email-content-text{
+    padding: 16px;
+  }
+  
+  .code-highlight{
+    font-size: 18px;
+    padding: 12px 16px;
+  }
+  
+  /* 移动端置顶功能优化 */
+  .mailbox-item.pinned{
+    border-left-width: 2px; /* 移动端减小边框宽度 */
+  }
+  
+  .mailbox-item.pinned::after{
+    top: 3px;
+    left: 3px;
+    font-size: 9px;
+  }
+  
+  .mailbox-actions{
+    gap: 4px;
+  }
+  
+  .mailbox-item .mailbox-actions .pin,
+  .mailbox-item .mailbox-actions .del{
+    height: 24px;
+    width: 24px;
+    font-size: 11px;
+  }
+  
+  .mailbox-item{
+    padding: 8px 12px;
+    padding-left: 20px; /* 移动端所有项目统一左边距 */
+    margin-bottom: 6px;
+  }
+  
+  .mailbox-item .address{
+    font-size: 13px;
+    margin-bottom: 1px;
+  }
+  
+  .mailbox-item .time{
+    font-size: 10px;
+  }
+}
+
+/* 横屏优化：当设备较矮（≤480px 高）并且较窄（≤900px 宽）时应用 */
+@media (max-width: 900px) and (max-height: 480px) and (orientation: landscape) {
+  .topbar{ padding: 8px 12px; }
+  .container{
+    grid-template-columns: 60px 1fr; /* 保留窄侧栏使历史邮箱横向出现 */
+    gap: 12px;
+    padding: 8px 10px 12px;
+  }
+  .sidebar{ display: block; width: 60px; min-width: 60px; }
+  .container.sidebar-collapsed .sidebar{ width: 60px; min-width: 60px; }
+  .sidebar.collapsed{ width: 60px; }
+  .main{ grid-column: 2; }
+  .card{ padding: 12px; }
+  .mailbox-layout{ grid-template-columns: 1fr 1fr; gap: 12px; }
+  .mailbox-actions .btn{ height: 44px; font-size: 13px; }
+  .email-display{ padding: 12px; font-size: 14px; }
+  .list-viewport{ max-height: calc(100vh - 260px); overflow: auto; }
+}
+
+/* mailboxes 页面搜索条样式 */
+.page-mailboxes .toolbar{ display:flex; justify-content:center; margin-bottom:12px; }
+.searchbar{ display:flex; align-items:center; gap:8px; background: var(--card-glass); border:1px solid var(--border-glass); padding:8px 10px; border-radius: 999px; box-shadow: var(--shadow-glass); width: min(720px, 100%); }
+.search-input{ flex:1; border:none; background: transparent; outline: none; padding: 6px 8px; font-size:14px; color: var(--text); }
+.search-input::placeholder{ color: var(--muted2); }
+.page-mailboxes .btn-sm{ height:36px; }
+
+/* ===== UI/UX Pro Max 优化：SVG 图标增强 ===== */
+
+/* 图标容器样式优化 */
+.btn-icon,
+.section-icon,
+.sidebar-icon,
+.card-icon,
+.modal-icon,
+.label-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* SVG 图标过渡效果 */
+.btn-icon svg,
+.section-icon svg,
+.sidebar-icon svg,
+.card-icon svg,
+.modal-icon svg {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+}
+
+/* 按钮图标间距 */
+.btn-icon + span {
+  margin-left: 6px;
+}
+
+/* 确保图标颜色继承 */
+.btn-icon svg,
+.section-icon svg,
+.sidebar-icon svg {
+  color: inherit;
+}
+
+/* 主要按钮（btn-primary）图标颜色 */
+.btn-primary .btn-icon svg {
+  color: #fff;
+}
+
+/* 生成按钮图标颜色 */
+.btn-generate .btn-icon svg {
+  color: var(--primary);
+}
+
+/* 次要按钮图标颜色 */
+.btn-secondary .btn-icon svg {
+  color: var(--primary);
+}
+
+/* 危险按钮图标颜色 */
+.btn-danger .btn-icon svg {
+  color: #fff;
+}
+
+/* Ghost 按钮图标颜色 */
+.btn-ghost .btn-icon svg {
+  color: var(--text-muted);
+}
+
+.btn-ghost:hover .btn-icon svg {
+  color: var(--primary);
+}
+
+/* 配置项标签图标 */
+.label-icon {
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.config-item:hover .label-icon {
+  opacity: 1;
+}
+
+/* 侧边栏项目图标动画 */
+.mailbox-item .btn-icon svg {
+  opacity: 0.6;
+  transition: all 0.2s ease;
+}
+
+.mailbox-item:hover .btn-icon svg,
+.mailbox-item .btn:hover .btn-icon svg {
+  opacity: 1;
+  transform: scale(1.15);
+}
+
+/* Pin 按钮特殊样式 */
+.mailbox-item .pin svg {
+  color: var(--text-muted);
+}
+
+.mailbox-item .pin:hover svg {
+  color: var(--primary);
+}
+
+.mailbox-item.pinned .pin svg {
+  color: var(--warning);
+  opacity: 1;
+}
+
+/* 删除按钮特殊样式 */
+.mailbox-item .del svg {
+  color: var(--text-muted);
+}
+
+.mailbox-item .del:hover svg {
+  color: var(--danger);
+  transform: scale(1.1);
+}
+
+/* Logo 图标样式 */
+.brand-icon svg {
+  color: var(--primary);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.brand:hover .brand-icon svg {
+  transform: rotate(-10deg) scale(1.1);
+}
+
+/* 登录页面 Logo SVG 优化 */
+.login-page .logo svg {
+  color: var(--primary);
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* Modal 图标样式 */
+.modal-icon svg {
+  color: var(--primary);
+}
+
+#confirm-modal .modal-icon svg {
+  color: var(--warning);
+}
+
+/* 关闭按钮优化 */
+.close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.close svg {
+  color: var(--text-muted);
+  transition: color 0.2s ease;
+}
+
+.close:hover svg {
+  color: var(--danger);
+}
+
+/* 响应式图标大小优化 */
+@media (max-width: 900px) {
+  .btn-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .card-icon svg,
+  .section-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .brand-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* 高对比度模式支持 */
+@media (prefers-contrast: high) {
+  .btn-icon svg,
+  .section-icon svg,
+  .sidebar-icon svg,
+  .card-icon svg {
+    stroke-width: 2.5;
+  }
+}
+
+/* 打印优化：确保图标可打印 */
+@media print {
+  svg use {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+/* ===== 空状态样式 ===== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  color: var(--text-muted);
+  gap: 16px;
+}
+
+.empty-state .empty-icon {
+  opacity: 0.4;
+  color: var(--primary);
+  margin-bottom: 4px;
+}
+
+.empty-state .empty-text {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+/* 列表视图空状态 */
+.list-viewport .empty-state {
+  padding: 32px 16px;
+}
+
+.list-viewport .empty-state .empty-icon {
+  width: 40px;
+  height: 40px;
+}

@@ -1,0 +1,849 @@
+/* ==============================================
+   Freemail - 侧边栏样式
+   ============================================== */
+
+/* ===== 增强侧边栏 ===== */
+.sidebar{
+  position: sticky;
+  top: 120px;
+  background: var(--card);
+  backdrop-filter: var(--blur-xl);
+  -webkit-backdrop-filter: var(--blur-xl);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-glass);
+  box-shadow: var(--shadow-glass);
+  padding: 24px;
+  transition: all 0.4s var(--ease-out-expo);
+  width: auto;
+  min-width: 280px;
+  max-height: calc(100vh - 140px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 102, 241, .4) transparent;
+  scrollbar-gutter: stable both-edges;
+}
+
+.sidebar::before{
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--secondary), var(--accent));
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+/* 历史邮箱搜索框样式 */
+.sidebar-search{ margin: 6px 0 10px; }
+.sidebar-search-input{
+  width: 100%;
+  height: 36px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-glass);
+  border-radius: 10px;
+  background: var(--card-glass);
+  box-shadow: var(--shadow-glass);
+}
+.sidebar-search-input::placeholder{ color: var(--muted2); }
+.sidebar-search-input:focus{ outline:none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,.15); background: #fff; }
+
+/* 更细、更透明的滚动条（Chromium/WebKit） */
+.sidebar::-webkit-scrollbar{ width: 8px; height: 8px; }
+.sidebar::-webkit-scrollbar-button{ display: none; width: 0; height: 0; }
+.sidebar::-webkit-scrollbar-track{ background: transparent; }
+.sidebar::-webkit-scrollbar-thumb{
+  background: rgba(100,116,139,.35);
+  border-radius: 999px;
+  border: 2px solid rgba(255,255,255,.5);
+}
+.sidebar:hover::-webkit-scrollbar-thumb{ background: linear-gradient(180deg, rgba(59,130,246,.6), rgba(139,92,246,.6)); }
+.sidebar::-webkit-scrollbar-thumb:hover{ background: linear-gradient(180deg, rgba(59,130,246,.8), rgba(139,92,246,.8)); }
+
+.sidebar:hover{
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+
+/* 侧板头部布局 */
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.sidebar h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.sidebar-title {
+  transition: var(--transition);
+}
+
+.sidebar-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.quota-display {
+  font-size: 12px;
+  color: var(--muted);
+  background: var(--card-glass);
+}
+
+/* 超级管理员邮箱数量显示样式 */
+.quota-display.admin-quota {
+  color: var(--primary);
+  font-weight: 600;
+  border: 1px solid var(--primary);
+  border-radius: 12px;
+  padding: 4px 8px;
+  background: rgba(var(--primary-rgb), 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  min-width: 50px;
+  text-align: center;
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.quota-display.admin-quota::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, transparent 70%);
+  opacity: 0;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* 新增：精美的加载状态动画 */
+.loading-enhanced {
+  position: relative;
+  overflow: hidden;
+}
+
+.loading-enhanced::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+/* 增强的焦点状态 */
+.input:focus,
+.textarea:focus,
+.select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light), 0 4px 14px rgba(59, 130, 246, 0.15);
+  transform: scale(1.01);
+}
+
+/* 微动画效果 */
+.card {
+  transition: var(--transition);
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg), 0 0 0 1px rgba(59, 130, 246, 0.05);
+}
+
+/* 按钮图标动画 */
+.btn-icon {
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn:hover .btn-icon {
+  transform: scale(1.1) rotate(5deg);
+}
+
+.btn-danger:hover .btn-icon {
+  transform: scale(1.1) rotate(-5deg);
+}
+
+/* 邮箱项目的hover增强 */
+.mailbox-item {
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.mailbox-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.05), transparent);
+  transition: var(--transition);
+}
+
+.mailbox-item:hover::before {
+  left: 0;
+}
+
+.mailbox-item:hover {
+  transform: translateX(4px);
+  box-shadow: var(--shadow-md);
+}
+
+/* 状态徽章增强 */
+.status-badge {
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.status-badge::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+  opacity: 0;
+  transition: var(--transition);
+  transform: scale(0);
+}
+
+.status-badge:hover::before {
+  opacity: 1;
+  transform: scale(1);
+  animation: ripple 0.6s ease-out;
+}
+
+@keyframes ripple {
+  from { transform: scale(0); opacity: 1; }
+  to { transform: scale(1); opacity: 0; }
+}
+
+.sidebar-icon {
+  font-size: 20px;
+  animation: iconFloat 3s ease-in-out infinite;
+  transition: var(--transition);
+}
+
+@keyframes iconFloat {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-2px); }
+}
+
+/* 侧板收起/展开按钮样式 */
+.sidebar-toggle-btn {
+  background: linear-gradient(135deg, var(--card) 0%, rgba(255,255,255,0.9) 100%);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar-toggle-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  transition: left 0.6s ease;
+}
+
+.sidebar-toggle-btn:hover {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+  border-color: var(--primary);
+  color: white;
+  transform: scale(1.1) translateY(-2px);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+}
+
+.sidebar-toggle-btn:hover::before {
+  left: 100%;
+}
+
+.sidebar-toggle-btn:active {
+  transform: scale(0.95);
+}
+
+.sidebar-toggle-btn span {
+  font-size: 14px;
+  font-weight: bold;
+  transition: var(--transition);
+  color: var(--text);
+}
+
+.sidebar-toggle-btn:hover span {
+  color: white;
+}
+
+/* 侧板收起状态 */
+.sidebar.collapsed {
+  width: 60px;
+  padding: 16px 8px;
+  overflow: hidden;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+              padding 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              background 0.3s ease,
+              box-shadow 0.3s ease;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, var(--card-glass) 50%, rgba(139, 92, 246, 0.05) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  box-shadow: 0 8px 32px rgba(59, 130, 246, 0.15), 
+              inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  animation: sidebarPulse 4s ease-in-out infinite;
+}
+
+.sidebar.collapsed:hover {
+  animation: sidebarPulse 2s ease-in-out infinite;
+  transform: translateY(-1px);
+}
+
+.sidebar.collapsed .sidebar-header {
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.sidebar.collapsed h3 {
+  writing-mode: horizontal-tb;
+  text-orientation: initial;
+  height: auto;
+  margin: 0;
+  justify-content: center;
+  font-size: 14px;
+  white-space: nowrap;
+  flex: none;
+}
+
+.sidebar.collapsed .sidebar-title {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+}
+
+.sidebar.collapsed .sidebar-icon {
+  margin: 0;
+  transform: none;
+  font-size: 16px;
+  animation: iconGlow 3s ease-in-out infinite;
+  transition: all 0.3s ease;
+}
+
+.sidebar.collapsed:hover .sidebar-icon {
+  animation: iconGlow 1s ease-in-out infinite;
+  transform: scale(1.1);
+}
+
+.sidebar.collapsed .sidebar-header-actions {
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+
+.sidebar.collapsed .quota-display {
+  writing-mode: horizontal-tb;
+  text-orientation: initial;
+  height: auto;
+  width: auto;
+  padding: 4px 6px;
+  font-size: 10px;
+  min-width: auto;
+}
+
+.sidebar.collapsed .sidebar-toggle-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  box-shadow: 0 3px 15px rgba(59, 130, 246, 0.2);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(255,255,255,0.9) 100%);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.sidebar.collapsed .sidebar-toggle-btn:hover {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+  transform: scale(1.15) translateY(-3px);
+  box-shadow: 0 8px 30px rgba(59, 130, 246, 0.5);
+}
+
+.sidebar.collapsed .sidebar-toggle-btn span {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.sidebar.collapsed #mb-list,
+.sidebar.collapsed #mb-loading {
+  display: none;
+}
+
+/* 收起状态下的加载更多按钮样式 */
+.sidebar.collapsed #mb-more-wrap {
+  margin-top: 12px;
+  text-align: center;
+  padding: 0 4px;
+}
+
+.sidebar.collapsed #mb-more {
+  width: 100%;
+  min-height: 32px;
+  padding: 6px 4px;
+  font-size: 10px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(255,255,255,0.8) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  color: var(--primary);
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+}
+
+.sidebar.collapsed #mb-more:hover {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.sidebar.collapsed #mb-more-text {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+/* 收起状态下显示简化文本 */
+.sidebar.collapsed #mb-more-text::before {
+  content: "更多";
+  font-weight: 700;
+}
+
+.sidebar.collapsed #mb-more-text {
+  font-size: 0; /* 隐藏原文本 */
+}
+
+.sidebar.collapsed #mb-more-text::before {
+  font-size: 10px; /* 显示简化文本 */
+  color: inherit;
+}
+
+/* 确保在任何状态下"加载更多"按钮都可见 */
+.sidebar.collapsed.list-collapsed #mb-more-wrap {
+  display: block;
+  margin-top: 8px;
+  padding: 0 4px;
+}
+
+.sidebar.collapsed.list-collapsed #mb-more {
+  width: 100%;
+  min-height: 30px;
+  padding: 5px 4px;
+  font-size: 10px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(255,255,255,0.8) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  color: var(--primary);
+}
+
+/* 容器布局调整 */
+.container.sidebar-collapsed .sidebar {
+  width: 60px;
+  min-width: 60px;
+}
+
+/* 侧板收起时的布局优化 */
+.container.sidebar-collapsed .main {
+  transform: translateX(-200px);
+  width: calc(100% + 200px); /* 向左位移同等宽度，消除右侧空白 */
+  max-width: none;
+  padding-right: 200px; /* 右侧留出等同位移的内边距 */
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 确保主内容区域有平滑过渡 */
+.main {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.container.sidebar-collapsed .mailbox-layout {
+  grid-template-columns: 1fr 1.1fr;
+  gap: 32px;
+  max-width: 1400px; /* 收起后容纳左移扩展后的主列 */
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.container.sidebar-collapsed .mailbox-display-section {
+  min-width: 340px;
+  max-width: 440px;
+}
+
+.container.sidebar-collapsed .mailbox-config-section {
+  min-width: 360px;
+  max-width: 420px;
+}
+
+/* 侧板收起时的邮箱显示区域优化 */
+.container.sidebar-collapsed .mailbox-display-content {
+  padding: 28px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(240,253,250,0.9) 100%);
+  border-radius: var(--radius);
+  border: 1px solid rgba(16, 185, 129, 0.08);
+  box-shadow: 0 8px 32px rgba(16, 185, 129, 0.1);
+}
+
+.container.sidebar-collapsed .email-display {
+  min-height: 80px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(248,250,252,0.6) 100%);
+  border: 2px solid rgba(16, 185, 129, 0.15);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.container.sidebar-collapsed .email-display:hover {
+  border-color: rgba(16, 185, 129, 0.3);
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.15);
+}
+
+.container.sidebar-collapsed .mailbox-actions {
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.container.sidebar-collapsed .mailbox-actions .btn {
+  padding: 12px 18px;
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.container.sidebar-collapsed .mailbox-actions .btn:hover {
+  transform: translateY(-2px);
+}
+
+/* 侧板收起时的配置项优化 */
+.container.sidebar-collapsed .config-form {
+  padding: 24px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(248,250,252,0.8) 100%);
+  border-radius: var(--radius);
+  border: 1px solid rgba(59, 130, 246, 0.08);
+  box-shadow: 0 8px 32px rgba(59, 130, 246, 0.1);
+}
+
+.container.sidebar-collapsed .generate-action {
+  margin-top: 24px;
+  gap: 12px;
+}
+
+.container.sidebar-collapsed .btn-generate {
+  padding: 14px 28px;
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+  transform: translateY(0);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.container.sidebar-collapsed .btn-generate:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.12);
+}
+
+/* 侧板收起时的卡片样式优化 */
+.container.sidebar-collapsed .generate-card {
+  box-shadow: var(--shadow-lg);
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  background: linear-gradient(135deg, var(--card) 0%, rgba(248, 250, 252, 0.95) 100%);
+}
+
+.container.sidebar-collapsed .inbox-card {
+  box-shadow: var(--shadow-lg);
+  border: 1px solid rgba(16, 185, 129, 0.1);
+  background: linear-gradient(135deg, var(--card) 0%, rgba(240, 253, 250, 0.95) 100%);
+  transform: translateY(0);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.container.sidebar-collapsed .inbox-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px rgba(16, 185, 129, 0.15);
+}
+
+/* 侧板收起时的整体容器动画 */
+.container.sidebar-collapsed {
+  animation: expandLayout 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes expandLayout {
+  0% {
+    filter: blur(2px);
+    opacity: 0.7;
+    transform: scale(0.98);
+  }
+  50% {
+    filter: blur(1px);
+    opacity: 0.85;
+  }
+  100% {
+    filter: blur(0);
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes sidebarPulse {
+  0%, 100% {
+    box-shadow: 0 8px 32px rgba(59, 130, 246, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+  50% {
+    box-shadow: 0 8px 32px rgba(59, 130, 246, 0.25),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+}
+
+@keyframes iconGlow {
+  0%, 100% {
+    text-shadow: none;
+  }
+  50% {
+    text-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
+  }
+}
+
+/* 侧板收起时的内容淡入效果 */
+.container.sidebar-collapsed .mailbox-layout > * {
+  animation: fadeInUp 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 移动端响应式调整 */
+@media (max-width: 768px) {
+  .sidebar {
+    min-width: 260px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .sidebar.collapsed {
+    width: 50px;
+    padding: 12px 4px;
+    animation: sidebarPulse 5s ease-in-out infinite;
+  }
+  
+  .sidebar.collapsed:hover {
+    animation: sidebarPulse 2.5s ease-in-out infinite;
+  }
+  
+  .sidebar.collapsed h3 {
+    font-size: 12px;
+    height: 80px;
+  }
+  
+  .sidebar.collapsed .quota-display {
+    height: 30px;
+    width: 18px;
+  }
+  
+  .sidebar.collapsed .sidebar-toggle-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(255,255,255,0.9) 100%);
+    box-shadow: 0 2px 12px rgba(59, 130, 246, 0.3);
+  }
+  
+  .sidebar.collapsed .sidebar-toggle-btn:hover {
+    transform: scale(1.2) translateY(-2px);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+  }
+  
+  .sidebar.collapsed .sidebar-toggle-btn span {
+    font-size: 10px;
+    font-weight: 800;
+  }
+  
+  /* 移动端收起状态下的加载更多按钮 */
+  .sidebar.collapsed #mb-more-wrap {
+    margin-top: 8px;
+    padding: 0 2px;
+  }
+  
+  .sidebar.collapsed #mb-more {
+    min-height: 28px;
+    padding: 4px 2px;
+    font-size: 9px;
+    border-radius: 4px;
+  }
+  
+  .sidebar.collapsed #mb-more-text {
+    font-size: 0; /* 隐藏原文本 */
+    line-height: 1.1;
+  }
+  
+  .sidebar.collapsed #mb-more-text::before {
+    font-size: 8px; /* 移动端显示更小的简化文本 */
+    content: "+";
+    font-weight: 900;
+  }
+  
+  .container.sidebar-collapsed .sidebar {
+    width: 50px;
+    min-width: 50px;
+  }
+  
+  .container.sidebar-collapsed .main {
+    transform: none;
+    width: 100%;
+    padding-right: 0;
+    margin-left: 0;
+  }
+  
+  /* 移动端侧板收起时的布局调整 */
+  .container.sidebar-collapsed .mailbox-layout {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    max-width: none;
+    margin: 0;
+  }
+  
+  .container.sidebar-collapsed .mailbox-display-section,
+  .container.sidebar-collapsed .mailbox-config-section {
+    min-width: auto;
+    max-width: none;
+  }
+  
+  .container.sidebar-collapsed .generate-card,
+  .container.sidebar-collapsed .inbox-card {
+    background: var(--card);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-glass);
+  }
+  
+  /* 移动端：保留用于折叠/展开的小按钮（用于历史邮箱/配置区） */
+  #sidebar-toggle{ display:none; } /* 仅隐藏主侧栏的开关 */
+  #config-toggle{ display:inline-flex; width:28px; height:28px; }
+  #mb-toggle{ display:inline-flex; }
+}
+
+/* 桌面端隐藏手机专用开关 */
+@media (min-width: 769px) {
+  #mb-toggle{ display:none; }
+  #config-toggle{ display:none; }
+}
+
+.card-icon{
+  font-size: 24px;
+  margin-right: 8px;
+  animation: iconSpin 4s linear infinite;
+}
+
+@keyframes iconSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.generate-card{
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(139, 92, 246, 0.05));
+}
+
+.inbox-card{
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(6, 182, 212, 0.05));
+}
+.listcard-header{
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+}
+.listcard-title{ 
+  margin: 0; display:flex; align-items:center; gap:8px; justify-self: start;
+}
+.view-switch{ 
+  justify-self: center; display: inline-flex; background: var(--card-glass); border:1px solid var(--border-glass); border-radius: 999px; overflow:hidden; box-shadow: var(--shadow-glass);
+}
+.seg-btn{
+  background: transparent; border:none; padding: 8px 16px; font-weight:600; color: var(--text-light); cursor:pointer; transition: var(--transition);
+}
+.seg-btn[aria-pressed="true"]{
+  background: var(--primary-light);
+  color: var(--primary);
+}
+.seg-btn:hover{ background: rgba(59,130,246,0.08); color: var(--primary); }
+
+.loading-indicator{ display:none; align-items:center; gap:8px; justify-self:end; color: var(--text-light); }
+.loading-indicator.show{ display:inline-flex; }
+.spinner{
+  width:16px; height:16px; border:2px solid rgba(59,130,246,0.2); border-top-color: var(--primary); border-radius:50%; animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg);} }
+
+/* 倒计时模式下隐藏 spinner */
+.loading-indicator.countdown-mode .spinner{
+  display: none;
+}
+
+/* 倒计时文字样式 */
+#list-status-text{
+  font-variant-numeric: tabular-nums;
+}
+
+.placeholder-text{
+  color: var(--muted2);
+  font-style: italic;
+}

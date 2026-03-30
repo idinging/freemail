@@ -169,7 +169,7 @@ export function updateEmailDisplay(elements, address) {
   else if (email) email.textContent = address;
   
   email?.classList.add('has-email');
-  if (emailActions) emailActions.style.display = 'flex';
+  if (emailActions) emailActions.style.display = 'grid';
   if (listCard) listCard.style.display = 'block';
 }
 

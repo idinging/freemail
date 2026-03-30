@@ -17,6 +17,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Open+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="/css/app.css" />
+  <link rel="stylesheet" href="/css/app-sidebar.css" />
+  <link rel="stylesheet" href="/css/app-mailbox.css" />
+  <link rel="stylesheet" href="/css/app-compose.css" />
+  <link rel="stylesheet" href="/css/app-modal.css" />
+  <link rel="stylesheet" href="/css/app-responsive.css" />
   <link rel="stylesheet" href="/css/mailbox.css" />
   <!-- 暗黑模式样式 -->
   <link rel="stylesheet" href="/css/app_black.css" />
@@ -165,12 +170,12 @@
           <span>收件箱</span>
           <span class="retention-hint">仅保留24小时</span>
         </h2>
-        <div id="list-loading" class="loading-indicator" style="pointer-events:none" role="status" aria-live="polite">
+        <div id="list-loading" class="loading-indicator no-pointer" role="status" aria-live="polite">
           <div class="spinner"></div>
           <span>加载中…</span>
         </div>
       </div>
-      <div class="list-viewport" style="position:relative;contain:layout paint;isolation:isolate;">
+      <div class="list-viewport">
         <div id="email-list" class="list"></div>
         <div id="empty-state" class="empty-state" style="display:none">
           <div class="empty-icon">
@@ -182,7 +187,7 @@
         </div>
         <div id="list-pager" class="pager" style="display:none">
           <button id="prev-page" class="btn btn-ghost btn-sm">上一页</button>
-          <span id="page-info" class="muted" style="min-width:100px;text-align:center"></span>
+          <span id="page-info" class="muted page-info-center"></span>
           <button id="next-page" class="btn btn-ghost btn-sm">下一页</button>
         </div>
       </div>

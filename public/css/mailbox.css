@@ -653,3 +653,17 @@ body {
   color: var(--muted);
   font-size: 12px;
 }
+
+/* === 页面内联样式迁移 === */
+.loading-indicator.no-pointer { pointer-events: none; }
+
+.list-viewport {
+  position: relative;
+  contain: layout paint;
+  isolation: isolate;
+}
+
+.page-info-center {
+  min-width: 100px;
+  text-align: center;
+}

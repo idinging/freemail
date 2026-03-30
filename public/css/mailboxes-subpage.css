@@ -1,0 +1,472 @@
+/* =============================================
+   邮箱总览 - 二级页面 / 状态指示器 v2.0
+   ============================================= */
+
+/* 二级页面样式 */
+.subpage {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.subpage-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.subpage-content {
+  position: relative;
+  width: 90vw;
+  max-width: 800px;
+  max-height: 90vh;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideUp 0.3s ease-out;
+}
+
+.subpage-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e2e8f0;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.subpage-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.subpage-icon {
+  font-size: 20px;
+}
+
+.subpage-close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  transition: all 0.2s ease;
+}
+
+.subpage-close:hover {
+  background: rgba(248, 113, 113, 0.1);
+  color: #ef4444;
+}
+
+.subpage-body {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.assign-mailbox-info {
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.info-label {
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.info-value {
+  font-weight: 600;
+  color: #1e293b;
+  word-break: break-all;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.section-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.selection-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.user-search {
+  margin-bottom: 16px;
+}
+
+.user-search .search-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px;
+  color: #64748b;
+}
+
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e2e8f0;
+  border-top: 2px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.users-list {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.user-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.user-item:last-child {
+  border-bottom: none;
+}
+
+.user-item:hover {
+  background: #f8fafc;
+}
+
+.user-item.selected {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border-color: #93c5fd;
+}
+
+.user-checkbox {
+  margin-right: 12px;
+  width: 16px;
+  height: 16px;
+  accent-color: #3b82f6;
+}
+
+.user-info {
+  flex: 1;
+}
+
+.user-name {
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 2px;
+}
+
+.user-details {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.selected-users-section {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 24px;
+}
+
+.selected-users-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.selected-user-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border: 1px solid #93c5fd;
+  border-radius: 20px;
+  font-size: 12px;
+  color: #1e40af;
+}
+
+.selected-user-tag .remove-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #64748b;
+  font-size: 10px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.selected-user-tag .remove-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.subpage-footer {
+  padding: 20px 24px;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.footer-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+/* ===== Grid View 状态指示器样式 ===== */
+.pin-status,
+.favorite-status,
+.forward-indicator,
+.login-indicator {
+  position: relative;
+  cursor: help;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.pin-status:hover,
+.favorite-status:hover,
+.forward-indicator:hover,
+.login-indicator:hover {
+  transform: scale(1.1);
+}
+
+/* Grid View 指示器 tooltip */
+.pin-status:hover::after,
+.favorite-status:hover::after,
+.forward-indicator:hover::after,
+.login-indicator:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+  animation: tooltipFadeIn 0.2s ease;
+}
+
+/* 小箭头 */
+.pin-status:hover::before,
+.favorite-status:hover::before,
+.forward-indicator:hover::before,
+.login-indicator:hover::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #0f172a;
+  z-index: 100;
+}
+
+/* 颜色样式 */
+.pin-status {
+  color: #f59e0b;
+}
+
+.favorite-status {
+  color: #fbbf24;
+}
+
+.favorite-status.active {
+  color: #f59e0b;
+}
+
+.forward-indicator {
+  color: #3b82f6;
+}
+
+.login-indicator {
+  color: #10b981;
+}
+
+.login-indicator.disabled {
+  color: #94a3b8;
+  opacity: 0.7;
+}
+
+/* ===== 状态指示器 Tooltip 增强 ===== */
+.pin-indicator .indicator,
+.item-indicators .indicator {
+  position: relative;
+  cursor: help;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+/* 悬停时显示 tooltip */
+.pin-indicator .indicator:hover::after,
+.item-indicators .indicator:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+  animation: tooltipFadeIn 0.2s ease;
+}
+
+@keyframes tooltipFadeIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* 小箭头 */
+.pin-indicator .indicator:hover::before,
+.item-indicators .indicator:hover::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #0f172a;
+  z-index: 100;
+}
+
+/* 状态指示器图标样式优化 */
+.pin-indicator .indicator svg,
+.item-indicators .indicator svg {
+  transition: transform 0.2s ease;
+}
+
+.pin-indicator .indicator:hover svg,
+.item-indicators .indicator:hover svg {
+  transform: scale(1.15);
+}
+
+/* 收藏指示器颜色 */
+.pin-indicator .indicator.favorite,
+.item-indicators .indicator.favorite {
+  color: #f59e0b;
+}
+
+/* 转发指示器颜色 */
+.pin-indicator .indicator.forward,
+.item-indicators .indicator.forward {
+  color: #3b82f6;
+}
+
+/* 登录指示器颜色 */
+.pin-indicator .indicator.login,
+.item-indicators .indicator.login {
+  color: #10b981;
+}
+
+/* 禁止登录指示器样式 */
+.pin-indicator .indicator.login-disabled,
+.item-indicators .indicator.login-disabled {
+  color: #94a3b8;
+  opacity: 0.6;
+  text-decoration: line-through;
+}
+
+.btn-loading {
+  display: none;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 子页面响应式设计 */
+@media (max-width: 768px) {
+  .subpage-content {
+    width: 95vw;
+    max-height: 95vh;
+  }
+  
+  .subpage-header, .subpage-body, .subpage-footer {
+    padding: 16px;
+  }
+  
+  .subpage-body {
+    gap: 16px;
+  }
+}
+
