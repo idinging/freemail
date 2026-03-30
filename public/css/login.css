@@ -1,5 +1,5 @@
 /* =============================================
-   Freemail 登录页美化主题 v2.0
+   Freemail 登录页美化主题
    ============================================= */
 
 :root{
@@ -31,22 +31,6 @@
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-/* 暗色模式 */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --surface: linear-gradient(135deg, #0f172a 0%, #1e1b4b 25%, #1e293b 50%, #18181b 75%, #1c1917 100%);
-    --card: rgba(30, 41, 59, 0.85);
-    --card-glass: rgba(30, 41, 59, 0.6);
-    --border: #334155;
-    --border-glass: rgba(255, 255, 255, 0.1);
-    --text: #f8fafc;
-    --text-light: #e2e8f0;
-    --muted: #94a3b8;
-    --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.3);
-    --shadow-glow: 0 0 60px rgba(99, 102, 241, 0.25);
-  }
 }
 
 * {

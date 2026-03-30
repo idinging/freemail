@@ -123,18 +123,3 @@
   --z-toast: 2000;
   --z-tooltip: 3000;
 }
-
-/* ===== 暗色模式变量 ===== */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --surface: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
-    --card: rgba(30, 41, 59, 0.9);
-    --card-hover: rgba(30, 41, 59, 0.95);
-    --card-glass: rgba(30, 41, 59, 0.7);
-    --text: #f8fafc;
-    --text-light: #e2e8f0;
-    --text-muted: #94a3b8;
-    --border: #334155;
-    --border-light: #1e293b;
-  }
-}

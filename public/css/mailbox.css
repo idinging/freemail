@@ -44,21 +44,6 @@
   --blur-xl: blur(32px);
 }
 
-/* 暗色模式支持 */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --surface: linear-gradient(135deg, #0f172a 0%, #1e1b4b 25%, #1e293b 50%, #18181b 75%, #1c1917 100%);
-    --card: rgba(30, 41, 59, 0.85);
-    --card-hover: rgba(30, 41, 59, 0.95);
-    --card-glass: rgba(30, 41, 59, 0.6);
-    --card-glass-hover: rgba(30, 41, 59, 0.8);
-    --border-glass: rgba(255, 255, 255, 0.1);
-    --text: #f8fafc;
-    --text-light: #e2e8f0;
-    --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.3);
-  }
-}
-
 * {
   box-sizing: border-box;
   margin: 0;
