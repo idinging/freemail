@@ -26,6 +26,7 @@ const els = {
   usersCount: document.getElementById('users-count'),
   usersPagination: document.getElementById('users-pagination'),
   pageInfo: document.getElementById('page-info'),
+  paginationText: document.getElementById('pagination-text'),
   prevPage: document.getElementById('prev-page'),
   nextPage: document.getElementById('next-page'),
   
@@ -119,16 +120,20 @@ initConfirmEvents();
 async function loadUsers() {
   if (els.usersLoading) els.usersLoading.style.display = 'flex';
   if (els.usersTbody) els.usersTbody.innerHTML = generateSkeletonRows(5);
-  
+
   try {
     const data = await getUsers({ page: currentPage, size: pageSize });
     const users = Array.isArray(data) ? data : (data.list || []);
     totalUsers = data.total || users.length;
-    
+
     renderUserList(users, els.usersTbody);
     updatePagination();
-    if (els.usersCount) els.usersCount.textContent = totalUsers;
-    
+
+    // 更新统计卡片
+    updateStats(users);
+
+    if (els.usersCount) els.usersCount.textContent = `${totalUsers} 人`;
+
     bindUserEvents();
   } catch (e) {
     console.error('加载用户失败:', e);
@@ -138,10 +143,32 @@ async function loadUsers() {
   }
 }
 
+// 更新统计卡片
+function updateStats(users) {
+  const totalUsers = users.length;
+  const adminCount = users.filter(u => u.role === 'admin').length;
+  const mailboxCount = users.reduce((sum, u) => sum + (u.mailbox_count || 0), 0);
+  const activeUsers = users.filter(u => u.can_send).length;
+
+  const statTotal = document.getElementById('stat-total-users');
+  const statAdmin = document.getElementById('stat-admin-count');
+  const statMailbox = document.getElementById('stat-mailbox-count');
+  const statActive = document.getElementById('stat-active-users');
+
+  if (statTotal) statTotal.textContent = totalUsers;
+  if (statAdmin) statAdmin.textContent = adminCount;
+  if (statMailbox) statMailbox.textContent = mailboxCount;
+  if (statActive) statActive.textContent = activeUsers;
+}
+
 // 更新分页
 function updatePagination() {
   const totalPages = Math.max(1, Math.ceil(totalUsers / pageSize));
-  if (els.pageInfo) els.pageInfo.textContent = `第 ${currentPage} / ${totalPages} 页`;
+  const start = (currentPage - 1) * pageSize + 1;
+  const end = Math.min(currentPage * pageSize, totalUsers);
+
+  if (els.pageInfo) els.pageInfo.textContent = `${currentPage} / ${totalPages}`;
+  if (els.paginationText) els.paginationText.textContent = `显示 ${start}-${end} 条，共 ${totalUsers} 条`;
   if (els.prevPage) els.prevPage.disabled = currentPage <= 1;
   if (els.nextPage) els.nextPage.disabled = currentPage >= totalPages;
 }
@@ -235,58 +262,62 @@ async function openMailboxesPanel(userId) {
 async function loadUserMailboxes() {
   if (!currentViewingUser) return;
   if (els.userMailboxesLoading) els.userMailboxesLoading.style.display = 'flex';
-  
+
   try {
     const data = await getUserMailboxes(currentViewingUser.id, { page: mailboxPage, size: mailboxPageSize });
     const list = Array.isArray(data) ? data : (data.list || []);
     totalMailboxes = data.total || list.length;
-    
-    if (els.mailboxesCount) els.mailboxesCount.textContent = totalMailboxes;
-    
+
+    if (els.mailboxesCount) els.mailboxesCount.textContent = `${totalMailboxes} 个`;
+
     // 渲染邮箱列表
-    const container = els.userMailboxes?.querySelector('.mailbox-list');
+    const container = document.getElementById('mailbox-list');
+    const emptyState = document.getElementById('empty-mailbox-list');
+
     if (container) {
-      container.innerHTML = list.length ? list.map(m => `
-        <div class="mailbox-item clickable" data-address="${m.address}" data-href="/?mailbox=${encodeURIComponent(m.address)}">
-          <span class="address">${m.address}</span>
-          <button class="btn btn-sm danger" data-action="unassign">取消分配</button>
-        </div>
-      `).join('') : '<div class="empty">暂无邮箱</div>';
-      
-      // 绑定整行点击事件
-      container.querySelectorAll('.mailbox-item.clickable').forEach(item => {
-        item.onclick = (e) => {
-          // 如果点击的是按钮，不跳转
-          if (e.target.closest('[data-action]')) return;
-          const href = item.dataset.href;
-          if (href) location.href = href;
-        };
-      });
-      
-      // 绑定取消分配事件
-      container.querySelectorAll('[data-action="unassign"]').forEach(btn => {
-        btn.onclick = async (e) => {
-          e.stopPropagation();
-          const address = btn.closest('[data-address]')?.dataset.address;
-          if (!address) return;
-          
-          const confirmed = await showConfirm(`确定取消分配邮箱 ${address}？`);
-          if (!confirmed) return;
-          
-          try {
-            await unassignMailbox(currentViewingUser.username, address);
-            showToast('已取消分配', 'success');
-            loadUserMailboxes();
-          } catch(e) { showToast('取消分配失败', 'error'); }
-        };
-      });
+      if (list.length > 0) {
+        container.innerHTML = list.map(m => `
+          <div class="mailbox-item" data-address="${m.address}" data-href="/?mailbox=${encodeURIComponent(m.address)}">
+            <span class="address">${m.address}</span>
+            <button class="btn danger" data-action="unassign">取消分配</button>
+          </div>
+        `).join('');
+        if (emptyState) emptyState.classList.add('hidden');
+
+        // 绑定取消分配事件
+        container.querySelectorAll('[data-action="unassign"]').forEach(btn => {
+          btn.onclick = async (e) => {
+            e.stopPropagation();
+            const address = btn.closest('[data-address]')?.dataset.address;
+            if (!address) return;
+
+            const confirmed = await showConfirm(`确定取消分配邮箱 ${address}？`);
+            if (!confirmed) return;
+
+            try {
+              await unassignMailbox(currentViewingUser.username, address);
+              showToast('已取消分配', 'success');
+              loadUserMailboxes();
+            } catch(e) { showToast('取消分配失败', 'error'); }
+          };
+        });
+      } else {
+        container.innerHTML = '';
+        if (emptyState) emptyState.classList.remove('hidden');
+      }
     }
-    
+
     // 更新分页
     const totalPages = Math.max(1, Math.ceil(totalMailboxes / mailboxPageSize));
     if (els.mailboxesPageInfo) els.mailboxesPageInfo.textContent = `${mailboxPage} / ${totalPages}`;
     if (els.mailboxesPrevPage) els.mailboxesPrevPage.disabled = mailboxPage <= 1;
     if (els.mailboxesNextPage) els.mailboxesNextPage.disabled = mailboxPage >= totalPages;
+
+    // 更新选中用户显示
+    const selectedUserInfo = document.getElementById('selected-user-info');
+    if (selectedUserInfo) {
+      selectedUserInfo.innerHTML = `<span class="selected-user-name">${currentViewingUser.username}</span>`;
+    }
   } catch(e) {
     showToast('加载邮箱失败', 'error');
   } finally {
