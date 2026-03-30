@@ -17,27 +17,19 @@
 ### 体验密码： admin
 ### 页面展示
 
-#### 登陆
-![登陆页面](pic/dlu.png)
 #### 首页
-![首页展示](pic/shouye.png)
+![首页展示](./pic/light/shouye.png)
 
-### 手机端生成与历史
-<div style="display: flex; gap: 20px; justify-content: center; margin: 20px 0;">
-  <img src="./pic/phone/shouye.png" alt="手机端生成邮箱" style="height: 400px;" />
-  <img src="./pic/phone/lishi.png" alt="手机端历史邮箱" style="height: 400px;" />
-</div>
+#### 所有邮箱
+![所有邮箱](./pic/light/suoyouyouxiang.png)
 
-### 单个邮箱页
+#### 用户管理
+![用户管理](./pic/light/yonghuguanli.png)
 
-![单个邮箱首页](./pic/v4/youxiang.png)
+#### 单个邮箱登录
+![单个邮箱登录](./pic/dange邮箱登录.png)
 
-### 全部邮箱预览
-![单个邮箱首页](./pic/v4/xiugaiquanju.png)
-![单个邮箱首页](./pic/v4/liebiao.png)
-
-
-#### [更多展示点击查看](docs/zhanshi.md)
+#### [浅色模式展示](docs/zhanshi-light.md) | [深色模式展示](docs/zhanshi-dark.md)
 
 ## 功能特性
 

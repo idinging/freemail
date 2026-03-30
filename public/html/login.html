@@ -141,6 +141,24 @@
     <div id="toast" class="toast"></div>
     <script src="/js/toast-utils.js"></script>
     <script src="/js/login.js"></script>
+    <script>
+      // 绑定登录页主题切换按钮
+      (function() {
+        var btn = document.getElementById('theme-toggle');
+        if (!btn) return;
+        // 同步初始图标状态
+        if (window.freemailTheme) {
+          var t = window.freemailTheme.getTheme();
+          var icon = btn.querySelector('svg use');
+          if (icon) icon.setAttribute('href', '/icons/sprites.svg#icon-' + (t === 'dark' ? 'sun' : 'moon'));
+          btn.title = t === 'dark' ? '切换到明亮模式' : '切换到暗黑模式';
+        }
+        btn.addEventListener('click', function(e) {
+          e.preventDefault();
+          if (window.freemailTheme) window.freemailTheme.toggle();
+        });
+      })();
+    </script>
   </body>
   </html>
 

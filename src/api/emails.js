@@ -134,9 +134,22 @@ export async function handleEmailsApi(request, db, url, path, options) {
         return Response.json({ success: true, deletedCount: 0 });
       }
       
+      // 先查出所有 r2_object_key，再删除 DB 记录，最后清理 R2
+      const { results: toDelete } = await db.prepare(
+        `SELECT r2_object_key FROM messages WHERE mailbox_id = ? AND r2_object_key IS NOT NULL`
+      ).bind(mailboxId).all();
+
       const result = await db.prepare(`DELETE FROM messages WHERE mailbox_id = ?`).bind(mailboxId).run();
       const deletedCount = result?.meta?.changes || 0;
-      
+
+      if (r2 && toDelete?.length) {
+        for (const { r2_object_key } of toDelete) {
+          try { await r2.delete(r2_object_key); } catch (r2Err) {
+            console.error('清空邮件时删除 R2 对象失败:', r2Err);
+          }
+        }
+      }
+
       return Response.json({
         success: true,
         deletedCount
@@ -236,15 +249,26 @@ export async function handleEmailsApi(request, db, url, path, options) {
   if (request.method === 'DELETE' && path.startsWith('/api/email/')) {
     if (isMock) return errorResponse('演示模式不可删除', 403);
     const emailId = path.split('/')[3];
-    
+
     if (!emailId || !Number.isInteger(parseInt(emailId))) {
       return errorResponse('无效的邮件ID', 400);
     }
-    
+
     try {
+      // 先查 r2_object_key，删除前取出以便同步清理 R2
+      const row = await db.prepare(`SELECT r2_object_key FROM messages WHERE id = ?`).bind(emailId).first();
       const result = await db.prepare(`DELETE FROM messages WHERE id = ?`).bind(emailId).run();
       const deleted = (result?.meta?.changes || 0) > 0;
-      
+
+      // 同步删除 R2 对象
+      if (deleted && r2 && row?.r2_object_key) {
+        try {
+          await r2.delete(row.r2_object_key);
+        } catch (r2Err) {
+          console.error('删除 R2 对象失败:', r2Err);
+        }
+      }
+
       return Response.json({
         success: true,
         deleted,
