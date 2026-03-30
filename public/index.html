@@ -12,8 +12,17 @@
     <meta http-equiv="Expires" content="0" />
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="shortcut icon" href="favicon.svg" type="image/svg+xml" />
+
+    <!-- Google Fonts: Poppins + Open Sans (UI/UX Pro Max Recommended) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Open+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="/css/app.css" />
     <link rel="stylesheet" href="/css/app-mobile.css" media="(max-width: 900px)" />
+
+    <!-- SVG Icons Sprite (Replace Emoji Icons) -->
+    <link rel="preload" href="/icons/sprites.svg" as="image" type="image/svg+xml" crossorigin>
     <script src="/js/toast-utils.js"></script>
     <script src="/js/mock.js"></script>
     <!-- 提前内联保存 hash，保证最早阶段即可保留路由信息 -->
@@ -24,6 +33,11 @@
     <script src="/js/app-router.js" defer></script>
   </head>
   <body>
+    <!-- SVG Icon Sprites -->
+    <svg style="display:none">
+      <use href="/icons/sprites.svg#icon-mail"/>
+    </svg>
+
     <div id="app"></div>
     <script>
       // 改进的路由守卫逻辑：优先使用 loading 页面进行权限检查，避免登录页闪屏

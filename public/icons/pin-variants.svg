@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <!-- 方案1：图钉/书签风格（推荐） -->
+  <symbol id="icon-pin-v1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+  </symbol>
+
+  <!-- 方案2：旗帜风格 -->
+  <symbol id="icon-pin-v2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+    <line x1="4" x2="4" y1="22" y2="15"/>
+  </symbol>
+
+  <!-- 方案3：地图标记风格 -->
+  <symbol id="icon-pin-v3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+    <circle cx="12" cy="10" r="3"/>
+  </symbol>
+
+  <!-- 方案4：书签风格 -->
+  <symbol id="icon-pin-v4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
+  </symbol>
+
+  <!-- 方案5：保存图标风格 -->
+  <symbol id="icon-pin-v5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+  </symbol>
+
+  <!-- 方案6：向上箭头（简洁） -->
+  <symbol id="icon-pin-v6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 19V5"/>
+    <path d="m5 12 7-7 7 7"/>
+  </symbol>
+
+  <!-- 方案7：实心星标 -->
+  <symbol id="icon-pin-v7" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+  </symbol>
+
+  <!-- 原始图钉图标（保留） -->
+  <symbol id="icon-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="12" x2="12" y1="17" y2="22"/>
+    <path d="M5 17h14v-1.76a2 2 0 0 1-1.11-1.79l-1.18-8.57A3 3 0 0 0 13.72 3H10.28a3 3 0 0 0-2.99 2.88l-1.18 8.57A2 2 0 0 1 5 15.24Z"/>
+  </symbol>
+</svg>

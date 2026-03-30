@@ -5,24 +5,57 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>邮箱管理 - iDing's临时邮箱</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Open+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="/css/app.css" />
   <link rel="stylesheet" href="/css/mailboxes.css" />
 </head>
 <body class="page-mailboxes">
+  <!-- SVG Icon Sprites -->
+  <svg style="display:none">
+    <use href="/icons/sprites.svg#icon-mail"/>
+  </svg>
+
   <div class="topbar">
     <div class="topbar-inner">
       <div class="brand">
-        <span class="brand-icon">📧</span>
+        <span class="brand-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <use href="/icons/sprites.svg#icon-mail"/>
+          </svg>
+        </span>
         <span class="brand-text">iDing's临时邮箱 - 邮箱总览</span>
       </div>
       <div class="nav-actions">
         <div style="margin-right:auto"></div>
-        <a class="btn btn-ghost" href="/" title="返回首页"><span class="btn-icon">🏠</span><span class="btn-text">首页</span></a>
+        <a class="btn btn-ghost" href="/" title="返回首页">
+          <span class="btn-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <use href="/icons/sprites.svg#icon-home"/>
+            </svg>
+          </span>
+          <span class="btn-text">首页</span>
+        </a>
         <a id="repo" class="btn btn-ghost" href="https://github.com/idinging/freemail" target="_blank" rel="noopener noreferrer" title="GitHub 开源仓库">
-          <span class="btn-icon">🔗</span>
+          <span class="btn-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <use href="/icons/sprites.svg#icon-github"/>
+            </svg>
+          </span>
           <span class="btn-text">GitHub</span>
         </a>
-        <button id="logout" class="btn btn-secondary" title="退出登录"><span class="btn-icon">🚪</span><span class="btn-text">退出登录</span></button>
+        <button id="logout" class="btn btn-secondary" title="退出登录">
+          <span class="btn-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <use href="/icons/sprites.svg#icon-logout"/>
+            </svg>
+          </span>
+          <span class="btn-text">退出登录</span>
+        </button>
       </div>
     </div>
   </div>
@@ -30,13 +63,27 @@
   <div class="container">
     <div class="main">
       <div class="card">
-        <h2><span class="card-icon">📦</span>所有邮箱</h2>
+        <h2>
+          <span class="card-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <use href="/icons/sprites.svg#icon-package"/>
+            </svg>
+          </span>
+          所有邮箱
+        </h2>
         <div class="toolbar">
           <!-- 第一行：搜索 + 筛选 -->
           <div class="toolbar-row-1">
             <div class="searchbar">
-              <input id="q" class="search-input" placeholder="搜索邮箱地址" />
-              <button id="search" class="btn btn-primary btn-sm"><span class="btn-icon">🔍</span><span>搜索</span></button>
+              <input id="q" class="search-input" placeholder="搜索邮箱地址" aria-label="搜索邮箱地址" />
+              <button id="search" class="btn btn-primary btn-sm" aria-label="搜索">
+                <span class="btn-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <use href="/icons/sprites.svg#icon-search"/>
+                  </svg>
+                </span>
+                <span>搜索</span>
+              </button>
             </div>
             <div class="filter-actions">
               <select id="domain-filter" class="filter-select" title="按域名筛选">
@@ -63,30 +110,60 @@
           <div class="toolbar-row-2">
             <div class="toolbar-spacer"></div>
             <div class="batch-actions">
-              <button id="batch-allow" class="btn btn-ghost btn-sm" title="批量放行邮箱登录">
-                <span class="btn-icon">✅</span><span>批量放行</span>
+              <button id="batch-allow" class="btn btn-ghost btn-sm" title="批量放行邮箱登录" aria-label="批量放行">
+                <span class="btn-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <use href="/icons/sprites.svg#icon-check"/>
+                  </svg>
+                </span>
+                <span>批量放行</span>
               </button>
-              <button id="batch-deny" class="btn btn-ghost btn-sm" title="批量禁止邮箱登录">
-                <span class="btn-icon">🚫</span><span>批量禁止</span>
+              <button id="batch-deny" class="btn btn-ghost btn-sm" title="批量禁止邮箱登录" aria-label="批量禁止">
+                <span class="btn-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <use href="/icons/sprites.svg#icon-x-circle"/>
+                  </svg>
+                </span>
+                <span>批量禁止</span>
               </button>
-              <button id="batch-favorite" class="btn btn-ghost btn-sm" title="批量收藏">
-                <span class="btn-icon">⭐</span><span>批量收藏</span>
+              <button id="batch-favorite" class="btn btn-ghost btn-sm" title="批量收藏" aria-label="批量收藏">
+                <span class="btn-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2">
+                    <use href="/icons/sprites.svg#icon-star"/>
+                  </svg>
+                </span>
+                <span>批量收藏</span>
               </button>
-              <button id="batch-unfavorite" class="btn btn-ghost btn-sm" title="批量取消收藏">
-                <span class="btn-icon">☆</span><span>批量取消</span>
+              <button id="batch-unfavorite" class="btn btn-ghost btn-sm" title="批量取消收藏" aria-label="批量取消收藏">
+                <span class="btn-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <use href="/icons/sprites.svg#icon-star-empty"/>
+                  </svg>
+                </span>
+                <span>批量取消</span>
               </button>
-              <button id="batch-forward" class="btn btn-ghost btn-sm" title="批量设置转发">
-                <span class="btn-icon">↪️</span><span>批量转发</span>
+              <button id="batch-forward" class="btn btn-ghost btn-sm" title="批量设置转发" aria-label="批量设置转发">
+                <span class="btn-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <use href="/icons/sprites.svg#icon-forward"/>
+                  </svg>
+                </span>
+                <span>批量转发</span>
               </button>
-              <button id="batch-clear-forward" class="btn btn-ghost btn-sm" title="批量清除转发">
-                <span class="btn-icon">🚫</span><span>清除转发</span>
+              <button id="batch-clear-forward" class="btn btn-ghost btn-sm" title="批量清除转发" aria-label="批量清除转发">
+                <span class="btn-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <use href="/icons/sprites.svg#icon-x-circle"/>
+                  </svg>
+                </span>
+                <span>清除转发</span>
               </button>
             </div>
             <div class="view-toggle">
-              <button id="view-grid" class="btn btn-ghost btn-sm active" title="卡片网格视图">
+              <button id="view-grid" class="btn btn-ghost btn-sm active" title="卡片网格视图" aria-label="网格视图">
                 <span class="view-icon grid-icon"></span>
               </button>
-              <button id="view-list" class="btn btn-ghost btn-sm" title="列表行视图">
+              <button id="view-list" class="btn btn-ghost btn-sm" title="列表行视图" aria-label="列表视图">
                 <span class="view-icon list-icon"></span>
               </button>
             </div>
@@ -97,7 +174,11 @@
           <!-- 骨架屏内容将由JavaScript动态生成 -->
         </div>
         <div id="empty" class="empty-state" style="display:none">
-          <div class="empty-icon">📭</div>
+          <div class="empty-icon">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.5">
+              <use href="/icons/sprites.svg#icon-inbox-empty"/>
+            </svg>
+          </div>
           <div class="empty-title">暂无数据</div>
         </div>
         <div class="pager">

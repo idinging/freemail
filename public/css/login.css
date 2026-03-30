@@ -199,12 +199,26 @@ body::after {
 }
 
 .logo {
-  font-size: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 20px;
   animation: logoFloat 4s ease-in-out infinite;
   filter: drop-shadow(0 8px 16px rgba(99, 102, 241, 0.25));
   position: relative;
   z-index: 1;
+}
+
+.logo svg {
+  width: 72px;
+  height: 72px;
+  color: var(--primary);
+  stroke: currentColor;
+  transition: transform 0.3s ease;
+}
+
+.logo:hover svg {
+  transform: rotate(-10deg) scale(1.1);
 }
 
 @keyframes logoFloat {

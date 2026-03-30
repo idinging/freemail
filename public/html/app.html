@@ -1,24 +1,44 @@
 <div class="topbar">
   <div class="brand">
-    <span class="brand-icon">📧</span>
+    <span class="brand-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <use href="/icons/sprites.svg#icon-mail"/>
+      </svg>
+    </span>
     <span class="brand-text">iDing's临时邮箱</span>
   </div>
   <div id="role-badge" class="role-badge" title="欢迎用户："></div>
   <div class="nav-actions">
     <a id="repo" class="btn btn-ghost" href="https://github.com/idinging/freemail" target="_blank" rel="noopener noreferrer" title="GitHub 开源仓库">
-      <span class="btn-icon">🔗</span>
+      <span class="btn-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <use href="/icons/sprites.svg#icon-github"/>
+        </svg>
+      </span>
       <span class="btn-text">GitHub</span>
     </a>
     <a id="admin" class="btn btn-ghost" href="/templates/loading.html?redirect=%2Fadmin.html&status=%E6%AD%A3%E5%9C%A8%E6%A0%A1%E9%AA%8C%E6%9D%83%E9%99%90%E2%80%A6" title="用户管理" style="display:none">
-      <span class="btn-icon">🛠️</span>
+      <span class="btn-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <use href="/icons/sprites.svg#icon-wrench"/>
+        </svg>
+      </span>
       <span class="btn-text">用户管理</span>
     </a>
     <a id="all-mailboxes" class="btn btn-ghost" href="/templates/loading.html?redirect=%2Fhtml%2Fmailboxes.html&status=%E6%AD%A3%E5%9C%A8%E6%89%93%E5%BC%80%E9%82%AE%E7%AE%B1%E6%80%BB%E8%A7%88%E9%A1%B5%E9%9D%A2%E2%80%A6" title="所有邮箱" style="display:none">
-      <span class="btn-icon">📦</span>
+      <span class="btn-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <use href="/icons/sprites.svg#icon-package"/>
+        </svg>
+      </span>
       <span class="btn-text">所有邮箱</span>
     </a>
     <button id="logout" class="btn btn-secondary" title="退出登录">
-      <span class="btn-icon">🚪</span>
+      <span class="btn-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <use href="/icons/sprites.svg#icon-logout"/>
+        </svg>
+      </span>
       <span class="btn-text">退出登录</span>
     </button>
   </div>
@@ -28,21 +48,33 @@
     <div class="sidebar">
       <div class="sidebar-header">
         <h3>
-          <span class="sidebar-icon">📨</span>
+          <span class="sidebar-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <use href="/icons/sprites.svg#icon-inbox"/>
+            </svg>
+          </span>
           <span class="sidebar-title">历史邮箱</span>
         </h3>
         <div class="sidebar-header-actions">
           <span id="quota" class="quota-display"></span>
-          <button id="sidebar-toggle" class="sidebar-toggle-btn" title="收起侧板">
-            <span id="sidebar-toggle-icon">◀</span>
+          <button id="sidebar-toggle" class="sidebar-toggle-btn" title="收起侧板" aria-label="收起侧边栏">
+            <span id="sidebar-toggle-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <use href="/icons/sprites.svg#icon-chevron-left"/>
+              </svg>
+            </span>
           </button>
-          <button id="mb-toggle" class="sidebar-toggle-btn" title="展开/收起历史邮箱">
-            <span id="mb-toggle-icon">▾</span>
+          <button id="mb-toggle" class="sidebar-toggle-btn" title="展开/收起历史邮箱" aria-label="展开或收起历史邮箱列表">
+            <span id="mb-toggle-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <use href="/icons/sprites.svg#icon-chevron-down"/>
+              </svg>
+            </span>
           </button>
         </div>
       </div>
       <div class="sidebar-search">
-        <input id="mb-search" class="input sidebar-search-input" placeholder="搜索历史邮箱" />
+        <input id="mb-search" class="input sidebar-search-input" placeholder="搜索历史邮箱" aria-label="搜索历史邮箱" />
       </div>
       <div id="mb-list"></div>
       <div id="mb-loading" style="margin-top:12px"></div>
@@ -55,78 +87,126 @@
     <div class="main">
       <div class="card generate-card">
         <h2>
-          <span class="card-icon">✨</span>
+          <span class="card-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <use href="/icons/sprites.svg#icon-sparkles"/>
+            </svg>
+          </span>
           生成临时邮箱
         </h2>
-        
+
         <div class="mailbox-layout">
           <!-- 左侧：邮箱地址展示 -->
           <div class="mailbox-display-section">
             <div class="mailbox-display-content">
               <div class="section-header">
-                <span class="section-icon">📧</span>
+                <span class="section-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <use href="/icons/sprites.svg#icon-mail"/>
+                  </svg>
+                </span>
                 <span class="section-title">当前邮箱</span>
               </div>
               <div id="email" class="email-display">
                 <span id="email-text" class="email-text"><span class="placeholder-text">点击右侧生成按钮创建邮箱地址</span></span>
                 <div id="custom-overlay" class="custom-overlay" style="display:none">
-                  <input id="custom-local-overlay" class="input custom-input" type="text" placeholder="仅限字母/数字/._-" />
+                  <input id="custom-local-overlay" class="input custom-input" type="text" placeholder="仅限字母/数字/._-" aria-label="自定义邮箱用户名" />
                   <button id="create-custom-overlay" class="btn btn-primary btn-sm">创建</button>
                 </div>
               </div>
             </div>
             <div class="mailbox-actions" id="email-actions" style="display:none">
-              <button id="copy" class="btn btn-secondary" style="width:100%">
-                <span class="btn-icon">📋</span>
-                <span>复制邮箱 ✨</span>
+              <button id="copy" class="btn btn-secondary" style="width:100%" aria-label="复制邮箱地址">
+                <span class="btn-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <use href="/icons/sprites.svg#icon-copy"/>
+                  </svg>
+                </span>
+                <span>复制邮箱</span>
               </button>
-              <button id="compose" class="btn btn-primary" style="width:100%">
-                <span class="btn-icon">✉️</span>
+              <button id="compose" class="btn btn-primary" style="width:100%" aria-label="发邮件">
+                <span class="btn-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <use href="/icons/sprites.svg#icon-send"/>
+                  </svg>
+                </span>
                 <span>发邮件</span>
               </button>
-              <button id="clear" class="btn btn-danger" style="width:100%">
-                <span class="btn-icon">🗑️</span>
-                <span>清空邮件 💥</span>
+              <button id="clear" class="btn btn-danger" style="width:100%" aria-label="清空邮件">
+                <span class="btn-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <use href="/icons/sprites.svg#icon-trash"/>
+                  </svg>
+                </span>
+                <span>清空邮件</span>
               </button>
-              <button id="refresh" class="btn btn-ghost" style="width:100%">
-                <span class="btn-icon">🔄</span>
-                <span>刷新邮件 📬</span>
+              <button id="refresh" class="btn btn-ghost" style="width:100%" aria-label="刷新邮件">
+                <span class="btn-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <use href="/icons/sprites.svg#icon-refresh"/>
+                  </svg>
+                </span>
+                <span>刷新邮件</span>
               </button>
-              <button id="forward-setting" class="btn btn-ghost" style="width:100%">
-                <span class="btn-icon">↪️</span>
+              <button id="forward-setting" class="btn btn-ghost" style="width:100%" aria-label="转发设置">
+                <span class="btn-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <use href="/icons/sprites.svg#icon-forward"/>
+                  </svg>
+                </span>
                 <span>转发设置</span>
               </button>
-              <button id="toggle-favorite" class="btn btn-ghost" style="width:100%">
-                <span class="btn-icon" id="favorite-icon">☆</span>
+              <button id="toggle-favorite" class="btn btn-ghost" style="width:100%" aria-label="收藏邮箱">
+                <span class="btn-icon" id="favorite-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <use href="/icons/sprites.svg#icon-star-empty"/>
+                  </svg>
+                </span>
                 <span id="favorite-text">收藏邮箱</span>
               </button>
             </div>
           </div>
-          
+
           <!-- 右侧：邮箱配置 -->
           <div class="mailbox-config-section">
             <div class="section-header">
-              <span class="section-icon">⚙️</span>
+              <span class="section-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <use href="/icons/sprites.svg#icon-settings"/>
+                </svg>
+              </span>
               <span class="section-title">邮箱配置</span>
-              <button id="config-toggle" class="sidebar-toggle-btn" title="展开/收起配置">
-                <span id="config-toggle-icon">▾</span>
+              <button id="config-toggle" class="sidebar-toggle-btn" title="展开/收起配置" aria-label="展开或收起配置面板">
+                <span id="config-toggle-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <use href="/icons/sprites.svg#icon-chevron-down"/>
+                  </svg>
+                </span>
               </button>
             </div>
             <div class="config-form">
               <div class="config-item">
-                <label class="config-label">
-                  <span class="label-icon">🌐</span>
+                <label class="config-label" for="domain-select">
+                  <span class="label-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <use href="/icons/sprites.svg#icon-globe"/>
+                    </svg>
+                  </span>
                   <span>邮箱后缀</span>
                 </label>
-                <select id="domain-select" class="select config-select"></select>
+                <select id="domain-select" class="select config-select" aria-label="选择邮箱后缀域名"></select>
               </div>
               <div class="config-item">
-                <label class="config-label">
-                  <span class="label-icon">📏</span>
+                <label class="config-label" for="len-range">
+                  <span class="label-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <use href="/icons/sprites.svg#icon-ruler"/>
+                    </svg>
+                  </span>
                   <span>用户名长度</span>
                 </label>
                 <div class="range-container">
-                  <input id="len-range" class="range" type="range" min="8" max="30" step="1" value="8" />
+                  <input id="len-range" class="range" type="range" min="8" max="30" step="1" value="8" aria-label="设置用户名长度" />
                   <div class="range-display">
                     <span id="len-val" class="len-value">8</span>
                     <span class="len-unit">位</span>
@@ -135,16 +215,24 @@
               </div>
                <div class="generate-action">
                  <div class="generate-buttons" style="display: flex; gap: 8px; margin-bottom: 8px; width: 100%;">
-                   <button id="gen" class="btn btn-generate" style="flex: 1;">
-                     <span class="btn-icon">🎲</span>
+                   <button id="gen" class="btn btn-generate" style="flex: 1;" aria-label="随机生成邮箱">
+                     <span class="btn-icon">
+                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                         <use href="/icons/sprites.svg#icon-dice"/>
+                       </svg>
+                     </span>
                      <span>随机生成</span>
                    </button>
-                   <button id="gen-name" class="btn btn-primary" style="flex: 1;" title="使用随机人名生成邮箱">
-                     <span class="btn-icon">👤</span>
+                   <button id="gen-name" class="btn btn-primary" style="flex: 1;" title="使用随机人名生成邮箱" aria-label="使用随机人名生成邮箱">
+                     <span class="btn-icon">
+                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                         <use href="/icons/sprites.svg#icon-user"/>
+                       </svg>
+                     </span>
                      <span>随机人名</span>
                    </button>
                  </div>
-                 <button id="toggle-custom" class="btn btn-secondary btn-sm" style="width: 100%;" title="自定义邮箱">切换自定义</button>
+                 <button id="toggle-custom" class="btn btn-secondary btn-sm" style="width: 100%;" title="自定义邮箱" aria-label="切换到自定义邮箱模式">切换自定义</button>
                </div>
             </div>
           </div>
@@ -153,7 +241,11 @@
       <div class="card inbox-card" id="list-card" style="display:none">
         <div class="listcard-header">
           <h2 class="listcard-title">
-            <span class="card-icon" id="box-icon">📬</span>
+            <span class="card-icon" id="box-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <use href="/icons/sprites.svg#icon-inbox"/>
+              </svg>
+            </span>
             <span id="box-title">收件箱</span>
           </h2>
           <div class="view-switch">
@@ -183,10 +275,18 @@
     <div class="modal-card">
       <div class="modal-header">
         <div id="modal-subject">
-          <span class="modal-icon">📧</span>
+          <span class="modal-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <use href="/icons/sprites.svg#icon-mail"/>
+            </svg>
+          </span>
           <span>邮件详情</span>
         </div>
-        <button id="modal-close" class="close">✕</button>
+        <button id="modal-close" class="close" aria-label="关闭">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <use href="/icons/sprites.svg#icon-x"/>
+          </svg>
+        </button>
       </div>
       <div class="modal-body">
         <div id="modal-content"></div>
@@ -198,10 +298,18 @@
     <div class="modal-card confirm-card">
       <div class="modal-header confirm-header">
         <div>
-          <span class="modal-icon">⚠️</span>
+          <span class="modal-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <use href="/icons/sprites.svg#icon-alert"/>
+            </svg>
+          </span>
           <span>确认操作</span>
         </div>
-        <button id="confirm-close" class="close">✕</button>
+        <button id="confirm-close" class="close" aria-label="关闭">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <use href="/icons/sprites.svg#icon-x"/>
+          </svg>
+        </button>
       </div>
       <div class="modal-body confirm-body">
         <div id="confirm-message" class="confirm-message"></div>
@@ -217,28 +325,36 @@
     <div class="modal-card">
       <div class="modal-header">
         <div>
-          <span class="modal-icon">✉️</span>
+          <span class="modal-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <use href="/icons/sprites.svg#icon-send"/>
+            </svg>
+          </span>
           <span>新邮件</span>
         </div>
-        <button id="compose-close" class="close">✕</button>
+        <button id="compose-close" class="close" aria-label="关闭">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <use href="/icons/sprites.svg#icon-x"/>
+          </svg>
+        </button>
       </div>
       <div class="modal-body">
         <div class="compose-form">
           <div class="field-group">
-            <label class="field-label">收件人</label>
-            <input id="compose-to" class="input field-input" type="text" placeholder="foo@example.com, bar@example.com" />
-            <div class="field-hint">多个地址请以逗号分隔</div>
+            <label class="field-label" for="compose-to">收件人</label>
+            <input id="compose-to" class="input field-input" type="text" placeholder="foo@example.com, bar@example.com" aria-describedby="compose-to-hint" />
+            <div id="compose-to-hint" class="field-hint">多个地址请以逗号分隔</div>
           </div>
           <div class="field-group">
-            <label class="field-label">发件名称（可选）</label>
+            <label class="field-label" for="compose-from-name">发件名称（可选）</label>
             <input id="compose-from-name" class="input field-input" type="text" placeholder="例如：iDing 支持团队" />
           </div>
           <div class="field-group">
-            <label class="field-label">主题</label>
+            <label class="field-label" for="compose-subject">主题</label>
             <input id="compose-subject" class="input field-input" type="text" placeholder="主题" />
           </div>
           <div class="field-group">
-            <label class="field-label">内容</label>
+            <label class="field-label" for="compose-body">内容</label>
             <textarea id="compose-body" class="textarea field-textarea" rows="10" placeholder="请输入邮件内容"></textarea>
           </div>
           <div class="compose-actions">
@@ -249,7 +365,3 @@
       </div>
     </div>
   </div>
-
-  
-
-

@@ -5,6 +5,7 @@
 
 import { cacheGet, cacheSet, setCurrentUserKey, getCurrentUserKey } from './storage.js';
 import { openForwardDialog, toggleFavorite, injectDialogStyles } from './mailbox-settings.js';
+import IconHelper from './modules/icons.js';
 
 // 导入模块
 import { formatTs, formatTsMobile, extractCode, escapeHtml, escapeAttr } from './modules/app/ui-helpers.js';
@@ -122,7 +123,13 @@ async function loadMailboxes(opts = {}) {
   finally { setLoading(false); if (els.mbLoading) els.mbLoading.style.display = 'none'; }
 }
 
-function updateMailboxInfoUI(info) { if (!info) return; if (els.favoriteIcon && els.favoriteText) { els.favoriteIcon.textContent = info.is_favorite ? '⭐' : '☆'; els.favoriteText.textContent = info.is_favorite ? '已收藏' : '收藏'; }}
+function updateMailboxInfoUI(info) {
+  if (!info) return;
+  if (els.favoriteIcon && els.favoriteText) {
+    els.favoriteIcon.innerHTML = IconHelper.star(18, 18, info.is_favorite);
+    els.favoriteText.textContent = info.is_favorite ? '已收藏' : '收藏邮箱';
+  }
+}
 
 // 全局函数
 window.selectMailbox = (addr) => selectMailboxAddress(addr, els, api, refresh, autoRefreshCallback, updateMailboxInfoUI);

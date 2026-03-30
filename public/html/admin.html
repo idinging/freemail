@@ -13,6 +13,12 @@
     <style>.precheck-hide body{ visibility: hidden !important; }</style>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="shortcut icon" href="/favicon.svg" type="image/svg+xml" />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Open+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="/css/app.css" />
     <link rel="stylesheet" href="/css/admin.css" />
     <script src="/js/auth-guard.js" defer></script>
@@ -38,18 +44,35 @@
     </script>
   </head>
   <body class="admin-page">
+    <!-- SVG Icon Sprites -->
+    <svg style="display:none">
+      <use href="/icons/sprites.svg#icon-mail"/>
+    </svg>
+
     <div class="topbar">
       <div class="brand">
-        <span class="brand-icon">🚀</span>
+        <span class="brand-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <use href="/icons/sprites.svg#icon-rocket"/>
+          </svg>
+        </span>
         <span>iDing's临时邮箱 - 用户管理</span>
       </div>
       <div class="nav-actions">
-        <button id="back" class="btn btn-ghost" title="返回邮箱">
-          <span>📧</span>
+        <button id="back" class="btn btn-ghost" title="返回邮箱" aria-label="返回邮箱页面">
+          <span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <use href="/icons/sprites.svg#icon-mail"/>
+            </svg>
+          </span>
           <span>返回邮箱</span>
         </button>
-        <button id="logout" class="btn btn-secondary" title="退出登录">
-          <span>👋</span>
+        <button id="logout" class="btn btn-secondary" title="退出登录" aria-label="退出登录">
+          <span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <use href="/icons/sprites.svg#icon-logout"/>
+            </svg>
+          </span>
           <span>退出登录</span>
         </button>
       </div>
@@ -58,20 +81,39 @@
     <div class="admin-container">
       <div class="admin-left">
         <div class="card">
-          <h2><span class="card-icon">👤</span><span>用户管理</span></h2>
+          <h2>
+            <span class="card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <use href="/icons/sprites.svg#icon-user"/>
+              </svg>
+            </span>
+            <span>用户管理</span>
+          </h2>
           <div class="generate-action">
-            <button id="u-open" class="btn btn-primary">
-              <span>➕</span>
+            <button id="u-open" class="btn btn-primary" aria-label="创建新用户">
+              <span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <use href="/icons/sprites.svg#icon-plus"/>
+                </svg>
+              </span>
               <span>创建用户</span>
             </button>
           </div>
           <div class="generate-action generate-action-row">
-            <button id="unassign-open" class="btn btn-secondary">
-              <span>📭</span>
+            <button id="unassign-open" class="btn btn-secondary" aria-label="取消分配邮箱">
+              <span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <use href="/icons/sprites.svg#icon-inbox-empty"/>
+                </svg>
+              </span>
               <span>取消分配</span>
             </button>
-            <button id="a-open" class="btn btn-primary">
-              <span>📬</span>
+            <button id="a-open" class="btn btn-primary" aria-label="分配邮箱">
+              <span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <use href="/icons/sprites.svg#icon-inbox"/>
+                </svg>
+              </span>
               <span>分配邮箱</span>
             </button>
           </div>
@@ -156,7 +198,11 @@
               <span>编辑用户</span>
               <span id="edit-user-display" class="user-chip"></span>
             </div>
-            <button id="edit-close" class="close">✕</button>
+            <button id="edit-close" class="close" aria-label="关闭">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <use href="/icons/sprites.svg#icon-x"/>
+              </svg>
+            </button>
           </div>
           <div class="modal-body">
             <div class="form-grid">
@@ -194,7 +240,11 @@
               <span class="modal-icon">🔔</span>
               <span>确认操作</span>
             </div>
-            <button id="admin-confirm-close" class="close">✕</button>
+            <button id="admin-confirm-close" class="close" aria-label="关闭">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <use href="/icons/sprites.svg#icon-x"/>
+              </svg>
+            </button>
           </div>
           <div class="modal-body confirm-body">
             <div id="admin-confirm-message" class="confirm-message"></div>
@@ -212,7 +262,11 @@
               <span class="modal-icon">👤</span>
               <span>创建用户</span>
             </div>
-            <button id="u-close" class="close">✕</button>
+            <button id="u-close" class="close" aria-label="关闭">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <use href="/icons/sprites.svg#icon-x"/>
+              </svg>
+            </button>
           </div>
           <div class="modal-body">
             <div class="config-form">
@@ -235,7 +289,11 @@
               <span class="modal-icon">📬</span>
               <span>分配邮箱</span>
             </div>
-            <button id="a-close" class="close">✕</button>
+            <button id="a-close" class="close" aria-label="关闭">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <use href="/icons/sprites.svg#icon-x"/>
+              </svg>
+            </button>
           </div>
           <div class="modal-body">
             <div class="config-form">
@@ -261,7 +319,11 @@
               <span class="modal-icon">📬</span>
               <span>取消分配邮箱</span>
             </div>
-            <button id="unassign-close" class="close">✕</button>
+            <button id="unassign-close" class="close" aria-label="关闭">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <use href="/icons/sprites.svg#icon-x"/>
+              </svg>
+            </button>
           </div>
           <div class="modal-body">
             <div class="config-form">
