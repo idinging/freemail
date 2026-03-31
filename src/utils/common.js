@@ -18,44 +18,52 @@ export function extractEmail(addr) {
 
 /**
  * 规范化邮箱别名地址
- * 类似谷歌别名邮箱功能：点号(.)前面的部分被视为别名前缀
- * 只保留最后一个点后面的部分作为真正的本地部分
- * 
+ * 类似谷歌别名邮箱功能：点号(.)、加号(+)、减号(-)前面的部分被视为别名前缀
+ * 只保留最后一个分隔符后面的部分作为真正的本地部分
+ *
  * 例如：
  * - ab.c@qq.ss → c@qq.ss
- * - cds.c@qq.ss → c@qq.ss  
+ * - ab+c@qq.ss → c@qq.ss
+ * - ab-c@qq.ss → c@qq.ss
+ * - a.b+c@qq.ss → c@qq.ss (最后一个分隔符是 +)
+ * - a.b-c@qq.ss → c@qq.ss (最后一个分隔符是 -)
  * - x.y.z@domain.com → z@domain.com
- * - simple@domain.com → simple@domain.com (无点则保持不变)
- * 
+ * - simple@domain.com → simple@domain.com (无分隔符则保持不变)
+ *
  * @param {string} email - 邮箱地址
  * @returns {string} 规范化后的邮箱地址
  */
 export function normalizeEmailAlias(email) {
   const normalized = String(email || '').trim().toLowerCase();
   if (!normalized) return '';
-  
+
   const atIndex = normalized.indexOf('@');
   if (atIndex <= 0) return normalized;
-  
+
   const localPart = normalized.slice(0, atIndex);
   const domain = normalized.slice(atIndex + 1);
-  
-  // 查找本地部分中最后一个点的位置
+
+  // 查找本地部分中最后一个分隔符的位置（支持 . + - 三种）
   const lastDotIndex = localPart.lastIndexOf('.');
-  
-  // 如果没有点，或者点在第一个位置，保持原样
-  if (lastDotIndex <= 0) {
+  const lastPlusIndex = localPart.lastIndexOf('+');
+  const lastDashIndex = localPart.lastIndexOf('-');
+
+  // 找到最后一个分隔符的位置
+  const lastSeparatorIndex = Math.max(lastDotIndex, lastPlusIndex, lastDashIndex);
+
+  // 如果没有分隔符，或者分隔符在第一个位置，保持原样
+  if (lastSeparatorIndex <= 0) {
     return normalized;
   }
-  
-  // 取最后一个点后面的部分作为真正的本地部分
-  const realLocalPart = localPart.slice(lastDotIndex + 1);
-  
-  // 如果点后面没有内容，保持原样
+
+  // 取最后一个分隔符后面的部分作为真正的本地部分
+  const realLocalPart = localPart.slice(lastSeparatorIndex + 1);
+
+  // 如果分隔符后面没有内容，保持原样
   if (!realLocalPart) {
     return normalized;
   }
-  
+
   return `${realLocalPart}@${domain}`;
 }
 
