@@ -495,11 +495,6 @@
 
 /* 侧板收起时的布局优化 */
 .container.sidebar-collapsed .main {
-  transform: translateX(-200px);
-  width: calc(100% + 200px); /* 向左位移同等宽度，消除右侧空白 */
-  max-width: none;
-  padding-right: 200px; /* 右侧留出等同位移的内边距 */
-  overflow: hidden;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -617,6 +612,7 @@
 /* 侧板收起时的整体容器动画 */
 .container.sidebar-collapsed {
   animation: expandLayout 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  grid-template-columns: 60px 1fr;
 }
 
 @keyframes expandLayout {
