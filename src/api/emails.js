@@ -49,7 +49,7 @@ export async function handleEmailsApi(request, db, url, path, options) {
       
       try {
         const { results } = await db.prepare(`
-          SELECT id, sender, subject, received_at, is_read, preview, verification_code
+          SELECT id, sender, to_addrs, subject, received_at, is_read, preview, verification_code
           FROM messages 
           WHERE mailbox_id = ?${timeFilter}
           ORDER BY received_at DESC 
@@ -58,7 +58,7 @@ export async function handleEmailsApi(request, db, url, path, options) {
         return Response.json(results);
       } catch (e) {
         const { results } = await db.prepare(`
-          SELECT id, sender, subject, received_at, is_read,
+          SELECT id, sender, to_addrs, subject, received_at, is_read,
                  CASE WHEN content IS NOT NULL AND content <> ''
                       THEN SUBSTR(content, 1, 120)
                       ELSE SUBSTR(COALESCE(html_content, ''), 1, 120)
@@ -110,7 +110,7 @@ export async function handleEmailsApi(request, db, url, path, options) {
         return Response.json(results || []);
       } catch (e) {
         const { results } = await db.prepare(`
-          SELECT id, sender, subject, content, html_content, received_at, is_read
+          SELECT id, sender, to_addrs, subject, content, html_content, received_at, is_read
           FROM messages WHERE id IN (${placeholders})${timeFilter}
         `).bind(...ids, ...timeParam).all();
         return Response.json(results || []);
@@ -236,7 +236,7 @@ export async function handleEmailsApi(request, db, url, path, options) {
       return Response.json({ ...row, content, html_content, download: row.r2_object_key ? `/api/email/${emailId}/download` : '' });
     } catch (e) {
       const { results } = await db.prepare(`
-        SELECT id, sender, subject, content, html_content, received_at, is_read
+        SELECT id, sender, to_addrs, subject, content, html_content, received_at, is_read
         FROM messages WHERE id = ?
       `).bind(emailId).all();
       if (!results || !results.length) return errorResponse('未找到邮件', 404);

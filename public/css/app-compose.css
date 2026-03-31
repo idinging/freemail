@@ -250,18 +250,19 @@
   color: var(--muted);
   font-size: 13px;
 }
-.email-meta{ /* 统一左对齐布局：发件人标签/发件人内容/时间 */
-  display: grid; 
-  grid-template-columns: 1fr auto; /* 左侧内容自适应，右侧时间固定自动宽度 */
-  gap: 10px;
+.email-meta{ /* 统一布局：发件人/收件人/时间 */
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  gap: 8px 12px;
 }
 .email-meta .meta-from{ 
   display: flex; 
   align-items: center; 
   gap: 6px; 
-  min-width: 0; /* 允许收缩 */
-  overflow: hidden; /* 防止内容溢出 */
+  min-width: 0;
+  max-width: 280px;
+  overflow: hidden;
 }
 .email-meta .meta-label{ 
   font-size: 12px; 
@@ -271,7 +272,7 @@
   border-radius: 999px; 
   padding: 2px 8px;
   white-space: nowrap;
-  flex-shrink: 0; /* 标签不收缩 */
+  flex-shrink: 0;
 }
 .email-meta .meta-from-text{ 
   color: var(--text); 
@@ -279,15 +280,32 @@
   white-space: nowrap; 
   overflow: hidden; 
   text-overflow: ellipsis;
-  min-width: 0; /* 允许收缩 */
+  min-width: 0;
+}
+.email-meta .meta-to{
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 280px;
+  overflow: hidden;
+}
+.email-meta .meta-to-text{
+  color: var(--primary);
+  font-weight: 500;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 .email-time{
   color: var(--muted2);
   font-size: 0.85em;
   font-weight: 500;
-  justify-self: end; /* 时间右对齐 */
-  text-align: right;
-  white-space: nowrap; /* 防止时间换行 */
+  margin-left: auto; /* 推到右侧 */
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .email-actions{

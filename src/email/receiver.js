@@ -3,7 +3,7 @@
  * @module email/receiver
  */
 
-import { extractEmail } from '../utils/common.js';
+import { extractEmail, normalizeEmailAlias } from '../utils/common.js';
 import { getOrCreateMailboxId } from '../db/index.js';
 import { parseEmailBody, extractVerificationCode } from './parser.js';
 
@@ -23,7 +23,9 @@ export async function handleEmailReceive(request, db, env) {
     const text = String(emailData?.text || '');
     const html = String(emailData?.html || '');
 
-    const mailbox = extractEmail(to);
+    // 提取并规范化邮箱地址（支持别名邮箱，例如 ab.c@qq.ss -> c@qq.ss）
+    const rawMailbox = extractEmail(to);
+    const mailbox = normalizeEmailAlias(rawMailbox);
     const sender = extractEmail(from);
     const mailboxId = await getOrCreateMailboxId(db, mailbox);
 

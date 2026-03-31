@@ -150,16 +150,15 @@ export function renderEmailItem(email, isMobile = false) {
   const listCode = (e.verification_code || '').toString().trim() || extractCode(rawContent || '');
   const senderText = escapeHtml(e.sender || '');
   
+  // 解析收件人地址（用于发件箱和收件箱）
   let recipientsDisplay = '';
-  if (isSentView) {
-    const raw = (e.recipients || e.to_addrs || '').toString();
-    const arr = raw.split(',').map(s => s.trim()).filter(Boolean);
-    if (arr.length) {
-      recipientsDisplay = arr.slice(0, 2).join(', ');
-      if (arr.length > 2) recipientsDisplay += ` 等${arr.length}人`;
-    } else {
-      recipientsDisplay = raw;
-    }
+  const rawToAddrs = (e.recipients || e.to_addrs || '').toString();
+  const toAddrsArr = rawToAddrs.split(',').map(s => s.trim()).filter(Boolean);
+  if (toAddrsArr.length) {
+    recipientsDisplay = toAddrsArr.slice(0, 2).join(', ');
+    if (toAddrsArr.length > 2) recipientsDisplay += ` 等${toAddrsArr.length}人`;
+  } else {
+    recipientsDisplay = rawToAddrs;
   }
   
   const subjectText = escapeHtml(e.subject || '(无主题)');
@@ -167,11 +166,14 @@ export function renderEmailItem(email, isMobile = false) {
   const metaLabel = isSentView ? '收件人' : '发件人';
   const metaText = isSentView ? escapeHtml(recipientsDisplay) : senderText;
   const timeDisplay = isMobile ? formatTsMobile(e.received_at || e.created_at) : formatTs(e.received_at || e.created_at);
+  // 收件箱视图时显示收件人地址（别名地址）
+  const toAddrDisplay = !isSentView && recipientsDisplay ? escapeHtml(recipientsDisplay) : '';
   
   return `
     <div class="email-item clickable" onclick="${isSentView ? `showSentEmail(${e.id})` : `showEmail(${e.id})`}">
       <div class="email-meta">
         <span class="meta-from"><span class="meta-label">${metaLabel}</span><span class="meta-from-text">${metaText}</span></span>
+        ${!isSentView && toAddrDisplay ? `<span class="meta-to"><span class="meta-label">收件人</span><span class="meta-to-text">${toAddrDisplay}</span></span>` : ''}
         <span class="email-time"><span class="time-icon">🕐</span>${timeDisplay}</span>
       </div>
       <div class="email-content">
