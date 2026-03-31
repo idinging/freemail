@@ -13,7 +13,7 @@
 import { initDatabase, getInitializedDatabase } from './db/index.js';
 import { createRouter, authMiddleware } from './routes/index.js';
 import { createAssetManager } from './assets/index.js';
-import { extractEmail } from './utils/common.js';
+import { extractEmail, normalizeEmailAlias } from './utils/common.js';
 import { forwardByLocalPart, forwardByMailboxConfig } from './email/forwarder.js';
 import { parseEmailBody, extractVerificationCode } from './email/parser.js';
 import { getForwardTarget } from './db/mailboxes.js';
@@ -94,10 +94,13 @@ export default {
 
       const resolvedRecipient = (envelopeTo || toHeader || '').toString();
       const resolvedRecipientAddr = extractEmail(resolvedRecipient);
-      const localPart = (resolvedRecipientAddr.split('@')[0] || '').toLowerCase();
+      // 应用别名邮箱规范化：例如 ab.c@qq.ss -> c@qq.ss
+      const normalizedRecipientAddr = normalizeEmailAlias(resolvedRecipientAddr);
+      const localPart = (normalizedRecipientAddr.split('@')[0] || '').toLowerCase();
 
       // 处理邮件转发（优先使用邮箱配置，否则使用全局规则）
-      const mailboxForwardTo = await getForwardTarget(DB, resolvedRecipientAddr);
+      // 使用规范化后的地址查询转发配置
+      const mailboxForwardTo = await getForwardTarget(DB, normalizedRecipientAddr);
       if (mailboxForwardTo) {
         forwardByMailboxConfig(message, mailboxForwardTo, ctx);
       } else {
@@ -121,7 +124,8 @@ export default {
         htmlContent = '';
       }
 
-      const mailbox = extractEmail(resolvedRecipient || toHeader);
+      // 使用规范化后的地址作为实际收件箱
+      const mailbox = normalizedRecipientAddr || normalizeEmailAlias(extractEmail(toHeader));
       const sender = extractEmail(fromHeader);
 
       // 存储到 R2

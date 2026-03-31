@@ -29,7 +29,9 @@ export async function showEmailDetail(id, elements, api, showToast) {
     const code = email.verification_code || extractCode(email.content || email.html_content || '');
 
     let metaHtml = `<div class="email-meta-inline">`;
-    if (email.sender) metaHtml += `<span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="/icons/sprites.svg#icon-user"/></svg> ${escapeHtml(email.sender)}</span>`;
+    if (email.sender) metaHtml += `<span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="/icons/sprites.svg#icon-user"/></svg> 发件人：${escapeHtml(email.sender)}</span>`;
+    // 展示收件人地址（别名地址）
+    if (email.to_addrs) metaHtml += `<span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="/icons/sprites.svg#icon-mail"/></svg> 收件人：${escapeHtml(email.to_addrs)}</span>`;
     if (email.received_at) {
       const d = new Date((email.received_at.includes('T') ? email.received_at : email.received_at.replace(' ', 'T')) + 'Z');
       const timeStr = new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false, year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(d);

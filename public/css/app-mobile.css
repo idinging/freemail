@@ -99,18 +99,19 @@
   
   /* 移动端邮件列表布局全面重构 */
   .email-meta{
-    display: grid;
-    grid-template-columns: 1fr 88px;
-    gap: 8px;
-    align-items: start;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
     margin-bottom: 8px;
   }
   
   .email-meta .meta-from{
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
     min-width: 0;
+    max-width: calc(100vw - 140px);
   }
   
   .email-meta .meta-label{
@@ -132,18 +133,34 @@
     overflow: hidden;
     text-overflow: ellipsis;
     min-width: 0;
-    max-width: calc(100vw - 148px);
+  }
+
+  .email-meta .meta-to{
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    max-width: calc(100vw - 140px);
+  }
+
+  .email-meta .meta-to-text{
+    color: var(--primary);
+    font-weight: 500;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
   }
   
   .email-time{
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
+    align-items: center;
     font-size: 11px;
     color: var(--muted2);
-    line-height: 1.1;
-    text-align: right;
-    gap: 1px;
+    margin-left: auto;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
   
   .email-time .time-icon{
