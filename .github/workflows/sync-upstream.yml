@@ -1,0 +1,38 @@
+name: 🔄 Sync with Upstream
+
+on:
+  schedule:
+    # 每天 UTC 时间 00:00 运行一次自动同步（北京时间早上 8:00）
+    - cron: '0 0 * * *'
+  # 允许在 GitHub Actions 页面手动点击运行
+  workflow_dispatch:
+
+jobs:
+  sync_with_upstream:
+    name: 🔄 Sync main with upstream latest
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🚚 Checkout target repo
+        uses: actions/checkout@v4
+
+      - name: 🔄 Sync Upstream
+        uses: aormsby/Fork-Sync-With-Upstream-action@v3.4
+        with:
+          # 上游仓库的名称
+          upstream_sync_repo: maillab/cloud-mail
+          # 上游想要同步的分支
+          upstream_sync_branch: main
+          # 自己仓库要被更新的分支
+          target_sync_branch: main
+          # 自动注入的 GitHub Token（需要赋予 Actions 读写权限）
+          target_repo_token: ${{ secrets.GITHUB_TOKEN }}
+          
+          # 设为 false 表示真正执行同步（如果设为 true 则只测试不推送）
+          test_mode: false
+
+      - name: ❌ 通知同步失败 / Check for Failure
+        if: failure()
+        run: |
+          echo "❌ 同步失败！通常是因为你本地修改的文件与上游产生了冲突（Merge Conflicts）。"
+          echo "请在本地拉取代码并手动解决冲突后再次推送。"

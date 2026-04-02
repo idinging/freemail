@@ -1,0 +1,247 @@
+name: 🚀 Deploy freemail to Cloudflare Workers
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "src/**"
+      - "public/**"
+      - "wrangler.toml"
+  workflow_dispatch:
+
+jobs:
+  Deploy-freemail:
+    name: 🏗️ Build and Deploy
+    runs-on: ubuntu-latest
+
+    env:
+      # Worker 名称
+      NAME: ${{ secrets.NAME || vars.NAME || 'mailfree' }}
+      # Cloudflare 凭证
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      # D1 数据库（可选，留空则自动创建）
+      D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID || vars.D1_DATABASE_ID }}
+      D1_DB_NAME: ${{ secrets.D1_DB_NAME || vars.D1_DB_NAME || 'mail_free_db' }}
+      # R2 存储桶名称（不需要 UUID）
+      R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME || vars.R2_BUCKET_NAME || 'mail-eml' }}
+      # 应用环境变量
+      ADMIN_NAME: ${{ secrets.ADMIN_NAME || vars.ADMIN_NAME || 'admin' }}
+      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD || vars.ADMIN_PASSWORD }}
+      JWT_TOKEN: ${{ secrets.JWT_TOKEN || vars.JWT_TOKEN }}
+      SESSION_EXPIRE_DAYS: ${{ secrets.SESSION_EXPIRE_DAYS || vars.SESSION_EXPIRE_DAYS || '365' }}
+      MAIL_DOMAIN: ${{ secrets.MAIL_DOMAIN || vars.MAIL_DOMAIN }}
+
+    outputs:
+      worker_url: ${{ steps.deploy.outputs.worker_url }}
+
+    steps:
+      - name: 🚚 检出代码仓库 / Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ 设置 Node.js / Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: 📦 安装 Wrangler / Install Wrangler
+        run: npm install -g wrangler
+
+      - name: 📡 禁用 Wrangler 遥测 / Disable wrangler telemetry
+        run: wrangler telemetry disable
+
+      - name: 🔐 验证必要变量 / Validate required variables
+        run: |
+          echo "🔐 Validating required environment variables..."
+
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "❌ CLOUDFLARE_API_TOKEN is required."
+            exit 1
+          fi
+
+          if [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "❌ CLOUDFLARE_ACCOUNT_ID is required."
+            exit 1
+          fi
+
+          if [ -z "$JWT_TOKEN" ]; then
+            echo "⚠️ Warning: JWT_TOKEN is not set, using default from wrangler.toml"
+          fi
+
+          echo "✅ Validation passed."
+
+      - name: 🛠️ 生成 wrangler 配置 / Generate wrangler config
+        run: |
+          echo "🛠️ Generating deployment wrangler config..."
+
+          CONFIG_FILE="wrangler-deploy.toml"
+          cp wrangler.toml "$CONFIG_FILE"
+
+          # 替换 Worker 名称
+          sed -i "s|^name = .*|name = \"${NAME}\"|" "$CONFIG_FILE"
+
+          # 替换 database_id 和 database_name（后续步骤会注入正确的 ID）
+          sed -i 's/^[[:space:]]*database_id = .*/database_id = "PLACEHOLDER_D1_ID"/' "$CONFIG_FILE"
+          sed -i "s/^[[:space:]]*database_name = .*/database_name = \"${D1_DB_NAME}\"/" "$CONFIG_FILE"
+
+          # 替换 R2 bucket 名称
+          sed -i "s/^[[:space:]]*bucket_name = .*/bucket_name = \"${R2_BUCKET_NAME}\"/" "$CONFIG_FILE"
+
+          # 注入环境变量（如果设置了的话）
+          if [ -n "$ADMIN_NAME" ]; then
+            sed -i "s|^ADMIN_NAME=.*|ADMIN_NAME=\"${ADMIN_NAME}\"|" "$CONFIG_FILE"
+          fi
+
+          if [ -n "$ADMIN_PASSWORD" ]; then
+            sed -i "s|^ADMIN_PASSWORD=.*|ADMIN_PASSWORD=\"${ADMIN_PASSWORD}\"|" "$CONFIG_FILE"
+          fi
+
+          # GUEST_PASSWORD: 如果未设置则从配置中删除
+          GUEST_PASSWORD="${{ secrets.GUEST_PASSWORD || vars.GUEST_PASSWORD }}"
+          if [ -n "$GUEST_PASSWORD" ]; then
+            sed -i "s|^GUEST_PASSWORD=.*|GUEST_PASSWORD=\"${GUEST_PASSWORD}\"|" "$CONFIG_FILE"
+          else
+            sed -i '/^GUEST_PASSWORD=/d' "$CONFIG_FILE"
+          fi
+
+          if [ -n "$JWT_TOKEN" ]; then
+            sed -i "s|^JWT_TOKEN=.*|JWT_TOKEN=\"${JWT_TOKEN}\"|" "$CONFIG_FILE"
+          fi
+
+          # JWT_TOKENGUEST_PASSWORD: 如果未设置则从配置中删除
+          JWT_TOKENGUEST_PASSWORD="${{ secrets.JWT_TOKENGUEST_PASSWORD || vars.JWT_TOKENGUEST_PASSWORD }}"
+          if [ -n "$JWT_TOKENGUEST_PASSWORD" ]; then
+            sed -i "s|^JWT_TOKENGUEST_PASSWORD=.*|JWT_TOKENGUEST_PASSWORD=\"${JWT_TOKENGUEST_PASSWORD}\"|" "$CONFIG_FILE"
+          else
+            sed -i '/^JWT_TOKENGUEST_PASSWORD=/d' "$CONFIG_FILE"
+          fi
+
+          if [ -n "$SESSION_EXPIRE_DAYS" ]; then
+            sed -i "s|^SESSION_EXPIRE_DAYS=.*|SESSION_EXPIRE_DAYS=\"${SESSION_EXPIRE_DAYS}\"|" "$CONFIG_FILE"
+          fi
+
+          if [ -n "$MAIL_DOMAIN" ]; then
+            sed -i "s|^MAIL_DOMAIN=.*|MAIL_DOMAIN=\"${MAIL_DOMAIN}\"|" "$CONFIG_FILE"
+          fi
+
+          # RESEND_API_KEY: 如果未设置则从配置中删除
+          RESEND_API_KEY="${{ secrets.RESEND_API_KEY || vars.RESEND_API_KEY }}"
+          if [ -n "$RESEND_API_KEY" ]; then
+            sed -i "s|^RESEND_API_KEY=.*|RESEND_API_KEY=\"${RESEND_API_KEY}\"|" "$CONFIG_FILE"
+          else
+            sed -i '/^RESEND_API_KEY=/d' "$CONFIG_FILE"
+          fi
+
+          echo "✅ Config generated."
+          echo "--- Generated config (sanitized) ---"
+          grep -v "PASSWORD\|JWT_TOKEN\|API_KEY" "$CONFIG_FILE" || true
+
+      - name: 🐬 设置 D1 数据库 / Set up D1 database
+        run: |
+          CONFIG_FILE="wrangler-deploy.toml"
+
+          # 如果已提供 D1_DATABASE_ID（UUID），直接使用
+          if [ -n "$D1_DATABASE_ID" ]; then
+            sed -i "s|PLACEHOLDER_D1_ID|${D1_DATABASE_ID}|g" "$CONFIG_FILE"
+            echo "✅ Using D1 database from environment variable: $D1_DATABASE_ID"
+            exit 0
+          fi
+
+          # 否则用 D1_DB_NAME 查找或自动创建
+          echo "🔍 Checking if D1 database '${D1_DB_NAME}' exists..."
+
+          set +e
+            DB_LIST=$(wrangler d1 list --json 2>&1)
+            STATUS=$?
+          set -e
+
+          if [ $STATUS -ne 0 ]; then
+            echo "❌ Failed to list D1 databases:"
+            echo "$DB_LIST"
+            exit 1
+          fi
+
+          if echo "$DB_LIST" | jq -e ".[] | select(.name == \"${D1_DB_NAME}\")" > /dev/null 2>&1; then
+            echo "✅ D1 database '${D1_DB_NAME}' already exists."
+            D1_ID=$(echo "$DB_LIST" | jq -r ".[] | select(.name == \"${D1_DB_NAME}\") | .uuid")
+            echo "D1_DATABASE_ID: $D1_ID"
+          else
+            echo "⚠️ D1 database '${D1_DB_NAME}' does not exist. Creating..."
+            wrangler d1 create "${D1_DB_NAME}"
+            DB_LIST=$(wrangler d1 list --json)
+            D1_ID=$(echo "$DB_LIST" | jq -r ".[] | select(.name == \"${D1_DB_NAME}\") | .uuid")
+            echo "✅ Created D1 database '${D1_DB_NAME}' with ID: $D1_ID"
+          fi
+
+          sed -i "s|PLACEHOLDER_D1_ID|$D1_ID|g" "$CONFIG_FILE"
+          echo "✅ D1 database setup completed."
+
+      - name: 📦 设置 R2 存储桶 / Set up R2 bucket
+        run: |
+          echo "🔍 Checking if R2 bucket '${R2_BUCKET_NAME}' exists..."
+
+          set +e
+            BUCKET_LIST=$(wrangler r2 bucket list 2>&1)
+            STATUS=$?
+          set -e
+
+          if [ $STATUS -ne 0 ]; then
+            echo "❌ Failed to list R2 buckets:"
+            echo "$BUCKET_LIST"
+            exit 1
+          fi
+
+          if echo "$BUCKET_LIST" | grep -q "${R2_BUCKET_NAME}"; then
+            echo "✅ R2 bucket '${R2_BUCKET_NAME}' already exists."
+          else
+            echo "⚠️ R2 bucket '${R2_BUCKET_NAME}' does not exist. Creating..."
+            wrangler r2 bucket create "${R2_BUCKET_NAME}"
+            echo "✅ R2 bucket '${R2_BUCKET_NAME}' created."
+          fi
+
+      - name: 🗄️ 初始化 D1 数据库表 / Initialize D1 database tables
+        run: |
+          CONFIG_FILE="wrangler-deploy.toml"
+
+          # 从配置文件中获取 database_id
+          D1_ID=$(grep 'database_id' "$CONFIG_FILE" | head -1 | sed 's/.*"\(.*\)".*/\1/')
+
+          if [ -f "d1-init.sql" ]; then
+            echo "📄 Found d1-init.sql, executing migration..."
+            wrangler d1 execute "${D1_DB_NAME}" -c "$CONFIG_FILE" --file=d1-init.sql --remote
+            echo "✅ Database tables initialized."
+          else
+            echo "⚠️ No d1-init.sql found, skipping database initialization."
+          fi
+
+      - name: 🚀 开始部署 / Start deployment
+        id: deploy
+        run: |
+          echo "🚀 Starting deployment..."
+          wrangler deploy -c wrangler-deploy.toml 2>&1 \
+            | tee deploy.log \
+            | grep -v "https://.*\.workers\.dev" \
+            | sed -E 's/JWT_TOKEN .*/JWT_TOKEN (***)/' \
+            || true
+
+          DEPLOY_EXIT_CODE=${PIPESTATUS[0]}
+          if [ $DEPLOY_EXIT_CODE -ne 0 ]; then
+            echo "❌ Deployment failed!"
+            exit 1
+          fi
+
+          WORKER_URL=$(grep -o "https://.*\.workers\.dev" deploy.log || echo "")
+
+          if [ -n "$WORKER_URL" ]; then
+            echo "::add-mask::$WORKER_URL"
+          fi
+
+          echo "worker_url=$WORKER_URL" >> $GITHUB_OUTPUT
+          echo "✅ Deployment completed successfully!"
+
+      - name: 🗑️ 删除运行记录 / Delete old workflow runs
+        uses: GitRML/delete-workflow-runs@main
+        continue-on-error: true
+        with:
+          retain_days: '1'
+          keep_minimum_runs: '1'
