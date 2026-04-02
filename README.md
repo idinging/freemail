@@ -8,7 +8,7 @@
 
 `转发的地址需要在cloudflare Email Addresses中验证`
 
-📖 **[一键部署指南](docs/yijianbushu.md)** | 📬 **[Resend 发件配置](docs/resend.md)** | 📚 **[API 文档](docs/api.md)**
+📖 **[一键部署指南](docs/yijianbushu.md)** | 🤖 **[Github Action 部署指南](docs/action-deployment.md)** | 📬 **[Resend 发件配置](docs/resend.md)** | 📚 **[API 文档](docs/api.md)**
 
 ## 📸 项目展示
 ### 体验地址： https://mailexhibit.dinging.top/
@@ -48,14 +48,9 @@
 
 | 版本 | 主要更新 |
 |------|----------|
-| **V5.1.1** | 邮箱别名规范化支持扩展 · 支持 `.` `+` `-` 三种分隔符切分 |
-| **V5.1** | 邮箱别名规范化支持 · xx.abc@ex.co 邮件会收到 abc@ex.co |
 | **V5.0** | 全新 UI · SVG 图标 · 深色模式 · 管理面板统计与布局优化 |
-| **V4.8** | 单个邮箱转发 · 收藏功能 · 按状态筛选 |
-| **V4.5** | 多域名 Resend 密钥配置 |
 | **V4.0** | 邮箱地址单点登录 · 全局邮箱管理 · 邮箱搜索 |
-| **V3.5** | 数据库优化 · R2 存储 EML · 移动端适配 |
-| **V3.0** | 三层权限模型 · 用户管理后台 |
+| **V3.0** | 三层权限模型 · 用户管理后台 · R2 存储 EML |
 | **V2.0** | Resend 发件集成 · 邮箱置顶 |
 | **V1.0** | 邮箱生成 · 邮件接收 · 验证码提取 |
 
@@ -155,6 +150,14 @@ wrangler d1 execute TEMP_MAIL_DB --command "SELECT * FROM mailboxes LIMIT 10"
 - **静态资源缓存**：更新后在 Cloudflare 控制台 Purge Everything，浏览器强制刷新
 - **R2/D1 费用**：有免费额度限制，建议定期清理过期邮件
 - **安全**：生产环境务必修改默认的 `ADMIN_PASSWORD` 和 `JWT_TOKEN`
+
+## 自动部署
+
+本项目支持 GitHub Actions 自动部署到 Cloudflare Workers。详细配置说明请参考 [自动部署指南](docs/action-deployment.md)。
+
+## 感谢贡献者
+
+感谢 [sarsanta](https://github.com/sarsanta) 贡献的 GitHub Actions 自动部署功能！
 
 ## Star History
 
