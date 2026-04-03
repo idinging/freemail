@@ -20,11 +20,11 @@ jobs:
         uses: aormsby/Fork-Sync-With-Upstream-action@v3.4
         with:
           # 上游仓库的名称
-          upstream_sync_repo: maillab/cloud-mail
+          upstream_sync_repo: idinging/freemail
           # 上游想要同步的分支
-          upstream_sync_branch: main
+          upstream_sync_branch: master
           # 自己仓库要被更新的分支
-          target_sync_branch: main
+          target_sync_branch: master
           # 自动注入的 GitHub Token（需要赋予 Actions 读写权限）
           target_repo_token: ${{ secrets.GITHUB_TOKEN }}
           

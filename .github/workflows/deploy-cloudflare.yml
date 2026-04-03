@@ -151,13 +151,13 @@ jobs:
           echo "🔍 Checking if D1 database '${D1_DB_NAME}' exists..."
 
           set +e
-            DB_LIST=$(wrangler d1 list --json 2>&1)
+            DB_LIST=$(wrangler d1 list --json 2>/tmp/d1_err.log)
             STATUS=$?
           set -e
 
           if [ $STATUS -ne 0 ]; then
             echo "❌ Failed to list D1 databases:"
-            echo "$DB_LIST"
+            cat /tmp/d1_err.log
             exit 1
           fi
 
