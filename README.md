@@ -6,7 +6,7 @@
 
 **当前版本：V5.1.1** - 邮箱别名规范化支持扩展，支持 `.` `+` `-` 三种分隔符切分
 
-`转发的地址需要在cloudflare Email Addresses中验证`
+`本邮箱服务支持接收邮件时自动创建对应的邮箱，便于api用户使用，减少worker调用，邮箱服务的转发目标邮箱地址需要在cloudflare Email Addresses中验证`
 
 📖 **[一键部署指南](docs/yijianbushu.md)** | 🤖 **[Github Action 部署指南](docs/action-deployment.md)** | 📬 **[Resend 发件配置](docs/resend.md)** | 📚 **[API 文档](docs/api.md)**
 
