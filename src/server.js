@@ -115,7 +115,7 @@ export default {
         const resp = new Response(message.raw);
         rawBuffer = await resp.arrayBuffer();
         const rawText = await new Response(rawBuffer).text();
-        const parsed = parseEmailBody(rawText);
+        const parsed = await parseEmailBody(rawText);
         textContent = parsed.text || '';
         htmlContent = parsed.html || '';
         if (!textContent && !htmlContent) textContent = (rawText || '').slice(0, 100000);
