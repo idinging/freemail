@@ -12,15 +12,15 @@ database_id = "c82663ac-62b6-4ba6-be81-cbe297f2a3dd" # 你的database_id
 # 登录会话过期时间（单位：天，默认7天）
 # 环境变量
 [vars]
-# FORWARD_RULES="[{"prefix":"vip","email":"a@example.com"},{"prefix":"*","email":"example@qq.com"}]"
-ADMIN_NAME=""
-ADMIN_PASSWORD=""
+# FORWARD_RULES="[{"prefix":"vip","email":"a@example.com"},{"prefix":"*","email":"2141083706@qq.com"}]"
+ADMIN_NAME="iding"
+ADMIN_PASSWORD="asdfgh"
 GUEST_PASSWORD="guest"
-JWT_TOKEN="fjiwaiv23164s4fdsfs6df6wfdx"
-JWT_TOKENGUEST_PASSWORD="dfsfsfxzcv"
-SESSION_EXPIRE_DAYS="365"
-MAIL_DOMAIN=""
-RESEND_API_KEY=""
+JWT_TOKEN="fjiwaiv23164s4f6df6wfdx"
+JWT_TOKENGUEST_PASSWORD="fzsjfizw874984esfu8df7sr3"
+SESSION_EXPIRE_DAYS="7"
+MAIL_DOMAIN="idinging.com,iding.me,dding.asia,iding.asia,dinging.top,iding.qzz.io,12138.qzz.io,952405.dpdns.org,"
+RESEND_API_KEY="dinging.top=re_ahF44aPK_2SERJuTLxcN8t86ChXXYpcBY,iding.qzz.io=re_J2fKFbBW_2xYbv8cnDLpqnRtcx5FDHBuh,iding.asia=re_3KH4SQ6M_KkSSbvAvx9QCYCMGGXzqUWHK"
 
 
 
