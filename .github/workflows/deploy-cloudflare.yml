@@ -43,6 +43,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: "npm"
+
+      - name: 📦 安装项目依赖 / Install project dependencies
+        run: npm ci
 
       - name: 📦 安装 Wrangler / Install Wrangler
         run: npm install -g wrangler
