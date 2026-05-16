@@ -13,13 +13,13 @@ database_id = "303afe11-cbac-4b4e-ba19-8d8e2d1bb2fd" # 你的database_id
 # 环境变量
 [vars]
 # FORWARD_RULES="[{"prefix":"vip","email":"a@example.com"},{"prefix":"*","email":"example@qq.com"}]"
-ADMIN_NAME=""
-ADMIN_PASSWORD=""
-GUEST_PASSWORD="guest"
-JWT_TOKEN="dfvhluhdaslufhvdv"
-JWT_TOKENGUEST_PASSWORD="dfsfsfxzcv"
+# ADMIN_NAME=""
+# ADMIN_PASSWORD=""
+# GUEST_PASSWORD="guest"
+# JWT_TOKEN="dfvhluhdaslufhvdv"
+# JWT_TOKENGUEST_PASSWORD="dfsfsfxzcv"
 SESSION_EXPIRE_DAYS="365"
-MAIL_DOMAIN=""
+# MAIL_DOMAIN=""
 
 
 
