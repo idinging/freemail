@@ -3,7 +3,7 @@
  * @module api/mailboxAdmin
  */
 
-import { getJwtPayload, isStrictAdmin, sha256Hex, errorResponse } from './helpers.js';
+import { getJwtPayload, isStrictAdmin, hashPassword, errorResponse } from './helpers.js';
 import { invalidateMailboxCache, invalidateSystemStatCache } from '../utils/cache.js';
 import { getMailboxIdByAddress } from '../db/index.js';
 import {
@@ -118,7 +118,7 @@ export async function handleMailboxAdminApi(request, db, url, path, options) {
         return errorResponse('邮箱不存在', 404);
       }
 
-      const newPasswordHash = await sha256Hex(newPassword);
+      const newPasswordHash = await hashPassword(newPassword);
 
       await db.prepare('UPDATE mailboxes SET password_hash = ? WHERE address = ?')
         .bind(newPasswordHash, address).run();
@@ -327,8 +327,9 @@ export async function handleMailboxAdminApi(request, db, url, path, options) {
       let currentPasswordValid = false;
 
       if (mailbox.password_hash) {
-        const { verifyPassword } = await import('../utils/common.js');
-        currentPasswordValid = await verifyPassword(currentPassword, mailbox.password_hash);
+        const { verifyPassword } = await import('../middleware/auth.js');
+        const pwResult = await verifyPassword(currentPassword, mailbox.password_hash);
+        currentPasswordValid = !!pwResult?.valid;
       } else {
         currentPasswordValid = (currentPassword === mailboxAddress);
       }
@@ -337,7 +338,7 @@ export async function handleMailboxAdminApi(request, db, url, path, options) {
         return errorResponse('当前密码错误', 400);
       }
 
-      const newPasswordHash = await sha256Hex(newPassword);
+      const newPasswordHash = await hashPassword(newPassword);
 
       await db.prepare('UPDATE mailboxes SET password_hash = ? WHERE id = ?')
         .bind(newPasswordHash, mailboxId).run();
