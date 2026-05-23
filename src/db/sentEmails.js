@@ -7,7 +7,7 @@
  * 记录发送的邮件信息到数据库
  * @param {object} db - 数据库连接对象
  * @param {object} params - 邮件参数对象
- * @param {string} params.resendId - Resend服务的邮件ID
+ * @param {string} params.resendId - 发件渠道返回的邮件 ID（Resend 的 email id，或 SendFlare 的 requestId）
  * @param {string} params.fromName - 发件人姓名
  * @param {string} params.from - 发件人邮箱地址
  * @param {string|Array<string>} params.to - 收件人邮箱地址
@@ -16,20 +16,21 @@
  * @param {string} params.text - 纯文本内容
  * @param {string} params.status - 邮件状态，默认为'queued'
  * @param {string} params.scheduledAt - 计划发送时间，默认为null
+ * @param {string} params.provider - 发件渠道，默认 'resend'
  * @returns {Promise<void>} 记录完成后无返回值
  */
-export async function recordSentEmail(db, { resendId, fromName, from, to, subject, html, text, status = 'queued', scheduledAt = null }) {
+export async function recordSentEmail(db, { resendId, fromName, from, to, subject, html, text, status = 'queued', scheduledAt = null, provider = 'resend' }) {
   const toAddrs = Array.isArray(to) ? to.join(',') : String(to || '');
   await db.prepare(`
-    INSERT INTO sent_emails (resend_id, from_name, from_addr, to_addrs, subject, html_content, text_content, status, scheduled_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).bind(resendId || null, fromName || null, from, toAddrs, subject, html || null, text || null, status, scheduledAt || null).run();
+    INSERT INTO sent_emails (resend_id, from_name, from_addr, to_addrs, subject, html_content, text_content, status, scheduled_at, provider)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(resendId || null, fromName || null, from, toAddrs, subject, html || null, text || null, status, scheduledAt || null, provider || 'resend').run();
 }
 
 /**
  * 更新已发送邮件的状态信息
  * @param {object} db - 数据库连接对象
- * @param {string} resendId - Resend服务的邮件ID
+ * @param {string} resendId - 发件渠道返回的邮件 ID
  * @param {object} fields - 需要更新的字段对象
  * @returns {Promise<void>} 更新完成后无返回值
  */

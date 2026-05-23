@@ -1,113 +1,19 @@
 /**
- * 邮件发送模块（Resend API）
- * @module email/sender
+ * Resend 发件渠道
+ *
+ * 通过 Resend REST API (https://api.resend.com) 实现邮件发送。
+ * 支持单密钥与多域名密钥（参见 shared.js 的 parseProviderConfig）。
+ *
+ * @module email/providers/resend
  */
 
-/**
- * 解析 RESEND_TOKEN 配置，支持多域名API密钥映射
- * @param {string} resendToken - RESEND_TOKEN 配置字符串
- * @returns {object} 域名到API密钥的映射对象
- */
-function parseResendConfig(resendToken) {
-  const config = {};
-  if (!resendToken) return config;
-
-  try {
-    const jsonConfig = JSON.parse(resendToken);
-    if (typeof jsonConfig === 'object' && jsonConfig !== null) {
-      return jsonConfig;
-    }
-  } catch (_) {
-    // 不是JSON格式，继续尝试键值对格式
-  }
-
-  const pairs = String(resendToken).split(',');
-  for (const pair of pairs) {
-    const [domain, apiKey] = pair.split('=').map(s => s.trim());
-    if (domain && apiKey) {
-      config[domain.toLowerCase()] = apiKey;
-    }
-  }
-
-  return config;
-}
-
-/**
- * 根据发件人邮箱地址选择合适的API密钥
- * @param {string} fromEmail - 发件人邮箱地址
- * @param {string|object} resendConfig - RESEND配置
- * @returns {string} 选择的API密钥
- */
-export function selectApiKeyForDomain(fromEmail, resendConfig) {
-  if (!fromEmail) return '';
-
-  if (typeof resendConfig === 'string' && !resendConfig.includes('=')) {
-    return resendConfig;
-  }
-
-  const config = typeof resendConfig === 'object'
-    ? resendConfig
-    : parseResendConfig(resendConfig);
-
-  const emailMatch = String(fromEmail).match(/@([^>]+)/);
-  if (!emailMatch) return '';
-
-  const domain = emailMatch[1].toLowerCase().trim();
-  return config[domain] || '';
-}
-
-/**
- * 获取所有配置的发送域名
- * @param {string|object} resendConfig - RESEND配置
- * @returns {Array<string>} 配置的域名列表
- */
-export function getConfiguredDomains(resendConfig) {
-  if (!resendConfig) return [];
-
-  if (typeof resendConfig === 'string' && !resendConfig.includes('=')) {
-    return [];
-  }
-
-  const config = typeof resendConfig === 'object'
-    ? resendConfig
-    : parseResendConfig(resendConfig);
-
-  return Object.keys(config);
-}
+import { parseProviderConfig, selectKeyForDomain, normalizeSendPayload } from '../shared.js';
 
 function buildHeaders(apiKey) {
   return {
     'Authorization': `Bearer ${apiKey}`,
     'Content-Type': 'application/json'
   };
-}
-
-function normalizeSendPayload(payload) {
-  const {
-    from, to, subject, html, text, cc, bcc, replyTo, headers, attachments, scheduledAt
-  } = payload || {};
-
-  const body = {
-    from,
-    to: Array.isArray(to) ? to : (to ? [to] : []),
-    subject,
-    html,
-    text,
-  };
-
-  if (payload && typeof payload.fromName === 'string' && from) {
-    const displayName = payload.fromName.trim();
-    if (displayName) {
-      body.from = `${displayName} <${from}>`;
-    }
-  }
-  if (cc) body.cc = Array.isArray(cc) ? cc : [cc];
-  if (bcc) body.bcc = Array.isArray(bcc) ? bcc : [bcc];
-  if (replyTo) body.reply_to = replyTo;
-  if (headers && typeof headers === 'object') body.headers = headers;
-  if (attachments && Array.isArray(attachments)) body.attachments = attachments;
-  if (scheduledAt) body.scheduled_at = scheduledAt;
-  return body;
 }
 
 export async function sendEmailWithResend(apiKey, payload) {
@@ -126,10 +32,10 @@ export async function sendEmailWithResend(apiKey, payload) {
 }
 
 /**
- * 智能发送邮件：根据发件人域名自动选择API密钥
+ * 智能发送邮件：根据发件人域名自动选择 API 密钥。
  */
 export async function sendEmailWithAutoResend(resendConfig, payload) {
-  const apiKey = selectApiKeyForDomain(payload.from, resendConfig);
+  const apiKey = selectKeyForDomain(payload.from, resendConfig);
   if (!apiKey) {
     throw new Error(`未找到域名对应的API密钥: ${payload.from}`);
   }
@@ -152,7 +58,7 @@ export async function sendBatchWithResend(apiKey, payloads) {
 }
 
 /**
- * 智能批量发送邮件：自动按域名分组并使用对应的API密钥
+ * 智能批量发送邮件：自动按域名分组并使用对应的 API 密钥。
  */
 export async function sendBatchWithAutoResend(resendConfig, payloads) {
   if (!Array.isArray(payloads) || payloads.length === 0) {
@@ -161,7 +67,7 @@ export async function sendBatchWithAutoResend(resendConfig, payloads) {
 
   const groupedByDomain = {};
   for (const payload of payloads) {
-    const apiKey = selectApiKeyForDomain(payload.from, resendConfig);
+    const apiKey = selectKeyForDomain(payload.from, resendConfig);
     if (!apiKey) {
       throw new Error(`未找到域名对应的API密钥: ${payload.from}`);
     }
@@ -240,3 +146,6 @@ export async function cancelEmailInResend(apiKey, id) {
   }
   return data;
 }
+
+// 向后兼容：原 sender.js 暴露的 helper 在此重导出
+export { parseProviderConfig as parseResendConfig, selectKeyForDomain as selectApiKeyForDomain, getConfiguredDomains } from '../shared.js';

@@ -101,7 +101,8 @@ CREATE TABLE IF NOT EXISTS sent_emails (
   status        TEXT    DEFAULT 'queued',
   scheduled_at  TEXT,
   created_at    TEXT    DEFAULT CURRENT_TIMESTAMP,
-  updated_at    TEXT    DEFAULT CURRENT_TIMESTAMP
+  updated_at    TEXT    DEFAULT CURRENT_TIMESTAMP,
+  provider      TEXT    NOT NULL DEFAULT 'resend'
 );
 
 CREATE INDEX IF NOT EXISTS idx_sent_emails_resend_id      ON sent_emails(resend_id);

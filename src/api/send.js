@@ -7,12 +7,10 @@ import { getJwtPayload, isStrictAdmin, getMailboxAccess, getSentEmailAccess, err
 import { getCachedSystemStat } from '../utils/cache.js';
 import { recordSentEmail, updateSentEmail } from '../db/index.js';
 import {
-  sendEmailWithAutoResend,
-  sendBatchWithAutoResend,
-  getEmailFromResend,
-  updateEmailInResend,
-  cancelEmailInResend
-} from '../email/sender.js';
+  sendEmailAuto,
+  sendBatchAuto,
+  resend as resendProvider
+} from '../email/providers/index.js';
 
 // 严格管理员可发信；普通用户和非严格 admin 必须显式开启 can_send。
 async function checkSendPermission(request, db, options) {
@@ -40,9 +38,24 @@ async function checkFromPermission(request, db, options, from) {
   return access.exists && access.allowed;
 }
 
+// 查询发件记录对应的渠道（resend / sendflare），找不到默认 resend
+async function getProviderByResendId(db, resendId) {
+  if (!resendId) return 'resend';
+  try {
+    const { results } = await db.prepare('SELECT provider FROM sent_emails WHERE resend_id = ? LIMIT 1')
+      .bind(resendId).all();
+    return results?.[0]?.provider || 'resend';
+  } catch (_) {
+    return 'resend';
+  }
+}
+
 export async function handleSendApi(request, db, url, path, options) {
   const isMock = !!options.mockOnly;
   const RESEND_API_KEY = options.resendApiKey || '';
+  const SENDFLARE_API_KEY = options.sendflareApiKey || '';
+  const senderKeys = { resendApiKey: RESEND_API_KEY, sendflareApiKey: SENDFLARE_API_KEY };
+  const hasAnyKey = !!(RESEND_API_KEY || SENDFLARE_API_KEY);
 
   if (path === '/api/sent' && request.method === 'GET') {
     if (isMock) return Response.json([]);
@@ -58,7 +71,7 @@ export async function handleSendApi(request, db, url, path, options) {
 
       const limit = Math.min(parseInt(url.searchParams.get('limit') || '20', 10), 50);
       const { results } = await db.prepare(`
-        SELECT id, resend_id, to_addrs as recipients, subject, created_at, status
+        SELECT id, resend_id, to_addrs as recipients, subject, created_at, status, provider
         FROM sent_emails
         WHERE from_addr = ?
         ORDER BY datetime(created_at) DESC
@@ -82,7 +95,7 @@ export async function handleSendApi(request, db, url, path, options) {
 
       const { results } = await db.prepare(`
         SELECT id, resend_id, from_addr, to_addrs as recipients, subject,
-               html_content, text_content, status, scheduled_at, created_at
+               html_content, text_content, status, scheduled_at, created_at, provider
         FROM sent_emails WHERE id = ?
       `).bind(id).all();
       if (!results || !results.length) return errorResponse('未找到发件', 404);
@@ -111,7 +124,7 @@ export async function handleSendApi(request, db, url, path, options) {
   if (path === '/api/send' && request.method === 'POST') {
     if (isMock) return errorResponse('演示模式不可发送', 403);
     try {
-      if (!RESEND_API_KEY) return errorResponse('未配置 Resend API Key', 500);
+      if (!hasAnyKey) return errorResponse('未配置发件 API Key（Resend / SendFlare 均未配置）', 500);
       const allowed = await checkSendPermission(request, db, options);
       if (!allowed) return errorResponse('Forbidden', 403);
 
@@ -120,9 +133,9 @@ export async function handleSendApi(request, db, url, path, options) {
         return errorResponse('Forbidden', 403);
       }
 
-      const result = await sendEmailWithAutoResend(RESEND_API_KEY, sendPayload);
+      const { provider, id: sendId } = await sendEmailAuto(senderKeys, sendPayload);
       await recordSentEmail(db, {
-        resendId: result.id || null,
+        resendId: sendId || null,
         fromName: sendPayload.fromName || null,
         from: sendPayload.from,
         to: sendPayload.to,
@@ -130,9 +143,10 @@ export async function handleSendApi(request, db, url, path, options) {
         html: sendPayload.html,
         text: sendPayload.text,
         status: 'delivered',
-        scheduledAt: sendPayload.scheduledAt || null
+        scheduledAt: sendPayload.scheduledAt || null,
+        provider
       });
-      return Response.json({ success: true, id: result.id });
+      return Response.json({ success: true, id: sendId, provider });
     } catch (e) {
       return errorResponse('发送失败: ' + e.message, 500);
     }
@@ -141,7 +155,7 @@ export async function handleSendApi(request, db, url, path, options) {
   if (path === '/api/send/batch' && request.method === 'POST') {
     if (isMock) return errorResponse('演示模式不可发送', 403);
     try {
-      if (!RESEND_API_KEY) return errorResponse('未配置 Resend API Key', 500);
+      if (!hasAnyKey) return errorResponse('未配置发件 API Key（Resend / SendFlare 均未配置）', 500);
       const allowed = await checkSendPermission(request, db, options);
       if (!allowed) return errorResponse('Forbidden', 403);
 
@@ -153,14 +167,13 @@ export async function handleSendApi(request, db, url, path, options) {
         }
       }
 
-      const result = await sendBatchWithAutoResend(RESEND_API_KEY, items);
+      const result = await sendBatchAuto(senderKeys, items);
       try {
-        const arr = Array.isArray(result) ? result : [];
-        for (let i = 0; i < arr.length; i++) {
-          const id = arr[i]?.id;
+        for (let i = 0; i < result.length; i++) {
+          const entry = result[i] || {};
           const payload = items[i] || {};
           await recordSentEmail(db, {
-            resendId: id || null,
+            resendId: entry.id || null,
             fromName: payload.fromName || null,
             from: payload.from,
             to: payload.to,
@@ -168,7 +181,8 @@ export async function handleSendApi(request, db, url, path, options) {
             html: payload.html,
             text: payload.text,
             status: 'delivered',
-            scheduledAt: payload.scheduledAt || null
+            scheduledAt: payload.scheduledAt || null,
+            provider: entry.provider || 'resend'
           });
         }
       } catch (_) { }
@@ -182,12 +196,17 @@ export async function handleSendApi(request, db, url, path, options) {
     if (isMock) return errorResponse('演示模式不可查询真实发送', 403);
     const id = path.split('/')[3];
     try {
-      if (!RESEND_API_KEY) return errorResponse('未配置 Resend API Key', 500);
       const access = await getSentEmailAccess(db, request, options, id, 'resend_id');
       if (!access.exists) return errorResponse('未找到发件', 404);
       if (!access.allowed) return errorResponse('Forbidden', 403);
 
-      const data = await getEmailFromResend(RESEND_API_KEY, id);
+      const provider = await getProviderByResendId(db, id);
+      if (provider === 'sendflare') {
+        return errorResponse('SendFlare 渠道暂不支持此操作', 400);
+      }
+      if (!RESEND_API_KEY) return errorResponse('未配置 Resend API Key', 500);
+
+      const data = await resendProvider.getEmailFromResend(RESEND_API_KEY, id);
       return Response.json(data);
     } catch (e) {
       return errorResponse('查询失败: ' + e.message, 500);
@@ -198,10 +217,15 @@ export async function handleSendApi(request, db, url, path, options) {
     if (isMock) return errorResponse('演示模式不可操作', 403);
     const id = path.split('/')[3];
     try {
-      if (!RESEND_API_KEY) return errorResponse('未配置 Resend API Key', 500);
       const access = await getSentEmailAccess(db, request, options, id, 'resend_id');
       if (!access.exists) return errorResponse('未找到发件', 404);
       if (!access.allowed) return errorResponse('Forbidden', 403);
+
+      const provider = await getProviderByResendId(db, id);
+      if (provider === 'sendflare') {
+        return errorResponse('SendFlare 渠道暂不支持此操作', 400);
+      }
+      if (!RESEND_API_KEY) return errorResponse('未配置 Resend API Key', 500);
 
       const body = await request.json();
       let data = { ok: true };
@@ -209,7 +233,7 @@ export async function handleSendApi(request, db, url, path, options) {
         await updateSentEmail(db, id, { status: body.status });
       }
       if (body && body.scheduledAt) {
-        data = await updateEmailInResend(RESEND_API_KEY, { id, scheduledAt: body.scheduledAt });
+        data = await resendProvider.updateEmailInResend(RESEND_API_KEY, { id, scheduledAt: body.scheduledAt });
         await updateSentEmail(db, id, { scheduled_at: body.scheduledAt });
       }
       return Response.json(data || { ok: true });
@@ -222,12 +246,17 @@ export async function handleSendApi(request, db, url, path, options) {
     if (isMock) return errorResponse('演示模式不可操作', 403);
     const id = path.split('/')[3];
     try {
-      if (!RESEND_API_KEY) return errorResponse('未配置 Resend API Key', 500);
       const access = await getSentEmailAccess(db, request, options, id, 'resend_id');
       if (!access.exists) return errorResponse('未找到发件', 404);
       if (!access.allowed) return errorResponse('Forbidden', 403);
 
-      const data = await cancelEmailInResend(RESEND_API_KEY, id);
+      const provider = await getProviderByResendId(db, id);
+      if (provider === 'sendflare') {
+        return errorResponse('SendFlare 渠道暂不支持此操作', 400);
+      }
+      if (!RESEND_API_KEY) return errorResponse('未配置 Resend API Key', 500);
+
+      const data = await resendProvider.cancelEmailInResend(RESEND_API_KEY, id);
       await updateSentEmail(db, id, { status: 'canceled' });
       return Response.json(data);
     } catch (e) {

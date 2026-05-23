@@ -44,6 +44,7 @@ router.all('/api/*', async (c) => {
   const baseOpts = {
     mockOnly: false,
     resendApiKey: c.env.RESEND_API_KEY || c.env.RESEND_TOKEN || c.env.RESEND || '',
+    sendflareApiKey: c.env.SENDFLARE_API_KEY || c.env.SENDFLARE_TOKEN || '',
     adminName: String(c.env.ADMIN_NAME || 'admin').trim().toLowerCase(),
     r2: c.env.MAIL_EML,
     authPayload
