@@ -4,11 +4,11 @@
 
 一个基于 Cloudflare Workers + D1 + R2 构建的**开源临时邮箱服务**，支持邮件接收、发送、转发、用户管理等完整功能。
 
-**当前版本：V5.3.0** - 发件渠道抽象重构，新增 SendFlare 渠道，按发件人域名自动路由
+**当前版本：V5.3.1** - 新增 Cyberpersons 发件渠道，按发件人域名自动路由 Resend / SendFlare / Cyberpersons
 
 `本邮箱服务支持接收邮件时自动创建对应的邮箱，邮箱服务的转发目标邮箱地址需要在cloudflare Email Addresses中验证`
 
-📖 **[一键部署指南](docs/yijianbushu.md)** | 🤖 **[Github Action 部署指南](docs/action-deployment.md)** | 📬 **[Resend 发件配置](docs/resend.md)** | 🚀 **[SendFlare 发件配置](docs/sendflare.md)** | 📚 **[API 文档](docs/api.md)**
+📖 **[一键部署指南](docs/yijianbushu.md)** | 🤖 **[Github Action 部署指南](docs/action-deployment.md)** | 📬 **[Resend 发件配置](docs/resend.md)** | 🚀 **[SendFlare 发件配置](docs/sendflare.md)** | ☁️ **[Cyberpersons 发件配置](docs/cyberpersons.md)** | 📚 **[API 文档](docs/api.md)**
 
 ## 📸 项目展示
 ### 体验地址： https://freemail.cq.de5.net
@@ -37,7 +37,7 @@
 |------|------|
 | 📧 **邮箱管理** | 随机生成临时邮箱 · 多域名支持 · 置顶/收藏 · 历史记录 · 邮箱搜索 |
 | 💌 **邮件功能** | 实时接收 · 自动刷新 · 验证码智能提取 · HTML/纯文本 · 邮件转发 |
-| ✉️ **发件支持** | 多渠道发件（Resend / SendFlare）· 按域名自动路由 · 多域名密钥 · 批量发送 · 定时发送 · 发件记录 |
+| ✉️ **发件支持** | 多渠道发件（Resend / SendFlare / Cyberpersons）· 按域名自动路由 · 多域名密钥 · 批量发送 · 定时发送 · 发件记录 |
 | ⚡ **技术架构** | Cloudflare Workers · D1 数据库 · R2 存储 · Email Routing |
 
 
@@ -46,6 +46,7 @@
 
 | 版本 | 主要更新 |
 |------|----------|
+| **V5.3.1** | 新增 Cyberpersons（CyberPanel Email Delivery）发件渠道 · 三层渠道路由（SendFlare → Resend → Cyberpersons）· 适配 Cyberpersons API 差异（单字符串收件人、独立 from_name、message_id 抽取）|
 | **V5.3.0** | 发件模块抽象为 `src/email/providers/` · 新增 SendFlare 渠道（基于 `sendflare-sdk-ts`）· 按发件人域名自动路由 Resend / SendFlare · `sent_emails` 表新增 `provider` 字段 |
 | **V5.2.0** | 引入 postal-mime 改进邮件解析 · 修复部分客户端中文乱码问题 |
 | **V5.1.0** | 邮箱别名规范化支持扩展，支持 `.` `+` `-` 三种分隔符切分 |
@@ -57,7 +58,7 @@
 
 1. **一键部署**：点击顶部按钮，按照 [部署指南](docs/yijianbushu.md) 完成配置
 2. **配置邮件路由**（收件必需）：域名 → Email Routing → Catch-all → 绑定 Worker
-3. **配置发件**（可选）：参考 [Resend 配置教程](docs/resend.md) 或 [SendFlare 配置教程](docs/sendflare.md)，两者可同时启用
+3. **配置发件**（可选）：参考 [Resend 配置教程](docs/resend.md)、[SendFlare 配置教程](docs/sendflare.md) 或 [Cyberpersons 配置教程](docs/cyberpersons.md)，三者可同时启用
 
 > 使用 Git 集成部署时，请在 Workers → Settings → Variables 中手动配置环境变量
 
@@ -73,36 +74,42 @@
 | JWT_TOKEN | JWT 签名密钥 | 是 |
 | RESEND_API_KEY | Resend 发件密钥，支持多域名配置 | 否 |
 | SENDFLARE_API_KEY | SendFlare 发件密钥，格式同 Resend | 否 |
+| CYBERPERSONS_API_KEY | Cyberpersons 发件密钥，格式同 Resend | 否 |
 | FORWARD_RULES | 邮件转发规则 | 否 |
 
 <details>
-<summary><strong>RESEND_API_KEY / SENDFLARE_API_KEY 配置格式</strong></summary>
+<summary><strong>RESEND_API_KEY / SENDFLARE_API_KEY / CYBERPERSONS_API_KEY 配置格式</strong></summary>
 
-两个渠道密钥都支持相同的三种格式：
+三个渠道密钥都支持相同的三种格式：
 
 ```bash
 # 单密钥（通配所有发件域名）
 RESEND_API_KEY="re_xxxxxxxxxxxxxxxxxxxxxxxx"
 SENDFLARE_API_KEY="live_xxxxxxxxxxxxxxxxxxxxxxxx"
+CYBERPERSONS_API_KEY="sk_lera_xxxxxxxxxxxxxxxxxxxxxxxx"
 
 # 键值对格式（推荐，多域名独立计费 / 限额）
 RESEND_API_KEY="domain1.com=re_key1,domain2.com=re_key2"
 SENDFLARE_API_KEY="domain3.com=live_key3"
+CYBERPERSONS_API_KEY="domain4.com=sk_live_key4"
 
 # JSON格式
 RESEND_API_KEY='{"domain1.com":"re_key1","domain2.com":"re_key2"}'
 ```
 
-**渠道路由规则**（两个渠道都配置时）：
+**渠道路由规则**（三个渠道都配置时）：
 
 1. SendFlare 键值对/JSON 命中发件人域名 → 走 SendFlare
 2. Resend 键值对/JSON 命中 → 走 Resend
-3. SendFlare 单密钥兜底 → 走 SendFlare
-4. Resend 单密钥兜底 → 走 Resend
-5. 均未命中 → 报错「未找到域名对应的发件 API Key」
+3. Cyberpersons 键值对/JSON 命中 → 走 Cyberpersons
+4. SendFlare 单密钥兜底 → 走 SendFlare
+5. Resend 单密钥兜底 → 走 Resend
+6. Cyberpersons 单密钥兜底 → 走 Cyberpersons
+7. 均未命中 → 报错「未找到域名对应的发件 API Key」
 
-注意：SendFlare 暂不支持发件查询、修改 scheduled_at、取消已调度邮件，相关接口对
-SendFlare 渠道发出的邮件会返回 400「SendFlare 渠道暂不支持此操作」。
+注意：SendFlare 与 Cyberpersons 暂不支持发件查询、修改 scheduled_at、取消已调度
+邮件，相关接口对这两个渠道发出的邮件会返回 400「SendFlare / Cyberpersons 渠道
+暂不支持此操作」。
 </details>
 
 <details>
@@ -115,7 +122,8 @@ src/email/providers/
 ├── shared.js              # 共用工具：三格式配置解析、域名匹配、payload 标准化
 ├── index.js               # 分发器：resolveProvider / sendEmailAuto / sendBatchAuto
 ├── resend/index.js        # Resend 渠道
-└── sendflare/index.js     # SendFlare 渠道
+├── sendflare/index.js     # SendFlare 渠道
+└── cyberpersons/index.js  # Cyberpersons 渠道
 ```
 
 适配新渠道（以 `yourprovider` 为例）的四步：
