@@ -54,8 +54,13 @@ export async function handleSendApi(request, db, url, path, options) {
   const isMock = !!options.mockOnly;
   const RESEND_API_KEY = options.resendApiKey || '';
   const SENDFLARE_API_KEY = options.sendflareApiKey || '';
-  const senderKeys = { resendApiKey: RESEND_API_KEY, sendflareApiKey: SENDFLARE_API_KEY };
-  const hasAnyKey = !!(RESEND_API_KEY || SENDFLARE_API_KEY);
+  const CYBERPERSONS_API_KEY = options.cyberpersonsApiKey || '';
+  const senderKeys = {
+    resendApiKey: RESEND_API_KEY,
+    sendflareApiKey: SENDFLARE_API_KEY,
+    cyberpersonsApiKey: CYBERPERSONS_API_KEY
+  };
+  const hasAnyKey = !!(RESEND_API_KEY || SENDFLARE_API_KEY || CYBERPERSONS_API_KEY);
 
   if (path === '/api/sent' && request.method === 'GET') {
     if (isMock) return Response.json([]);
@@ -124,7 +129,7 @@ export async function handleSendApi(request, db, url, path, options) {
   if (path === '/api/send' && request.method === 'POST') {
     if (isMock) return errorResponse('演示模式不可发送', 403);
     try {
-      if (!hasAnyKey) return errorResponse('未配置发件 API Key（Resend / SendFlare 均未配置）', 500);
+      if (!hasAnyKey) return errorResponse('未配置发件 API Key（Resend / SendFlare / Cyberpersons 均未配置）', 500);
       const allowed = await checkSendPermission(request, db, options);
       if (!allowed) return errorResponse('Forbidden', 403);
 
@@ -155,7 +160,7 @@ export async function handleSendApi(request, db, url, path, options) {
   if (path === '/api/send/batch' && request.method === 'POST') {
     if (isMock) return errorResponse('演示模式不可发送', 403);
     try {
-      if (!hasAnyKey) return errorResponse('未配置发件 API Key（Resend / SendFlare 均未配置）', 500);
+      if (!hasAnyKey) return errorResponse('未配置发件 API Key（Resend / SendFlare / Cyberpersons 均未配置）', 500);
       const allowed = await checkSendPermission(request, db, options);
       if (!allowed) return errorResponse('Forbidden', 403);
 
@@ -204,6 +209,9 @@ export async function handleSendApi(request, db, url, path, options) {
       if (provider === 'sendflare') {
         return errorResponse('SendFlare 渠道暂不支持此操作', 400);
       }
+      if (provider === 'cyberpersons') {
+        return errorResponse('Cyberpersons 渠道暂不支持此操作', 400);
+      }
       if (!RESEND_API_KEY) return errorResponse('未配置 Resend API Key', 500);
 
       const data = await resendProvider.getEmailFromResend(RESEND_API_KEY, id);
@@ -224,6 +232,9 @@ export async function handleSendApi(request, db, url, path, options) {
       const provider = await getProviderByResendId(db, id);
       if (provider === 'sendflare') {
         return errorResponse('SendFlare 渠道暂不支持此操作', 400);
+      }
+      if (provider === 'cyberpersons') {
+        return errorResponse('Cyberpersons 渠道暂不支持此操作', 400);
       }
       if (!RESEND_API_KEY) return errorResponse('未配置 Resend API Key', 500);
 
@@ -253,6 +264,9 @@ export async function handleSendApi(request, db, url, path, options) {
       const provider = await getProviderByResendId(db, id);
       if (provider === 'sendflare') {
         return errorResponse('SendFlare 渠道暂不支持此操作', 400);
+      }
+      if (provider === 'cyberpersons') {
+        return errorResponse('Cyberpersons 渠道暂不支持此操作', 400);
       }
       if (!RESEND_API_KEY) return errorResponse('未配置 Resend API Key', 500);
 
