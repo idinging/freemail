@@ -21,6 +21,9 @@ database_id = "303afe11-cbac-4b4e-ba19-8d8e2d1bb2fd" # 你的database_id
 SESSION_EXPIRE_DAYS="365"
 # MAIL_DOMAIN=""
 
+#RESEND_API_KEY="RESEND发件密钥"
+#SENDFLARE_API_KEY="SENDFLARE发件密钥"
+#CYBERPERSONS_API_KEY="CYBERPERSONS发件密钥"
 
 
 # 静态资源目录（Workers + Assets）

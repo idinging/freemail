@@ -40,10 +40,14 @@ export async function handleEmailEvent(message, env, ctx) {
     const localPart = (normalizedAddr.split('@')[0] || '').toLowerCase();
 
     const mailboxForwardTo = await getForwardTarget(DB, normalizedAddr);
+    let forwarded = false;
     if (mailboxForwardTo) {
-      forwardByMailboxConfig(message, mailboxForwardTo, ctx);
+      forwarded = forwardByMailboxConfig(message, mailboxForwardTo, ctx);
     } else {
-      forwardByLocalPart(message, localPart, ctx, env);
+      forwarded = forwardByLocalPart(message, localPart, ctx, env);
+    }
+    if (!forwarded) {
+      message.setReject('No forward target configured');
     }
 
     let textContent = '';
@@ -52,7 +56,7 @@ export async function handleEmailEvent(message, env, ctx) {
     try {
       const resp = new Response(message.raw);
       rawBuffer = await resp.arrayBuffer();
-      const rawText = await new Response(rawBuffer).text();
+      const rawText = new TextDecoder().decode(rawBuffer);
       const parsed = await parseEmailBody(rawText);
       textContent = parsed.text || '';
       htmlContent = parsed.html || '';

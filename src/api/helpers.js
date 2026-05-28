@@ -65,7 +65,10 @@ export function jsonResponse(data, status = 200) {
  * @returns {Response} HTTP 响应对象
  */
 export function errorResponse(message, status = 400) {
-  return new Response(message, { status });
+  return new Response(JSON.stringify({ error: message }), {
+    status,
+    headers: { 'Content-Type': 'application/json' }
+  });
 }
 
 /**

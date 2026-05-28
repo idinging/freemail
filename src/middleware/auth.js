@@ -126,15 +126,25 @@ export async function verifyMailboxLogin(emailAddress, password, DB) {
       }
 
       let passwordValid = false;
+      let newHash = null;
 
       if (mailbox.password_hash) {
-        passwordValid = await verifyPassword(password, mailbox.password_hash);
+        const pwResult = await verifyPassword(password, mailbox.password_hash);
+        passwordValid = !!pwResult?.valid;
+        newHash = pwResult?.newHash || null;
       } else {
         passwordValid = (password === email);
       }
 
       if (!passwordValid) {
         return false;
+      }
+
+      // 旧版无盐 SHA-256 自动迁移到 PBKDF2（与 users 登录路径保持一致）
+      if (newHash) {
+        try {
+          await DB.prepare('UPDATE mailboxes SET password_hash = ? WHERE id = ?').bind(newHash, mailbox.id).run();
+        } catch (_) { /* 迁移失败不影响登录 */ }
       }
 
       await DB.prepare('UPDATE mailboxes SET last_accessed_at = CURRENT_TIMESTAMP WHERE id = ?')

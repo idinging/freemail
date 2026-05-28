@@ -402,8 +402,20 @@ export async function handleMailboxesApi(request, db, mailDomains, url, path, op
   // 切换邮箱置顶状态
   if (path === '/api/mailboxes/pin' && request.method === 'POST') {
     if (isMock) return errorResponse('演示模式不可操作', 403);
-    const address = url.searchParams.get('address');
+    let address = url.searchParams.get('address');
+    if (!address) {
+      try {
+        const ct = request.headers.get('content-type') || '';
+        if (ct.includes('application/json')) {
+          address = (await request.json())?.address;
+        } else if (ct.includes('multipart/form-data') || ct.includes('application/x-www-form-urlencoded')) {
+          const fd = await request.formData();
+          address = fd.get('address');
+        }
+      } catch (_) {}
+    }
     if (!address) return errorResponse('缺少 address 参数', 400);
+    address = String(address).trim().toLowerCase();
     const payload = getJwtPayload(request, options);
     let uid = Number(payload?.userId || 0);
     

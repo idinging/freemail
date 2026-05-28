@@ -1,5 +1,5 @@
 /**
- * API 路由：邮件接收 + API 委托
+ * API 路由：全部委托到 src/api/index.js
  * @module routes/api
  */
 
@@ -26,15 +26,6 @@ router.get('/api/session', (c) => {
   return c.json(resp);
 });
 
-router.post('/receive', async (c) => {
-  const p = c.get('authPayload');
-  if (!p) return c.text('Unauthorized', 401);
-  let DB;
-  try { DB = await getInitializedDatabase(c.env); } catch (_) { return c.text('数据库连接失败', 500); }
-  const { handleEmailReceive } = await import('../email/receiver.js');
-  return handleEmailReceive(c.req.raw, DB, c.env);
-});
-
 router.all('/api/*', async (c) => {
   const authPayload = c.get('authPayload');
   let DB;
@@ -44,6 +35,8 @@ router.all('/api/*', async (c) => {
   const baseOpts = {
     mockOnly: false,
     resendApiKey: c.env.RESEND_API_KEY || c.env.RESEND_TOKEN || c.env.RESEND || '',
+    sendflareApiKey: c.env.SENDFLARE_API_KEY || c.env.SENDFLARE_TOKEN || '',
+    cyberpersonsApiKey: c.env.CYBERPERSONS_API_KEY || c.env.CYBERPERSONS_API_TOKEN || c.env.CYBERPERSONS || '',
     adminName: String(c.env.ADMIN_NAME || 'admin').trim().toLowerCase(),
     r2: c.env.MAIL_EML,
     authPayload

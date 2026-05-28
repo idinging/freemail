@@ -1,6 +1,7 @@
 /**
  * Hono 应用中间件
  * @module middleware/app
+ * 
  */
 
 import { verifyJwtWithCache, checkRootAdminOverride } from './auth.js';
