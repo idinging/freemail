@@ -69,7 +69,19 @@ export async function handleMailboxAdminApi(request, db, url, path, options) {
     if (isMock) return Response.json({ success: true, mock: true });
     try {
       if (!isStrictAdmin(request, options)) return errorResponse('Forbidden', 403);
-      const address = String(url.searchParams.get('address') || '').trim().toLowerCase();
+      let address = url.searchParams.get('address');
+      if (!address) {
+        try {
+          const ct = request.headers.get('content-type') || '';
+          if (ct.includes('application/json')) {
+            address = (await request.json())?.address;
+          } else if (ct.includes('multipart/form-data') || ct.includes('application/x-www-form-urlencoded')) {
+            const fd = await request.formData();
+            address = fd.get('address');
+          }
+        } catch (_) {}
+      }
+      address = String(address || '').trim().toLowerCase();
       if (!address) return errorResponse('缺少 address 参数', 400);
       await db.prepare('UPDATE mailboxes SET password_hash = NULL WHERE address = ?').bind(address).run();
       return Response.json({ success: true });

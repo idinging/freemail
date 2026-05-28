@@ -296,9 +296,9 @@ curl -H "X-Admin-Token: <JWT_TOKEN>" https://your.domain/api/domains
 切换邮箱置顶状态
 
 **参数：**
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| `address` | string | 邮箱地址 |
+| 参数 | 类型 | 来源 | 说明 |
+|------|------|------|------|
+| `address` | string | Query 或 Body | 邮箱地址 |
 
 **返回：**
 ```json

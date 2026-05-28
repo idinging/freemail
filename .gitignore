@@ -108,3 +108,4 @@ wrangler-github.toml
 wrangler-dev.toml
 findings.md
 progress.md
+test_api.sh
