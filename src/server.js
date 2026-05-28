@@ -29,9 +29,8 @@ app.route('/', authRoutes);
 
 // 认证中间件
 app.use('/api/*', authMiddleware());
-app.use('/receive', authMiddleware());
 
-// 受保护 API 路由（/api/session, /receive, /api/*）
+// 受保护 API 路由（/api/session, /api/*）
 app.route('/', apiRoutes);
 
 // 静态资源路由（必须在最后）

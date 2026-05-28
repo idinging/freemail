@@ -1,5 +1,5 @@
 /**
- * API 路由：邮件接收 + API 委托
+ * API 路由：全部委托到 src/api/index.js
  * @module routes/api
  */
 
@@ -24,15 +24,6 @@ router.get('/api/session', (c) => {
   };
   if (p.role === 'mailbox' && p.mailboxAddress) resp.mailboxAddress = p.mailboxAddress;
   return c.json(resp);
-});
-
-router.post('/receive', async (c) => {
-  const p = c.get('authPayload');
-  if (!p) return c.text('Unauthorized', 401);
-  let DB;
-  try { DB = await getInitializedDatabase(c.env); } catch (_) { return c.text('数据库连接失败', 500); }
-  const { handleEmailReceive } = await import('../email/receiver.js');
-  return handleEmailReceive(c.req.raw, DB, c.env);
 });
 
 router.all('/api/*', async (c) => {

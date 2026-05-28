@@ -31,7 +31,6 @@
 **生效范围：**
 - 所有受保护的后端接口：`/api/*`
 - 会话检查：`GET /api/session`
-- 收信回调：`POST /receive`
 - 管理页服务端访问判定（`/admin`/`/admin.html`）与未知路径的认证判断
 
 **行为说明：**
@@ -863,15 +862,6 @@ curl -H "X-Admin-Token: <JWT_TOKEN>" https://your.domain/api/domains
 ```json
 { "success": true }
 ```
-
----
-
-## 系统接口
-
-### POST /receive
-邮件接收回调（用于 Cloudflare Email Routing）
-
-> 需要认证，通常由系统内部调用
 
 ---
 

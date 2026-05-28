@@ -9,15 +9,18 @@
  * @param {string} localPart - 收件人的本地部分
  * @param {object} ctx - 上下文对象
  * @param {object} env - 环境变量对象
+ * @returns {boolean} 是否成功触发转发
  */
 export function forwardByLocalPart(message, localPart, ctx, env) {
   const rules = parseForwardRules(env?.FORWARD_RULES);
   const target = resolveTargetEmail(localPart, rules);
-  if (!target) return;
+  if (!target) return false;
   try {
     ctx.waitUntil(message.forward(target));
+    return true;
   } catch (e) {
     console.error('Forward error:', e);
+    return false;
   }
 }
 
