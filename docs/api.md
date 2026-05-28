@@ -17,7 +17,7 @@
 
 ### 🔐 根管理员令牌（Root Admin Override）
 
-当请求方携带与服务端环境变量 `JWT_TOKEN` 完全一致的令牌时，将跳过会话 Cookie/JWT 校验，直接被识别为最高管理员（strictAdmin）。
+当请求方携带与服务端环境变量 `JWT_TOKEN`（别名 `JWT_SECRET`）完全一致的令牌时，将跳过会话 Cookie/JWT 校验，直接被识别为最高管理员（strictAdmin）。
 
 **配置项：**
 - `wrangler.toml` → `[vars]` → `JWT_TOKEN="你的超管令牌"`
@@ -25,7 +25,8 @@
 **令牌携带方式（任选其一）：**
 - Header（标准）：`Authorization: Bearer <JWT_TOKEN>`
 - Header（自定义）：`X-Admin-Token: <JWT_TOKEN>`
-- Query：`?admin_token=<JWT_TOKEN>`
+
+> 注意：**不支持** `?admin_token=` 查询参数方式。
 
 **生效范围：**
 - 所有受保护的后端接口：`/api/*`
@@ -46,9 +47,6 @@ curl -H "Authorization: Bearer <JWT_TOKEN>" https://your.domain/api/mailboxes
 
 # X-Admin-Token 头
 curl -H "X-Admin-Token: <JWT_TOKEN>" https://your.domain/api/domains
-
-# Query 参数
-curl "https://your.domain/api/session?admin_token=<JWT_TOKEN>"
 ```
 
 **安全提示：** 严格保密 `JWT_TOKEN`，并定期更换。
@@ -79,12 +77,12 @@ curl "https://your.domain/api/session?admin_token=<JWT_TOKEN>"
 ```
 
 **支持的登录方式：**
-1. 管理员登录：使用 `ADMIN_NAME` / `ADMIN_PASSWORD` 环境变量
+1. 管理员登录：使用 `ADMIN_NAME` / `ADMIN_PASSWORD`（别名 `ADMIN_PASS`）环境变量
 2. 访客登录：用户名 `guest`，密码为 `GUEST_PASSWORD` 环境变量
 3. 普通用户登录：数据库 `users` 表中的用户
 4. 邮箱登录：使用邮箱地址登录（需启用 `can_login`）
 
-**返回示例：**
+**返回示例（管理员）：**
 ```json
 {
   "success": true,
@@ -93,6 +91,37 @@ curl "https://your.domain/api/session?admin_token=<JWT_TOKEN>"
   "mailbox_limit": 9999
 }
 ```
+
+**返回示例（访客）：**
+```json
+{
+  "success": true,
+  "role": "guest"
+}
+```
+
+**返回示例（普通用户）：**
+```json
+{
+  "success": true,
+  "role": "user",
+  "can_send": 0,
+  "mailbox_limit": 10
+}
+```
+
+**返回示例（邮箱用户）：**
+```json
+{
+  "success": true,
+  "role": "mailbox",
+  "mailbox": "test@example.com",
+  "can_send": 0,
+  "mailbox_limit": 1
+}
+```
+
+**限速：** 60 秒内最多 10 次请求。
 
 ### POST /api/logout
 用户退出登录
@@ -111,9 +140,12 @@ curl "https://your.domain/api/session?admin_token=<JWT_TOKEN>"
   "authenticated": true,
   "role": "admin",
   "username": "admin",
-  "strictAdmin": true
+  "strictAdmin": true,
+  "mailboxAddress": "test@example.com"
 }
 ```
+
+> `mailboxAddress` 字段仅在 `role` 为 `mailbox` 时返回。
 
 ---
 
@@ -144,6 +176,8 @@ curl "https://your.domain/api/session?admin_token=<JWT_TOKEN>"
 }
 ```
 
+> 已登录用户调用时会自动将邮箱分配给当前用户。
+
 ### POST /api/create
 自定义创建邮箱
 
@@ -163,33 +197,44 @@ curl "https://your.domain/api/session?admin_token=<JWT_TOKEN>"
 }
 ```
 
+> 已登录用户调用时会自动将邮箱分配给当前用户。
+
 ### GET /api/mailboxes
-获取当前用户的邮箱列表
+获取邮箱列表
 
 **参数：**
 | 参数 | 类型 | 说明 |
 |------|------|------|
 | `limit` | number | 分页大小（默认 100，最大 500） |
 | `offset` | number | 偏移量 |
+| `page` | number | 页码（与 `limit`/`offset` 互斥，使用 `page`/`size` 分页） |
+| `size` | number | 每页数量（默认 20，最大 500） |
 | `domain` | string | 按域名筛选 |
-| `favorite` | boolean | 按收藏状态筛选 |
-| `forward` | boolean | 按转发状态筛选 |
+| `favorite` | string | 按收藏状态筛选（`true`/`1`/`favorite` 或 `false`/`0`/`not-favorite`） |
+| `forward` | string | 按转发状态筛选（`true`/`1`/`has-forward` 或 `false`/`0`/`no-forward`） |
+| `login` | string | 按登录权限筛选（`true`/`1`/`allowed` 或 `false`/`0`/`denied`） |
+| `q` | string | 模糊搜索邮箱地址 |
 
 **返回：**
 ```json
-[
-  {
-    "id": 1,
-    "address": "test@example.com",
-    "created_at": "2024-01-01 00:00:00",
-    "is_pinned": 1,
-    "password_is_default": 1,
-    "can_login": 0,
-    "forward_to": "backup@gmail.com",
-    "is_favorite": 1
-  }
-]
+{
+  "list": [
+    {
+      "id": 1,
+      "address": "test@example.com",
+      "created_at": "2024-01-01 00:00:00",
+      "is_pinned": 1,
+      "password_is_default": 1,
+      "can_login": 0,
+      "forward_to": "backup@gmail.com",
+      "is_favorite": 1
+    }
+  ],
+  "total": 42
+}
 ```
+
+> 严格管理员可以看到所有邮箱；普通用户只能看到自己关联的邮箱。
 
 ### DELETE /api/mailboxes
 删除指定邮箱
@@ -203,6 +248,8 @@ curl "https://your.domain/api/session?admin_token=<JWT_TOKEN>"
 ```json
 { "success": true, "deleted": true }
 ```
+
+> 管理员可删除自己关联的邮箱；严格管理员可删除任意邮箱。删除时会同时清除该邮箱下的所有邮件。
 
 ### GET /api/user/quota
 获取当前用户的邮箱配额
@@ -223,6 +270,25 @@ curl "https://your.domain/api/session?admin_token=<JWT_TOKEN>"
   "used": 150,
   "remaining": -1,
   "note": "管理员无邮箱数量限制"
+}
+```
+
+### GET /api/mailbox/info
+获取单个邮箱详细信息
+
+**参数：**
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `address` | string | 邮箱地址（必需） |
+
+**返回：**
+```json
+{
+  "id": 1,
+  "address": "test@example.com",
+  "is_favorite": true,
+  "forward_to": "backup@gmail.com",
+  "can_login": false
 }
 ```
 
@@ -251,6 +317,8 @@ curl "https://your.domain/api/session?admin_token=<JWT_TOKEN>"
 ```json
 { "success": true }
 ```
+
+> 重置后将 `password_hash` 设为 `NULL`，登录时回退到以邮箱地址作为密码。
 
 ### POST /api/mailboxes/toggle-login
 切换邮箱登录权限（仅 strictAdmin）
@@ -284,6 +352,8 @@ curl "https://your.domain/api/session?admin_token=<JWT_TOKEN>"
 { "success": true }
 ```
 
+> 新密码长度至少 6 位。
+
 ### POST /api/mailboxes/batch-toggle-login
 批量切换邮箱登录权限（仅 strictAdmin）
 
@@ -307,6 +377,8 @@ curl "https://your.domain/api/session?admin_token=<JWT_TOKEN>"
   ]
 }
 ```
+
+> 若某个邮箱地址不存在，会自动创建该邮箱记录。单次最多处理 100 个邮箱。
 
 ---
 
@@ -404,6 +476,8 @@ curl "https://your.domain/api/session?admin_token=<JWT_TOKEN>"
 { "success": true, "message": "密码修改成功" }
 ```
 
+> 新密码长度至少 6 位。若当前密码尚未设置（为 `NULL`），则以邮箱地址作为当前密码进行验证。
+
 ---
 
 ## 邮件操作
@@ -431,6 +505,8 @@ curl "https://your.domain/api/session?admin_token=<JWT_TOKEN>"
   }
 ]
 ```
+
+> 邮箱用户（`role: mailbox`）只能查看最近 24 小时内的邮件。
 
 ### GET /api/emails/batch
 批量获取邮件元数据
@@ -477,6 +553,8 @@ curl "https://your.domain/api/session?admin_token=<JWT_TOKEN>"
 }
 ```
 
+> 访问时会自动将 `is_read` 标记为已读。正文优先从 R2 存储的原始 EML 文件解析。
+
 ### GET /api/email/:id/download
 下载原始 EML 文件
 
@@ -494,6 +572,8 @@ curl "https://your.domain/api/session?admin_token=<JWT_TOKEN>"
 }
 ```
 
+> 同时删除 R2 存储中的原始 EML 文件。
+
 ### DELETE /api/emails
 清空邮箱所有邮件
 
@@ -510,11 +590,13 @@ curl "https://your.domain/api/session?admin_token=<JWT_TOKEN>"
 }
 ```
 
+> 同时清空 R2 存储中的原始 EML 文件。
+
 ---
 
 ## 邮件发送
 
-> 需要配置 `RESEND_API_KEY` 环境变量
+> 需配置 `RESEND_API_KEY` 或 `SENDFLARE_API_KEY` 或 `CYBERPERSONS_API_KEY` 环境变量，至少配置一个。
 
 ### GET /api/sent
 获取发件记录列表
@@ -522,7 +604,7 @@ curl "https://your.domain/api/session?admin_token=<JWT_TOKEN>"
 **参数：**
 | 参数 | 类型 | 说明 |
 |------|------|------|
-| `from` | string | 发件人邮箱（必需） |
+| `from` | string | 发件人邮箱（必需，也支持 `mailbox` 参数名） |
 | `limit` | number | 返回数量（默认 20，最大 50） |
 
 **返回：**
@@ -534,7 +616,8 @@ curl "https://your.domain/api/session?admin_token=<JWT_TOKEN>"
     "recipients": "to@example.com",
     "subject": "邮件主题",
     "created_at": "2024-01-01 12:00:00",
-    "status": "delivered"
+    "status": "delivered",
+    "provider": "resend"
   }
 ]
 ```
@@ -554,7 +637,8 @@ curl "https://your.domain/api/session?admin_token=<JWT_TOKEN>"
   "text_content": "内容",
   "status": "delivered",
   "scheduled_at": null,
-  "created_at": "2024-01-01 12:00:00"
+  "created_at": "2024-01-01 12:00:00",
+  "provider": "resend"
 }
 ```
 
@@ -584,8 +668,10 @@ curl "https://your.domain/api/session?admin_token=<JWT_TOKEN>"
 
 **返回：**
 ```json
-{ "success": true, "id": "resend-id-xxx" }
+{ "success": true, "id": "resend-id-xxx", "provider": "resend" }
 ```
+
+> `provider` 值为 `resend`、`sendflare` 或 `cyberpersons`。发件人必须是当前用户绑定的邮箱（严格管理员除外）。
 
 ### POST /api/send/batch
 批量发送邮件
@@ -613,14 +699,16 @@ curl "https://your.domain/api/session?admin_token=<JWT_TOKEN>"
 {
   "success": true,
   "result": [
-    { "id": "resend-id-1" },
-    { "id": "resend-id-2" }
+    { "id": "resend-id-1", "provider": "resend" },
+    { "id": "resend-id-2", "provider": "resend" }
   ]
 }
 ```
 
 ### GET /api/send/:id
-查询发送结果（从 Resend API）
+查询发送结果（从外部发件平台 API）
+
+> 按路径中的 ID 作为 `resend_id` 查询外部平台。SendFlare 和 Cyberpersons 渠道暂不支持此操作。
 
 ### PATCH /api/send/:id
 更新发送状态或定时时间
@@ -633,6 +721,8 @@ curl "https://your.domain/api/session?admin_token=<JWT_TOKEN>"
 }
 ```
 
+> SendFlare 和 Cyberpersons 渠道暂不支持此操作。
+
 ### POST /api/send/:id/cancel
 取消定时发送
 
@@ -640,6 +730,8 @@ curl "https://your.domain/api/session?admin_token=<JWT_TOKEN>"
 ```json
 { "success": true }
 ```
+
+> SendFlare 和 Cyberpersons 渠道暂不支持此操作。
 
 ---
 
@@ -727,6 +819,8 @@ curl "https://your.domain/api/session?admin_token=<JWT_TOKEN>"
 ### GET /api/users/:id/mailboxes
 获取指定用户的邮箱列表
 
+**权限：** 严格管理员或用户本人可访问。
+
 **返回：**
 ```json
 [
@@ -798,4 +892,5 @@ curl "https://your.domain/api/session?admin_token=<JWT_TOKEN>"
 | 401 | 未认证 |
 | 403 | 权限不足（演示模式限制或角色限制） |
 | 404 | 资源不存在 |
+| 429 | 请求过于频繁 |
 | 500 | 服务器内部错误 |
