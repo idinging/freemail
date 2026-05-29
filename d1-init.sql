@@ -46,11 +46,7 @@ CREATE TABLE IF NOT EXISTS messages (
   FOREIGN KEY(mailbox_id) REFERENCES mailboxes(id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_messages_mailbox_id           ON messages(mailbox_id);
-CREATE INDEX IF NOT EXISTS idx_messages_received_at          ON messages(received_at DESC);
-CREATE INDEX IF NOT EXISTS idx_messages_r2_object_key        ON messages(r2_object_key);
 CREATE INDEX IF NOT EXISTS idx_messages_mailbox_received     ON messages(mailbox_id, received_at DESC);
-CREATE INDEX IF NOT EXISTS idx_messages_mailbox_received_read ON messages(mailbox_id, received_at DESC, is_read);
 
 -- ────────────────────────────────────────
 -- 用户表
