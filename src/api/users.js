@@ -12,7 +12,8 @@ import {
   deleteUser,
   assignMailboxToUser,
   unassignMailboxFromUser,
-  getUserMailboxes
+  getUserMailboxes,
+  getTotalMailboxCount
 } from '../db/index.js';
 
 /**
@@ -136,12 +137,28 @@ export async function handleUsersApi(request, db, url, path, options) {
   // ================= 用户管理接口（仅非演示模式） =================
   if (!isMock && path === '/api/users' && request.method === 'GET') {
     if (!isStrictAdmin(request, options)) return errorResponse('Forbidden', 403);
-    const limit = Math.min(parseInt(url.searchParams.get('limit') || '50', 10), 100);
-    const offset = Math.max(parseInt(url.searchParams.get('offset') || '0', 10), 0);
+
+    let limit, offset;
+    const pageParam = url.searchParams.get('page');
+    const sizeParam = url.searchParams.get('size');
+    if (pageParam !== null || sizeParam !== null) {
+      const page = Math.max(1, Number(pageParam || 1));
+      const size = Math.max(1, Math.min(100, Number(sizeParam || 50)));
+      limit = size;
+      offset = (page - 1) * size;
+    } else {
+      limit = Math.min(parseInt(url.searchParams.get('limit') || '50', 10), 100);
+      offset = Math.max(parseInt(url.searchParams.get('offset') || '0', 10), 0);
+    }
     const sort = url.searchParams.get('sort') || 'desc';
     try {
-      const users = await listUsersWithCounts(db, { limit, offset, sort });
-      return Response.json(users);
+      const [totalRow, users, totalMailboxes] = await Promise.all([
+        db.prepare('SELECT COUNT(1) as total FROM users').first(),
+        listUsersWithCounts(db, { limit, offset, sort }),
+        getTotalMailboxCount(db)
+      ]);
+      const totalUsers = totalRow?.total || 0;
+      return Response.json({ list: users, total: totalUsers, total_mailboxes: totalMailboxes });
     } catch (e) { return errorResponse('查询失败', 500); }
   }
   

@@ -130,7 +130,7 @@ async function loadUsers() {
     updatePagination();
 
     // 更新统计卡片
-    updateStats(users);
+    updateStats(users, totalUsers, data.total_mailboxes || 0);
 
     if (els.usersCount) els.usersCount.textContent = `${totalUsers} 人`;
 
@@ -144,10 +144,8 @@ async function loadUsers() {
 }
 
 // 更新统计卡片
-function updateStats(users) {
-  const totalUsers = users.length;
+function updateStats(users, totalUsers, totalMailboxes) {
   const adminCount = users.filter(u => u.role === 'admin').length;
-  const mailboxCount = users.reduce((sum, u) => sum + (u.mailbox_count || 0), 0);
   const activeUsers = users.filter(u => u.can_send).length;
 
   const statTotal = document.getElementById('stat-total-users');
@@ -157,7 +155,7 @@ function updateStats(users) {
 
   if (statTotal) statTotal.textContent = totalUsers;
   if (statAdmin) statAdmin.textContent = adminCount;
-  if (statMailbox) statMailbox.textContent = mailboxCount;
+  if (statMailbox) statMailbox.textContent = totalMailboxes;
   if (statActive) statActive.textContent = activeUsers;
 }
 
