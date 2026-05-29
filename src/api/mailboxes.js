@@ -328,14 +328,19 @@ export async function handleMailboxesApi(request, db, mailDomains, url, path, op
         const adminBindParams = [uid, ...bindParams];
         const adminCountBindParams = [uid, ...countBindParams];
         
-        // 获取总数
-        const countResult = await db.prepare(`
-          SELECT COUNT(*) as total
-          FROM mailboxes m
-          LEFT JOIN user_mailboxes um ON m.id = um.mailbox_id AND um.user_id = ?
-          ${whereClause}
-        `).bind(...adminCountBindParams).first();
-        const total = countResult?.total || 0;
+        // 获取总数 - 无过滤条件时使用缓存避免全表扫描
+        let total;
+        if (whereConditions.length === 0) {
+          total = await getTotalMailboxCount(db);
+        } else {
+          const countResult = await db.prepare(`
+            SELECT COUNT(*) as total
+            FROM mailboxes m
+            LEFT JOIN user_mailboxes um ON m.id = um.mailbox_id AND um.user_id = ?
+            ${whereClause}
+          `).bind(...adminCountBindParams).first();
+          total = countResult?.total || 0;
+        }
         
         const { results } = await db.prepare(`
           SELECT m.id, m.address, m.created_at, COALESCE(um.is_pinned, 0) AS is_pinned,
@@ -351,13 +356,18 @@ export async function handleMailboxesApi(request, db, mailDomains, url, path, op
         return Response.json({ list: results || [], total });
       } else if (strictAdmin) {
         // 严格管理员但没有 uid（不应该发生，但作为兜底）
-        // 获取总数
-        const countResult = await db.prepare(`
-          SELECT COUNT(*) as total
-          FROM mailboxes m
-          ${whereClause}
-        `).bind(...countBindParams).first();
-        const total = countResult?.total || 0;
+        // 获取总数 - 无过滤条件时使用缓存避免全表扫描
+        let total;
+        if (whereConditions.length === 0) {
+          total = await getTotalMailboxCount(db);
+        } else {
+          const countResult = await db.prepare(`
+            SELECT COUNT(*) as total
+            FROM mailboxes m
+            ${whereClause}
+          `).bind(...countBindParams).first();
+          total = countResult?.total || 0;
+        }
         
         const { results } = await db.prepare(`
           SELECT m.id, m.address, m.created_at, 0 AS is_pinned,

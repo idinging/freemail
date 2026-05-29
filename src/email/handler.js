@@ -8,6 +8,7 @@ import { extractEmail, normalizeEmailAlias } from '../utils/common.js';
 import { forwardByLocalPart, forwardByMailboxConfig } from './forwarder.js';
 import { parseEmailBody, extractVerificationCode } from './parser.js';
 import { getForwardTarget } from '../db/mailboxes.js';
+import { invalidateSystemStatCache } from '../utils/cache.js';
 
 export async function handleEmailEvent(message, env, ctx) {
   let DB;
@@ -99,6 +100,7 @@ export async function handleEmailEvent(message, env, ctx) {
       if (localPartMb && domain) {
         await DB.prepare('INSERT INTO mailboxes (address, local_part, domain, password_hash, last_accessed_at) VALUES (?, ?, ?, NULL, CURRENT_TIMESTAMP)')
           .bind((mailbox || '').toLowerCase(), localPartMb, domain).run();
+        invalidateSystemStatCache('total_mailboxes');
         const created = await DB.prepare('SELECT id FROM mailboxes WHERE address = ?').bind((mailbox || '').toLowerCase()).all();
         mailboxId = created?.results?.[0]?.id;
       }
