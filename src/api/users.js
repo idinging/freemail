@@ -13,8 +13,28 @@ import {
   assignMailboxToUser,
   unassignMailboxFromUser,
   getUserMailboxes,
-  getTotalMailboxCount
+  getTotalMailboxCount,
+  getUserStats
 } from '../db/index.js';
+
+/**
+ * 解析分页参数，统一支持 page/size 与 limit/offset 两种风格
+ * 非数字输入会回退到默认值，避免产生 NaN
+ * @param {URL} url - 请求 URL
+ * @returns {{limit: number, offset: number}} 规范化后的 limit 与 offset
+ */
+function parsePagination(url) {
+  const pageParam = url.searchParams.get('page');
+  const sizeParam = url.searchParams.get('size');
+  if (pageParam !== null || sizeParam !== null) {
+    const page = Math.max(1, parseInt(pageParam, 10) || 1);
+    const size = Math.max(1, Math.min(100, parseInt(sizeParam, 10) || 50));
+    return { limit: size, offset: (page - 1) * size };
+  }
+  const limit = Math.min(Math.max(1, parseInt(url.searchParams.get('limit'), 10) || 50), 100);
+  const offset = Math.max(0, parseInt(url.searchParams.get('offset'), 10) || 0);
+  return { limit, offset };
+}
 
 /**
  * 处理用户管理相关 API
@@ -35,8 +55,7 @@ export async function handleUsersApi(request, db, url, path, options) {
   
   // =================== 用户管理（演示模式） ===================
   if (isMock && path === '/api/users' && request.method === 'GET') {
-    const limit = Math.min(parseInt(url.searchParams.get('limit') || '50', 10), 100);
-    const offset = Math.max(parseInt(url.searchParams.get('offset') || '0', 10), 0);
+    const { limit, offset } = parsePagination(url);
     const sort = url.searchParams.get('sort') || 'desc';
     
     let list = (globalThis.__MOCK_USERS__ || []).map(u => {
@@ -50,8 +69,19 @@ export async function handleUsersApi(request, db, url, path, options) {
       return sort === 'asc' ? dateA - dateB : dateB - dateA;
     });
     
+    // 与非演示模式保持一致的返回契约：全局聚合统计 + 当前页列表
+    const total = list.length;
+    const adminCount = list.filter(u => u.role === 'admin').length;
+    const activeCount = list.filter(u => u.can_send).length;
+    const totalMailboxes = list.reduce((sum, u) => sum + (u.mailbox_count || 0), 0);
     const result = list.slice(offset, offset + limit);
-    return Response.json(result);
+    return Response.json({
+      list: result,
+      total,
+      total_mailboxes: totalMailboxes,
+      admin_count: adminCount,
+      active_count: activeCount
+    });
   }
   
   if (isMock && path === '/api/users' && request.method === 'POST') {
@@ -138,27 +168,22 @@ export async function handleUsersApi(request, db, url, path, options) {
   if (!isMock && path === '/api/users' && request.method === 'GET') {
     if (!isStrictAdmin(request, options)) return errorResponse('Forbidden', 403);
 
-    let limit, offset;
-    const pageParam = url.searchParams.get('page');
-    const sizeParam = url.searchParams.get('size');
-    if (pageParam !== null || sizeParam !== null) {
-      const page = Math.max(1, Number(pageParam || 1));
-      const size = Math.max(1, Math.min(100, Number(sizeParam || 50)));
-      limit = size;
-      offset = (page - 1) * size;
-    } else {
-      limit = Math.min(parseInt(url.searchParams.get('limit') || '50', 10), 100);
-      offset = Math.max(parseInt(url.searchParams.get('offset') || '0', 10), 0);
-    }
+    const { limit, offset } = parsePagination(url);
     const sort = url.searchParams.get('sort') || 'desc';
     try {
-      const [totalRow, users, totalMailboxes] = await Promise.all([
-        db.prepare('SELECT COUNT(1) as total FROM users').first(),
+      const [stats, users, totalMailboxes] = await Promise.all([
+        getUserStats(db),
         listUsersWithCounts(db, { limit, offset, sort }),
         getTotalMailboxCount(db)
       ]);
-      const totalUsers = totalRow?.total || 0;
-      return Response.json({ list: users, total: totalUsers, total_mailboxes: totalMailboxes });
+      const userStats = stats || { total: 0, admin_count: 0, active_count: 0 };
+      return Response.json({
+        list: users,
+        total: userStats.total,
+        total_mailboxes: totalMailboxes,
+        admin_count: userStats.admin_count,
+        active_count: userStats.active_count
+      });
     } catch (e) { return errorResponse('查询失败', 500); }
   }
   

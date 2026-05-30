@@ -6,7 +6,7 @@
 import { getJwtPayload, isStrictAdmin, getMailboxAccess, errorResponse } from './helpers.js';
 import { buildMockMailboxes, MOCK_DOMAINS } from './mock.js';
 import { extractEmail, generateRandomId } from '../utils/common.js';
-import { getCachedUserQuota, getCachedSystemStat } from '../utils/cache.js';
+import { getCachedUserQuota, getCachedSystemStat, invalidateSystemStatCache } from '../utils/cache.js';
 import {
   getOrCreateMailboxId,
   toggleMailboxPin,
@@ -243,6 +243,7 @@ export async function handleMailboxesApi(request, db, mailDomains, url, path, op
         } else {
           const uname = String(options?.adminName || 'admin').toLowerCase();
           await db.prepare("INSERT INTO users (username, role, can_send, mailbox_limit) VALUES (?, 'admin', 1, 9999)").bind(uname).run();
+          invalidateSystemStatCache('user_stats');
           const again = await db.prepare('SELECT id FROM users WHERE username = ?').bind(uname).all();
           uid = Number(again?.results?.[0]?.id || 0);
         }
@@ -438,6 +439,7 @@ export async function handleMailboxesApi(request, db, mailDomains, url, path, op
         } else {
           const uname = String(options?.adminName || 'admin').toLowerCase();
           await db.prepare("INSERT INTO users (username, role, can_send, mailbox_limit) VALUES (?, 'admin', 1, 9999)").bind(uname).run();
+          invalidateSystemStatCache('user_stats');
           const again = await db.prepare('SELECT id FROM users WHERE username = ?').bind(uname).all();
           uid = Number(again?.results?.[0]?.id || 0);
         }

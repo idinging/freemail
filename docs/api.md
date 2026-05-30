@@ -744,24 +744,45 @@ curl -H "X-Admin-Token: <JWT_TOKEN>" https://your.domain/api/domains
 **参数：**
 | 参数 | 类型 | 说明 |
 |------|------|------|
-| `limit` | number | 分页大小（默认 50，最大 100） |
-| `offset` | number | 偏移量 |
+| `page` | number | 页码，从 1 开始（与 `limit`/`offset` 互斥，提供 `page` 或 `size` 时启用 `page`/`size` 分页） |
+| `size` | number | 每页数量（默认 50，范围 1-100） |
+| `limit` | number | 分页大小（默认 50，范围 1-100；仅在未提供 `page`/`size` 时生效） |
+| `offset` | number | 偏移量（默认 0） |
 | `sort` | string | 排序方式：`asc` 或 `desc`（默认 desc） |
+
+> 两种分页风格二选一：只要请求带有 `page` 或 `size`，即按 `page`/`size` 解析（`offset = (page - 1) * size`）；否则回退到 `limit`/`offset`。非数字参数会回退到默认值。
 
 **返回：**
 ```json
-[
-  {
-    "id": 1,
-    "username": "testuser",
-    "role": "user",
-    "mailbox_limit": 10,
-    "can_send": 0,
-    "mailbox_count": 3,
-    "created_at": "2024-01-01 00:00:00"
-  }
-]
+{
+  "list": [
+    {
+      "id": 1,
+      "username": "testuser",
+      "role": "user",
+      "mailbox_limit": 10,
+      "can_send": 0,
+      "mailbox_count": 3,
+      "created_at": "2024-01-01 00:00:00"
+    }
+  ],
+  "total": 100,
+  "total_mailboxes": 530,
+  "admin_count": 5,
+  "active_count": 12
+}
 ```
+
+**返回字段说明：**
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `list` | array | 当前页用户列表，每项的 `mailbox_count` 为该用户已分配的邮箱数 |
+| `total` | number | 用户总数（全局，非当前页） |
+| `total_mailboxes` | number | 系统邮箱总数（全局，含未分配给任何用户的邮箱） |
+| `admin_count` | number | 管理员总数（全局） |
+| `active_count` | number | 可发件用户总数（全局） |
+
+> 演示（guest）模式返回相同结构，其中统计字段基于内置的 mock 数据计算。
 
 ### POST /api/users
 创建用户

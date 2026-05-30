@@ -129,8 +129,13 @@ async function loadUsers() {
     renderUserList(users, els.usersTbody);
     updatePagination();
 
-    // 更新统计卡片
-    updateStats(users, totalUsers, data.total_mailboxes || 0);
+    // 更新统计卡片（管理员数/可发件数均取后端全局聚合，而非当前页统计）
+    updateStats({
+      totalUsers,
+      adminCount: data.admin_count || 0,
+      totalMailboxes: data.total_mailboxes || 0,
+      activeUsers: data.active_count || 0
+    });
 
     if (els.usersCount) els.usersCount.textContent = `${totalUsers} 人`;
 
@@ -143,20 +148,17 @@ async function loadUsers() {
   }
 }
 
-// 更新统计卡片
-function updateStats(users, totalUsers, totalMailboxes) {
-  const adminCount = users.filter(u => u.role === 'admin').length;
-  const activeUsers = users.filter(u => u.can_send).length;
-
+// 更新统计卡片（全部使用后端返回的全局聚合值，避免与当前页口径混用）
+function updateStats(stats) {
   const statTotal = document.getElementById('stat-total-users');
   const statAdmin = document.getElementById('stat-admin-count');
   const statMailbox = document.getElementById('stat-mailbox-count');
   const statActive = document.getElementById('stat-active-users');
 
-  if (statTotal) statTotal.textContent = totalUsers;
-  if (statAdmin) statAdmin.textContent = adminCount;
-  if (statMailbox) statMailbox.textContent = totalMailboxes;
-  if (statActive) statActive.textContent = activeUsers;
+  if (statTotal) statTotal.textContent = stats.totalUsers;
+  if (statAdmin) statAdmin.textContent = stats.adminCount;
+  if (statMailbox) statMailbox.textContent = stats.totalMailboxes;
+  if (statActive) statActive.textContent = stats.activeUsers;
 }
 
 // 更新分页

@@ -7,6 +7,7 @@ import { Hono } from 'hono';
 import { getInitializedDatabase } from '../db/index.js';
 import { createJwt, buildSessionCookie, verifyMailboxLogin, verifyPassword } from '../middleware/auth.js';
 import { rateLimiter } from '../middleware/app.js';
+import { invalidateSystemStatCache } from '../utils/cache.js';
 
 const router = new Hono();
 
@@ -48,6 +49,7 @@ router.post('/api/login', rateLimiter({ windowMs: 60_000, max: 10 }), async (c) 
       } else {
         await DB.prepare("INSERT INTO users (username, role, can_send, mailbox_limit) VALUES (?, 'admin', 1, 9999)")
           .bind(ADMIN_NAME).run();
+        invalidateSystemStatCache('user_stats');
         const again = await DB.prepare('SELECT id FROM users WHERE username = ?').bind(ADMIN_NAME).all();
         adminUserId = Number(again?.results?.[0]?.id || 0);
       }
