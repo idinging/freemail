@@ -241,6 +241,8 @@ export async function handleMailboxAdminApi(request, db, url, path, options) {
         }
       }
 
+      invalidateSystemStatCache('total_mailboxes');
+
       return Response.json({
         success: true,
         success_count: successCount,

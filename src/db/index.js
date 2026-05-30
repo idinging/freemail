@@ -18,6 +18,7 @@ export {
   updateUser,
   deleteUser,
   listUsersWithCounts,
+  getUserStats,
   assignMailboxToUser,
   getUserMailboxes,
   unassignMailboxFromUser
