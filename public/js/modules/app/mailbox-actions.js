@@ -11,6 +11,14 @@ import { startAutoRefresh, stopAutoRefresh } from './auto-refresh.js';
 import { resetPager } from './email-list.js';
 import { resetMbPage } from './mailbox-list.js';
 
+async function responseError(response, fallback) {
+  try {
+    const body = await response.json();
+    if (body?.error || body?.message) return body.error || body.message;
+  } catch (_) { }
+  return fallback;
+}
+
 /**
  * 生成随机邮箱
  * @param {object} elements - DOM 元素
@@ -59,6 +67,62 @@ export async function generateMailbox(elements, lenRange, domainSelect, api, sho
     showToast(e.message || '生成失败', 'error');
   } finally {
     restoreButton(gen);
+  }
+}
+
+/**
+ * 批量生成随机邮箱
+ */
+export async function generateBatchMailboxes(elements, lenRange, domainSelect, api, showToast, refresh, loadMailboxes, autoRefreshCallback, updateMailboxInfoUI) {
+  const { genBatch, batchCount } = elements;
+  const count = Number(batchCount?.value || 0);
+  if (!Number.isInteger(count) || count < 1 || count > 100) {
+    showToast('生成数量必须是 1 到 100 之间的整数', 'warn');
+    return;
+  }
+
+  try {
+    setButtonLoading(genBatch, '批量生成中…');
+    const length = Number(lenRange?.value || getStoredLength());
+    const domainIndex = getSelectedDomainIndex(domainSelect);
+    const response = await api('/api/generate/batch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ count, length, domainIndex })
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || '批量生成失败');
+    const emails = Array.isArray(data.emails) ? data.emails : [];
+    if (!emails.length) throw new Error('没有成功生成邮箱');
+
+    saveLength(length);
+    const selected = emails[emails.length - 1];
+    setCurrentMailbox(selected);
+    updateEmailDisplay(elements, selected);
+
+    try {
+      const infoResponse = await api(`/api/mailbox/info?address=${encodeURIComponent(selected)}`);
+      if (infoResponse.ok) {
+        const info = await infoResponse.json();
+        setCurrentMailboxInfo(info);
+        if (updateMailboxInfoUI) updateMailboxInfoUI(info);
+      }
+    } catch (_) { }
+
+    const failed = Number(data.fail_count || 0);
+    showToast(
+      failed ? `已生成 ${emails.length} 个邮箱，${failed} 个失败` : `已生成 ${emails.length} 个邮箱`,
+      failed ? 'warn' : 'success'
+    );
+    startAutoRefresh(autoRefreshCallback);
+    await refresh();
+    resetMbPage();
+    await loadMailboxes({ forceFresh: true });
+  } catch (error) {
+    showToast(error.message || '批量生成失败', 'error');
+  } finally {
+    restoreButton(genBatch);
   }
 }
 
@@ -240,23 +304,24 @@ export async function toggleMailboxPin(event, address, api, showToast, loadMailb
  */
 export async function deleteMailboxAddress(event, address, elements, api, showToast, showConfirm, loadMailboxes) {
   event.stopPropagation();
-  const confirmed = await showConfirm(`确定删除邮箱 ${address}？所有邮件将被清空。`);
+  const confirmed = await showConfirm(`确定删除邮箱 ${address}？收件箱和发件箱中的所有邮件都会被删除。`);
   if (!confirmed) return;
   
   try {
     const r = await api(`/api/mailboxes?address=${encodeURIComponent(address)}`, { method: 'DELETE' });
-    if (r.ok) {
-      showToast('邮箱已删除', 'success');
-      if (getCurrentMailbox() === address) {
-        clearCurrentMailbox();
-        if (elements.email) elements.email.textContent = '点击生成邮箱';
-        elements.email?.classList.remove('has-email');
-        if (elements.emailActions) elements.emailActions.style.display = 'none';
-        if (elements.list) elements.list.innerHTML = '';
-        stopAutoRefresh();
-      }
-      await loadMailboxes({ forceFresh: true });
+    if (!r.ok) throw new Error(await responseError(r, '删除失败'));
+    showToast('邮箱已删除', 'success');
+    if (getCurrentMailbox() === address) {
+      clearCurrentMailbox();
+      const emailText = document.getElementById('email-text');
+      if (emailText) emailText.textContent = '点击生成邮箱';
+      elements.email?.classList.remove('has-email');
+      if (elements.emailActions) elements.emailActions.style.display = 'none';
+      if (elements.listCard) elements.listCard.style.display = 'none';
+      if (elements.list) elements.list.innerHTML = '';
+      stopAutoRefresh();
     }
+    await loadMailboxes({ forceFresh: true });
   } catch(e) {
     showToast(e.message || '删除失败', 'error');
   }
@@ -293,15 +358,14 @@ export async function clearAllEmails(api, showToast, showConfirm, refresh) {
     showToast('请先选择一个邮箱', 'warn');
     return;
   }
-  const confirmed = await showConfirm(`确定清空 ${mailbox} 的所有邮件？`);
+  const confirmed = await showConfirm(`确定清空 ${mailbox} 的收件箱和发件箱？`);
   if (!confirmed) return;
   
   try {
     const r = await api(`/api/emails?mailbox=${encodeURIComponent(mailbox)}`, { method: 'DELETE' });
-    if (r.ok) {
-      showToast('邮件已清空', 'success');
-      await refresh();
-    }
+    if (!r.ok) throw new Error(await responseError(r, '清空失败'));
+    showToast('邮件已清空', 'success');
+    await refresh();
   } catch(e) {
     showToast(e.message || '清空失败', 'error');
   }
@@ -330,6 +394,7 @@ export async function logout(api) {
 
 export default {
   generateMailbox,
+  generateBatchMailboxes,
   generateNameMailbox,
   createCustomMailbox,
   updateEmailDisplay,

@@ -213,6 +213,27 @@
                   </div>
                 </div>
               </div>
+              <div class="config-item">
+                <label class="config-label" for="batch-count">
+                  <span class="label-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <use href="/icons/sprites.svg#icon-package"/>
+                    </svg>
+                  </span>
+                  <span>批量生成</span>
+                </label>
+                <div class="batch-generate-controls">
+                  <input id="batch-count" class="input batch-count-input" type="number" min="1" max="100" step="1" value="5" aria-label="批量生成数量" />
+                  <button id="gen-batch" class="btn btn-secondary" title="按当前配置批量生成邮箱">
+                    <span class="btn-icon">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <use href="/icons/sprites.svg#icon-plus"/>
+                      </svg>
+                    </span>
+                    <span>生成多个邮箱</span>
+                  </button>
+                </div>
+              </div>
                <div class="generate-action">
                  <div class="generate-buttons" style="display: flex; gap: 8px; margin-bottom: 8px; width: 100%;">
                    <button id="gen" class="btn btn-generate" style="flex: 1;" aria-label="随机生成邮箱">

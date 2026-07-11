@@ -538,6 +538,41 @@
   width: 100%;
 }
 
+.batch-generate-controls{
+  display: grid;
+  grid-template-columns: minmax(72px, 96px) minmax(0, 1fr);
+  gap: 8px;
+  align-items: stretch;
+}
+
+.batch-count-input{
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  background: var(--card-glass);
+  color: var(--text);
+  font: inherit;
+  text-align: center;
+  box-shadow: var(--shadow-xs);
+  transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+}
+
+.batch-count-input:focus{
+  outline: none;
+  border-color: var(--primary);
+  background: var(--card);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, .15);
+}
+
+.batch-generate-controls .btn{
+  min-width: 0;
+  min-height: 44px;
+  justify-content: center;
+}
+
 /* 访客模式禁用下拉时的样式 */
 select:disabled{
   opacity: .7;
@@ -622,4 +657,3 @@ select:disabled{
   0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
   100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
 }
-

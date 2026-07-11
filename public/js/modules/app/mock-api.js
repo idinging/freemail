@@ -151,6 +151,50 @@ export async function mockApi(path, options = {}) {
     return new Response(JSON.stringify(MOCK_STATE.domains), { headers: jsonHeaders });
   }
 
+  // POST /api/generate/batch
+  if (url.pathname === '/api/generate/batch' && options.method === 'POST') {
+    try {
+      const body = typeof options.body === 'string' ? JSON.parse(options.body || '{}') : (options.body || {});
+      const count = Number(body.count);
+      if (!Number.isInteger(count) || count < 1 || count > 100) {
+        return new Response(JSON.stringify({ error: '生成数量必须是 1 到 100 之间的整数' }), { status: 400, headers: jsonHeaders });
+      }
+      const length = Math.max(4, Math.min(64, Number(body.length) || 8));
+      const domain = MOCK_STATE.domains[Number(body.domainIndex || 0)] || 'example.com';
+      const emails = [];
+      const results = [];
+
+      while (emails.length < count) {
+        const email = `${mockGenerateId(length)}@${domain}`;
+        if (MOCK_STATE.mailboxes.some(mailbox => mailbox.address === email) || emails.includes(email)) continue;
+        const mailbox = {
+          id: MOCK_STATE.nextMailboxId++,
+          address: email,
+          created_at: new Date().toISOString().replace('T', ' ').slice(0, 19),
+          is_pinned: 0,
+          password_is_default: 1,
+          can_login: 0,
+          forward_to: null,
+          is_favorite: 0
+        };
+        MOCK_STATE.mailboxes.unshift(mailbox);
+        emails.push(email);
+        results.push({ email, success: true });
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        emails,
+        success_count: emails.length,
+        fail_count: 0,
+        total: count,
+        results
+      }), { headers: jsonHeaders });
+    } catch (_) {
+      return new Response(JSON.stringify({ error: 'Bad Request' }), { status: 400, headers: jsonHeaders });
+    }
+  }
+
   // GET /api/generate
   if (url.pathname === '/api/generate') {
     const len = Number(url.searchParams.get('length') || '8');
@@ -300,7 +344,8 @@ export async function mockApi(path, options = {}) {
   // 演示模式禁止删除操作
   if ((url.pathname === '/api/emails' && options.method === 'DELETE') ||
       (url.pathname.startsWith('/api/email/') && options.method === 'DELETE') ||
-      (url.pathname === '/api/mailboxes' && options.method === 'DELETE')) {
+      (url.pathname === '/api/mailboxes' && options.method === 'DELETE') ||
+      (url.pathname === '/api/mailboxes/batch-delete' && options.method === 'POST')) {
     return new Response('演示模式不可操作', { status: 403 });
   }
 

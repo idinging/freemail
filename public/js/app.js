@@ -19,7 +19,7 @@ import { initSessionFromCache, validateSession, isGuest, isAdmin, applySessionUI
 import { loadDomains, getStoredLength, saveLength, updateRangeProgress, getSelectedDomainIndex, populateDomains, STORAGE_KEYS } from './modules/app/domains.js';
 import { initCompose, showSentEmailDetail } from './modules/app/compose.js';
 import { showEmailDetail, deleteEmailById, deleteSentById, copyFromEmailList, prefetchEmails } from './modules/app/email-viewer.js';
-import { generateMailbox, generateNameMailbox, createCustomMailbox, updateEmailDisplay, selectMailboxAddress, toggleMailboxPin, deleteMailboxAddress, copyMailboxAddress, clearAllEmails, logout } from './modules/app/mailbox-actions.js';
+import { generateMailbox, generateBatchMailboxes, generateNameMailbox, createCustomMailbox, updateEmailDisplay, selectMailboxAddress, toggleMailboxPin, deleteMailboxAddress, copyMailboxAddress, clearAllEmails, logout } from './modules/app/mailbox-actions.js';
 
 // 全局状态
 window.__GUEST_MODE__ = false;
@@ -47,7 +47,8 @@ app.innerHTML = templateResp && templateResp.ok ? await templateResp.text() : aw
 
 // DOM 元素
 const els = {
-  email: document.getElementById('email'), gen: document.getElementById('gen'), genName: document.getElementById('gen-name'),
+  email: document.getElementById('email'), gen: document.getElementById('gen'), genBatch: document.getElementById('gen-batch'), genName: document.getElementById('gen-name'),
+  batchCount: document.getElementById('batch-count'),
   copy: document.getElementById('copy'), clear: document.getElementById('clear'), list: document.getElementById('list'),
   listCard: document.getElementById('list-card'), tabInbox: document.getElementById('tab-inbox'), tabSent: document.getElementById('tab-sent'),
   boxTitle: document.getElementById('box-title'), boxIcon: document.getElementById('box-icon'), refresh: document.getElementById('refresh'),
@@ -153,6 +154,7 @@ window.refreshEmails = refresh;
 
 // 事件绑定
 if (els.gen) els.gen.onclick = () => generateMailbox(els, lenRange, domainSelect, api, showToast, refresh, loadMailboxes, autoRefreshCallback, updateMailboxInfoUI);
+if (els.genBatch) els.genBatch.onclick = () => generateBatchMailboxes(els, lenRange, domainSelect, api, showToast, refresh, loadMailboxes, autoRefreshCallback, updateMailboxInfoUI);
 if (els.genName) els.genName.onclick = () => generateNameMailbox(els, lenRange, domainSelect, api, showToast, refresh, loadMailboxes, autoRefreshCallback, updateMailboxInfoUI);
 if (els.copy) els.copy.onclick = () => copyMailboxAddress(showToast);
 if (els.clear) els.clear.onclick = () => clearAllEmails(api, showToast, showConfirm, refresh);

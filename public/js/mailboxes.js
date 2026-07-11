@@ -5,7 +5,7 @@
 
 import { getCurrentUserKey } from './storage.js';
 import { openForwardDialog, toggleFavorite, batchSetFavorite, injectDialogStyles } from './mailbox-settings.js';
-import { api, loadMailboxes as fetchMailboxes, loadDomains as fetchDomains, deleteMailbox as apiDeleteMailbox, toggleLogin as apiToggleLogin, batchToggleLogin, resetPassword as apiResetPassword, changePassword as apiChangePassword } from './modules/mailboxes/api.js';
+import { api, loadMailboxes as fetchMailboxes, loadDomains as fetchDomains, deleteMailbox as apiDeleteMailbox, batchDeleteMailboxes, parseMailboxAddresses, toggleLogin as apiToggleLogin, batchToggleLogin, resetPassword as apiResetPassword, changePassword as apiChangePassword } from './modules/mailboxes/api.js';
 import { formatTime, escapeHtml, generateSkeleton, renderGrid, renderList } from './modules/mailboxes/render.js';
 
 injectDialogStyles();
@@ -37,6 +37,7 @@ const els = {
   batchUnfavorite: document.getElementById('batch-unfavorite'),
   batchForward: document.getElementById('batch-forward'),
   batchClearForward: document.getElementById('batch-clear-forward'),
+  batchDelete: document.getElementById('batch-delete'),
   // 批量操作模态框
   batchModal: document.getElementById('batch-login-modal'),
   batchModalClose: document.getElementById('batch-modal-close'),
@@ -198,10 +199,13 @@ function bindCardEvents() {
         case 'delete':
           if (!confirm(`确定删除邮箱 ${address}？`)) return;
           try {
-            await apiDeleteMailbox(address);
+            const response = await apiDeleteMailbox(address);
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(payload.error || payload.message || '删除失败');
             showToast('已删除', 'success');
+            if (currentData.length === 1 && page > 1) page--;
             load();
-          } catch(e) { showToast('删除失败', 'error'); }
+          } catch(e) { showToast(e.message || '删除失败', 'error'); }
           break;
       }
     };
@@ -346,8 +350,7 @@ function closeBatchModal() {
 
 // 解析邮箱列表
 function parseEmails(text) {
-  if (!text) return [];
-  return text.split(/[\n,;，；\s]+/).map(e => e.trim().toLowerCase()).filter(e => e && e.includes('@'));
+  return parseMailboxAddresses(text);
 }
 
 // 更新邮箱计数
@@ -412,8 +415,23 @@ async function executeBatchAction() {
           body: JSON.stringify({ addresses: emails, forward_to: null })
         });
         break;
+      case 'delete':
+        result = await batchDeleteMailboxes(emails);
+        break;
     }
-    showToast('批量操作完成', 'success');
+    if (!result) throw new Error('未执行批量操作');
+    const payload = await result.json().catch(() => ({}));
+    if (!result.ok) throw new Error(payload.error || '批量操作失败');
+    if (currentBatchAction === 'delete') {
+      const failed = Number(payload.fail_count || 0);
+      showToast(
+        failed ? `已删除 ${payload.success_count || 0} 个邮箱，${failed} 个失败` : `已删除 ${payload.success_count || emails.length} 个邮箱`,
+        failed ? 'warn' : 'success'
+      );
+      page = 1;
+    } else {
+      showToast('批量操作完成', 'success');
+    }
     closeBatchModal();
     load();
   } catch (e) {
@@ -449,6 +467,7 @@ els.batchFavorite?.addEventListener('click', () => openBatchModal('favorite', '�
 els.batchUnfavorite?.addEventListener('click', () => openBatchModal('unfavorite', '批量取消收藏', '☆', '输入要取消收藏的邮箱地址（每行一个或用逗号分隔）：'));
 els.batchForward?.addEventListener('click', () => openBatchModal('forward', '批量设置转发', '↪️', '输入要设置转发的邮箱地址（每行一个或用逗号分隔）：'));
 els.batchClearForward?.addEventListener('click', () => openBatchModal('clear-forward', '批量清除转发', '🚫', '输入要清除转发的邮箱地址（每行一个或用逗号分隔）：'));
+els.batchDelete?.addEventListener('click', () => openBatchModal('delete', '批量删除邮箱', '🗑️', '删除后将同时清空这些邮箱的收件箱和发件箱，此操作不可撤销。'));
 
 // 批量操作模态框事件
 els.batchModalClose?.addEventListener('click', closeBatchModal);

@@ -29,6 +29,22 @@ export async function api(path, options = {}) {
 }
 
 /**
+ * 解析、校验并去重邮箱地址列表。
+ * @param {string} text - 逗号、分号、空格或换行分隔的地址
+ * @returns {Array<string>}
+ */
+export function parseMailboxAddresses(text) {
+  if (!text) return [];
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return [...new Set(
+    String(text)
+      .split(/[\n,;，；\s]+/)
+      .map(value => value.trim().toLowerCase())
+      .filter(value => emailPattern.test(value))
+  )];
+}
+
+/**
  * 加载邮箱列表
  * @param {object} params - 查询参数
  * @returns {Promise<object>}
@@ -63,6 +79,19 @@ export async function loadDomains() {
  */
 export async function deleteMailbox(address) {
   return api(`/api/mailboxes?address=${encodeURIComponent(address)}`, { method: 'DELETE' });
+}
+
+/**
+ * 批量删除邮箱。
+ * @param {Array<string>} addresses - 邮箱地址
+ * @returns {Promise<Response>}
+ */
+export async function batchDeleteMailboxes(addresses) {
+  return api('/api/mailboxes/batch-delete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ addresses })
+  });
 }
 
 /**
@@ -150,7 +179,9 @@ export default {
   api,
   loadMailboxes,
   loadDomains,
+  parseMailboxAddresses,
   deleteMailbox,
+  batchDeleteMailboxes,
   resetPassword,
   changePassword,
   toggleLogin,

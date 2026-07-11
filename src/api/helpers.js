@@ -14,7 +14,9 @@ import { hashPassword } from '../middleware/auth.js';
  */
 export function getJwtPayload(request, options = {}) {
   // 优先使用服务端传入的已解析身份（支持 __root__ 超管）
-  if (options && options.authPayload) return options.authPayload;
+  if (options && Object.prototype.hasOwnProperty.call(options, 'authPayload')) {
+    return options.authPayload || null;
+  }
   try {
     const cookie = request.headers.get('Cookie') || '';
     const token = (cookie.split(';').find(s => s.trim().startsWith('iding-session=')) || '').split('=')[1] || '';

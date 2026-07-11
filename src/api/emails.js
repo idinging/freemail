@@ -8,26 +8,29 @@ import { buildMockEmails, buildMockEmailDetail } from './mock.js';
 import { extractEmail } from '../utils/common.js';
 import { getMailboxIdByAddress } from '../db/index.js';
 import { parseEmailBody } from '../email/parser.js';
+import { createEmailStorage } from '../email/storage.js';
+import { purgeMailboxData } from '../db/mailboxCleanup.js';
 
 // 邮箱登录模式只允许查看最近 24 小时内的邮件。
 function mailboxOnlyTimeFilter(enabled) {
   if (!enabled) return { sql: '', params: [] };
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000)
+    .toISOString()
+    .replace('T', ' ')
+    .slice(0, 19);
   return {
     sql: ' AND received_at >= ?',
-    params: [new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()]
+    params: [cutoff]
   };
 }
 
-// 邮件正文优先从 R2 原始 EML 解析，失败时由调用方回退到数据库字段。
-async function loadEmailBodyFromR2(r2, objectKey) {
-  if (!r2 || !objectKey) return { content: '', html_content: '' };
+// 邮件正文优先从对象存储的原始 EML 解析，失败时由调用方回退到数据库字段。
+async function loadEmailBodyFromStorage(storage, objectKey, storageType) {
+  if (!storage || !objectKey) return { content: '', html_content: '' };
   try {
-    const obj = await r2.get(objectKey);
-    if (!obj) return { content: '', html_content: '' };
-    let raw = '';
-    if (typeof obj.text === 'function') raw = await obj.text();
-    else if (typeof obj.arrayBuffer === 'function') raw = await new Response(await obj.arrayBuffer()).text();
-    else raw = await new Response(obj.body).text();
+    const value = await storage.get(objectKey, storageType);
+    if (!value) return { content: '', html_content: '' };
+    const raw = new TextDecoder().decode(value);
     const parsed = await parseEmailBody(raw || '');
     return { content: parsed.text || '', html_content: parsed.html || '' };
   } catch (_) {
@@ -38,7 +41,7 @@ async function loadEmailBodyFromR2(r2, objectKey) {
 export async function handleEmailsApi(request, db, url, path, options) {
   const isMock = !!options.mockOnly;
   const isMailboxOnly = !!options.mailboxOnly;
-  const r2 = options.r2;
+  const storage = options.storage || createEmailStorage({ kv: options.kv, r2: options.r2 });
 
   if (path === '/api/emails' && request.method === 'GET') {
     const mailbox = url.searchParams.get('mailbox');
@@ -128,21 +131,20 @@ export async function handleEmailsApi(request, db, url, path, options) {
       const access = await getMailboxAccess(db, request, options, { mailboxId });
       if (!access.allowed) return errorResponse('Forbidden', 403);
 
-      const { results: toDelete } = await db.prepare(
-        'SELECT r2_object_key FROM messages WHERE mailbox_id = ? AND r2_object_key IS NOT NULL'
-      ).bind(mailboxId).all();
-      const result = await db.prepare('DELETE FROM messages WHERE mailbox_id = ?').bind(mailboxId).run();
-      const deletedCount = result?.meta?.changes || 0;
+      const deleted = await purgeMailboxData({
+        db,
+        mailboxId,
+        address: normalized,
+        storage,
+        deleteMailbox: false
+      });
 
-      if (r2 && toDelete?.length) {
-        for (const { r2_object_key } of toDelete) {
-          try { await r2.delete(r2_object_key); } catch (err) {
-            console.error('清空邮件时删除 R2 对象失败:', err);
-          }
-        }
-      }
-
-      return Response.json({ success: true, deletedCount });
+      return Response.json({
+        success: true,
+        deletedCount: deleted.inboxDeletedCount + deleted.sentDeletedCount,
+        inboxDeletedCount: deleted.inboxDeletedCount,
+        sentDeletedCount: deleted.sentDeletedCount
+      });
     } catch (e) {
       console.error('清空邮件失败:', e);
       return errorResponse('清空邮件失败', 500);
@@ -156,16 +158,19 @@ export async function handleEmailsApi(request, db, url, path, options) {
     if (!access.exists) return errorResponse('未找到邮件', 404);
     if (!access.allowed) return errorResponse('Forbidden', 403);
 
-    const { results } = await db.prepare('SELECT r2_bucket, r2_object_key FROM messages WHERE id = ?').bind(id).all();
+    const filter = mailboxOnlyTimeFilter(isMailboxOnly);
+    const { results } = await db.prepare(
+      `SELECT r2_bucket, r2_object_key FROM messages WHERE id = ?${filter.sql}`
+    ).bind(id, ...filter.params).all();
     const row = (results || [])[0];
     if (!row || !row.r2_object_key) return errorResponse('未找到对象', 404);
     try {
-      if (!r2) return errorResponse('R2 未绑定', 500);
-      const obj = await r2.get(row.r2_object_key);
-      if (!obj) return errorResponse('对象不存在', 404);
+      if (!storage.available) return errorResponse('邮件存储未绑定', 500);
+      const value = await storage.get(row.r2_object_key, row.r2_bucket);
+      if (!value) return errorResponse('对象不存在', 404);
       const headers = new Headers({ 'Content-Type': 'message/rfc822' });
       headers.set('Content-Disposition', `attachment; filename="${String(row.r2_object_key).split('/').pop()}"`);
-      return new Response(obj.body, { headers });
+      return new Response(value, { headers });
     } catch (_) {
       return errorResponse('下载失败', 500);
     }
@@ -179,8 +184,8 @@ export async function handleEmailsApi(request, db, url, path, options) {
     if (!access.exists) return errorResponse('未找到邮件', 404);
     if (!access.allowed) return errorResponse('Forbidden', 403);
 
+    const filter = mailboxOnlyTimeFilter(isMailboxOnly);
     try {
-      const filter = mailboxOnlyTimeFilter(isMailboxOnly);
       const { results } = await db.prepare(`
         SELECT id, sender, to_addrs, subject, verification_code, preview, r2_bucket, r2_object_key, received_at, is_read
         FROM messages WHERE id = ?${filter.sql}
@@ -189,7 +194,7 @@ export async function handleEmailsApi(request, db, url, path, options) {
 
       await db.prepare('UPDATE messages SET is_read = 1 WHERE id = ?').bind(emailId).run();
       const row = results[0];
-      let { content, html_content } = await loadEmailBodyFromR2(r2, row.r2_object_key);
+      let { content, html_content } = await loadEmailBodyFromStorage(storage, row.r2_object_key, row.r2_bucket);
 
       if (!content && !html_content) {
         try {
@@ -209,8 +214,8 @@ export async function handleEmailsApi(request, db, url, path, options) {
     } catch (_) {
       const { results } = await db.prepare(`
         SELECT id, sender, to_addrs, subject, content, html_content, received_at, is_read
-        FROM messages WHERE id = ?
-      `).bind(emailId).all();
+        FROM messages WHERE id = ?${filter.sql}
+      `).bind(emailId, ...filter.params).all();
       if (!results || !results.length) return errorResponse('未找到邮件', 404);
       await db.prepare('UPDATE messages SET is_read = 1 WHERE id = ?').bind(emailId).run();
       return Response.json(results[0]);
@@ -227,15 +232,17 @@ export async function handleEmailsApi(request, db, url, path, options) {
     if (!access.allowed) return errorResponse('Forbidden', 403);
 
     try {
-      const row = await db.prepare('SELECT r2_object_key FROM messages WHERE id = ?').bind(emailId).first();
+      const filter = mailboxOnlyTimeFilter(isMailboxOnly);
+      const row = await db.prepare(
+        `SELECT r2_bucket, r2_object_key FROM messages WHERE id = ?${filter.sql}`
+      ).bind(emailId, ...filter.params).first();
+      if (!row) return errorResponse('未找到邮件', 404);
+      if (row.r2_object_key) {
+        const objectDeleted = await storage.delete(row.r2_object_key, row.r2_bucket);
+        if (!objectDeleted) return errorResponse('邮件对象删除失败，请稍后重试', 500);
+      }
       const result = await db.prepare('DELETE FROM messages WHERE id = ?').bind(emailId).run();
       const deleted = (result?.meta?.changes || 0) > 0;
-
-      if (deleted && r2 && row?.r2_object_key) {
-        try { await r2.delete(row.r2_object_key); } catch (err) {
-          console.error('删除 R2 对象失败:', err);
-        }
-      }
 
       return Response.json({
         success: true,

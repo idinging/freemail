@@ -20,9 +20,9 @@ JWT_TOKEN="dfvhluhdaslufhvdv"
 JWT_TOKENGUEST_PASSWORD="dfsfsfxzcv"
 SESSION_EXPIRE_DAYS="365"
 MAIL_DOMAIN="你的域名列表"
-RESEND_API_KEY="RESEND发件密钥"
-SENDFLARE_API_KEY="SENDFLARE发件密钥"
-CYBERPERSONS_API_KEY="CYBERPERSONS发件密钥"
+RESEND_API_KEY=""
+SENDFLARE_API_KEY=""
+CYBERPERSONS_API_KEY=""
 
 
 # 静态资源目录（Workers + Assets）
@@ -32,10 +32,16 @@ directory = "public"
 binding = "ASSETS"
 
 
-# R2 存储桶绑定（用于保存完整 EML 内容）
-[[r2_buckets]]
-binding = "MAIL_EML"
-bucket_name = "mail-eml"
+# 完整 EML 对象存储（可选）。同时绑定时新邮件优先写入 KV。
+# KV 配置示例：
+# [[kv_namespaces]]
+# binding = "MAIL_EML_KV"
+# id = "你的 KV namespace ID"
+
+# R2 配置示例：
+# [[r2_buckets]]
+# binding = "MAIL_EML"
+# bucket_name = "mail-eml"
 
 # wrangler.toml (wrangler v3.88.0^) 日志服务
 # [observability.logs]

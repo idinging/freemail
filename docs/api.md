@@ -177,6 +177,34 @@ curl -H "X-Admin-Token: <JWT_TOKEN>" https://your.domain/api/domains
 
 > 已登录用户调用时会自动将邮箱分配给当前用户。
 
+### POST /api/generate/batch
+按同一长度和域名批量生成随机邮箱，单次最多 100 个。
+
+**请求参数：**
+```json
+{
+  "count": 10,
+  "length": 8,
+  "domainIndex": 0
+}
+```
+
+**返回：**
+```json
+{
+  "success": true,
+  "emails": ["abc12345@example.com", "def67890@example.com"],
+  "success_count": 2,
+  "fail_count": 0,
+  "total": 2,
+  "results": [
+    { "email": "abc12345@example.com", "success": true }
+  ]
+}
+```
+
+> 普通用户的请求数量不能超过剩余邮箱配额。
+
 ### POST /api/create
 自定义创建邮箱
 
@@ -245,10 +273,43 @@ curl -H "X-Admin-Token: <JWT_TOKEN>" https://your.domain/api/domains
 
 **返回：**
 ```json
-{ "success": true, "deleted": true }
+{
+  "success": true,
+  "deleted": true,
+  "inboxDeletedCount": 5,
+  "sentDeletedCount": 2
+}
 ```
 
-> 管理员可删除自己关联的邮箱；严格管理员可删除任意邮箱。删除时会同时清除该邮箱下的所有邮件。
+> 管理员可删除自己关联的邮箱；严格管理员可删除任意邮箱。删除时会同时清除收件箱、发件箱及 KV/R2 原始 EML。
+
+### POST /api/mailboxes/batch-delete
+批量删除邮箱（仅 strictAdmin），地址自动去重，单次最多 100 个。
+
+**请求参数：**
+```json
+{
+  "addresses": ["test1@example.com", "test2@example.com"]
+}
+```
+
+**返回：**
+```json
+{
+  "success": true,
+  "success_count": 2,
+  "fail_count": 0,
+  "total": 2,
+  "results": [
+    {
+      "address": "test1@example.com",
+      "success": true,
+      "inbox_deleted_count": 5,
+      "sent_deleted_count": 2
+    }
+  ]
+}
+```
 
 ### GET /api/user/quota
 获取当前用户的邮箱配额
@@ -525,7 +586,7 @@ curl -H "X-Admin-Token: <JWT_TOKEN>" https://your.domain/api/domains
     "subject": "邮件主题",
     "verification_code": "123456",
     "preview": "预览...",
-    "r2_bucket": "mail-eml",
+    "r2_bucket": "kv",
     "r2_object_key": "2024/01/01/test@example.com/xxx.eml",
     "received_at": "2024-01-01 12:00:00",
     "is_read": 0
@@ -552,7 +613,7 @@ curl -H "X-Admin-Token: <JWT_TOKEN>" https://your.domain/api/domains
 }
 ```
 
-> 访问时会自动将 `is_read` 标记为已读。正文优先从 R2 存储的原始 EML 文件解析。
+> 访问时会自动将 `is_read` 标记为已读。正文优先从 KV 或 R2 存储的原始 EML 文件解析。
 
 ### GET /api/email/:id/download
 下载原始 EML 文件
@@ -571,7 +632,7 @@ curl -H "X-Admin-Token: <JWT_TOKEN>" https://your.domain/api/domains
 }
 ```
 
-> 同时删除 R2 存储中的原始 EML 文件。
+> 同时删除 KV/R2 存储中的原始 EML 文件。
 
 ### DELETE /api/emails
 清空邮箱所有邮件
@@ -585,11 +646,13 @@ curl -H "X-Admin-Token: <JWT_TOKEN>" https://your.domain/api/domains
 ```json
 {
   "success": true,
-  "deletedCount": 5
+  "deletedCount": 8,
+  "inboxDeletedCount": 5,
+  "sentDeletedCount": 3
 }
 ```
 
-> 同时清空 R2 存储中的原始 EML 文件。
+> 同时清空收件箱、发件箱以及 KV/R2 存储中的原始 EML 文件。
 
 ---
 

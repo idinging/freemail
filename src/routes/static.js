@@ -20,6 +20,16 @@ const PROTECTED = new Set([
   '/mailbox', '/mailbox.html', '/html/mailbox.html'
 ]);
 
+const MAILBOX_ONLY_PATHS = new Set(['/mailbox', '/mailbox.html', '/html/mailbox.html']);
+const MAILBOX_OVERVIEW_PATHS = new Set(['/mailboxes.html', '/html/mailboxes.html']);
+
+export function classifyProtectedPage(pathname) {
+  if (MAILBOX_ONLY_PATHS.has(pathname)) return 'mailbox';
+  if (MAILBOX_OVERVIEW_PATHS.has(pathname)) return 'mailboxes';
+  if (PROTECTED.has(pathname)) return 'admin';
+  return '';
+}
+
 const KNOWN_PATHS = new Set([
   '/', '/index.html', '/favicon.svg',
   '/login', '/login.html',
@@ -89,12 +99,16 @@ router.get('*', async (c) => {
 
   if (PROTECTED.has(pathname)) {
     const payload = await resolveAuthPayload(c.req.raw, JWT_TOKEN);
+    const protectedPage = classifyProtectedPage(pathname);
     if (!payload) {
-      const redirect = pathname.includes('mailbox') ? '/html/mailbox.html' : '/admin.html';
+      const redirect = protectedPage === 'mailbox'
+        ? '/html/mailbox.html'
+        : (protectedPage === 'mailboxes' ? '/html/mailboxes.html' : '/admin.html');
       return c.redirect(`/templates/loading.html?redirect=${encodeURIComponent(redirect)}`, 302);
     }
-    if (pathname.includes('mailbox') && payload.role !== 'mailbox') return c.redirect('/', 302);
-    if (!pathname.includes('mailbox')) {
+    if (protectedPage === 'mailbox' && payload.role !== 'mailbox') return c.redirect('/', 302);
+    if (protectedPage === 'mailboxes' && !['admin', 'guest'].includes(payload.role)) return c.redirect('/', 302);
+    if (protectedPage === 'admin') {
       const allowed = (payload.role === 'admin' || payload.role === 'guest' || payload.role === 'mailbox');
       if (!allowed) return c.redirect('/', 302);
     }

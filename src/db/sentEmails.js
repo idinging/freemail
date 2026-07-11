@@ -3,6 +3,8 @@
  * @module db/sentEmails
  */
 
+import { extractEmail } from '../utils/common.js';
+
 /**
  * 记录发送的邮件信息到数据库
  * @param {object} db - 数据库连接对象
@@ -21,10 +23,11 @@
  */
 export async function recordSentEmail(db, { resendId, fromName, from, to, subject, html, text, status = 'queued', scheduledAt = null, provider = 'resend' }) {
   const toAddrs = Array.isArray(to) ? to.join(',') : String(to || '');
+  const fromAddress = extractEmail(from).trim().toLowerCase();
   await db.prepare(`
     INSERT INTO sent_emails (resend_id, from_name, from_addr, to_addrs, subject, html_content, text_content, status, scheduled_at, provider)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).bind(resendId || null, fromName || null, from, toAddrs, subject, html || null, text || null, status, scheduledAt || null, provider || 'resend').run();
+  `).bind(resendId || null, fromName || null, fromAddress, toAddrs, subject, html || null, text || null, status, scheduledAt || null, provider || 'resend').run();
 }
 
 /**

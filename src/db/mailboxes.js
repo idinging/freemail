@@ -52,7 +52,7 @@ export async function getOrCreateMailboxId(db, address) {
   
   // 创建新邮箱
   await db.prepare(
-    'INSERT INTO mailboxes (address, local_part, domain, password_hash, last_accessed_at) VALUES (?, ?, ?, NULL, CURRENT_TIMESTAMP)'
+    'INSERT OR IGNORE INTO mailboxes (address, local_part, domain, password_hash, last_accessed_at) VALUES (?, ?, ?, NULL, CURRENT_TIMESTAMP)'
   ).bind(normalized, local_part, domain).run();
   
   // 查询新创建的ID

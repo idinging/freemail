@@ -7,8 +7,8 @@ import { getInitializedDatabase } from '../db/index.js';
 import { extractEmail, normalizeEmailAlias } from '../utils/common.js';
 import { forwardByLocalPart, forwardByMailboxConfig } from './forwarder.js';
 import { parseEmailBody, extractVerificationCode } from './parser.js';
-import { getForwardTarget } from '../db/mailboxes.js';
-import { invalidateSystemStatCache } from '../utils/cache.js';
+import { getForwardTarget, getOrCreateMailboxId } from '../db/mailboxes.js';
+import { createEmailStorageFromEnv } from './storage.js';
 
 export async function handleEmailEvent(message, env, ctx) {
   let DB;
@@ -67,23 +67,26 @@ export async function handleEmailEvent(message, env, ctx) {
     const mailbox = normalizedAddr || normalizeEmailAlias(extractEmail(toHeader));
     const sender = extractEmail(fromHeader);
 
-    const r2 = env.MAIL_EML;
+    const storage = createEmailStorageFromEnv(env);
     let objectKey = '';
+    let storageType = '';
     try {
-      const now = new Date();
-      const y = now.getUTCFullYear();
-      const m = String(now.getUTCMonth() + 1).padStart(2, '0');
-      const d = String(now.getUTCDate()).padStart(2, '0');
-      const hh = String(now.getUTCHours()).padStart(2, '0');
-      const mm = String(now.getUTCMinutes()).padStart(2, '0');
-      const ss = String(now.getUTCSeconds()).padStart(2, '0');
-      const keyId = (globalThis.crypto?.randomUUID && crypto.randomUUID()) || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-      const safeMailbox = (mailbox || 'unknown').toLowerCase().replace(/[^a-z0-9@._-]/g, '_');
-      objectKey = `${y}/${m}/${d}/${safeMailbox}/${hh}${mm}${ss}-${keyId}.eml`;
-      if (r2 && rawBuffer) {
-        await r2.put(objectKey, new Uint8Array(rawBuffer), { httpMetadata: { contentType: 'message/rfc822' } });
+      if (storage.available && rawBuffer) {
+        const now = new Date();
+        const y = now.getUTCFullYear();
+        const m = String(now.getUTCMonth() + 1).padStart(2, '0');
+        const d = String(now.getUTCDate()).padStart(2, '0');
+        const hh = String(now.getUTCHours()).padStart(2, '0');
+        const mm = String(now.getUTCMinutes()).padStart(2, '0');
+        const ss = String(now.getUTCSeconds()).padStart(2, '0');
+        const keyId = (globalThis.crypto?.randomUUID && crypto.randomUUID()) || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        const safeMailbox = (mailbox || 'unknown').toLowerCase().replace(/[^a-z0-9@._-]/g, '_');
+        const candidateKey = `${y}/${m}/${d}/${safeMailbox}/${hh}${mm}${ss}-${keyId}.eml`;
+        const stored = await storage.put(candidateKey, new Uint8Array(rawBuffer));
+        objectKey = stored?.key || '';
+        storageType = stored?.storageType || '';
       }
-    } catch (e) { console.error('R2 put failed:', e); }
+    } catch (e) { console.error('邮件对象存储失败:', e); }
 
     const preview = String(
       (textContent?.trim() ? textContent : (htmlContent || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()) || ''
@@ -91,38 +94,33 @@ export async function handleEmailEvent(message, env, ctx) {
     let verificationCode = '';
     try { verificationCode = extractVerificationCode({ subject, text: textContent, html: htmlContent }); } catch (_) { }
 
-    const resMb = await DB.prepare('SELECT id FROM mailboxes WHERE address = ?').bind(mailbox.toLowerCase()).all();
-    let mailboxId;
-    if (Array.isArray(resMb?.results) && resMb.results.length) {
-      mailboxId = resMb.results[0].id;
-    } else {
-      const [localPartMb, domain] = (mailbox || '').toLowerCase().split('@');
-      if (localPartMb && domain) {
-        await DB.prepare('INSERT INTO mailboxes (address, local_part, domain, password_hash, last_accessed_at) VALUES (?, ?, ?, NULL, CURRENT_TIMESTAMP)')
-          .bind((mailbox || '').toLowerCase(), localPartMb, domain).run();
-        invalidateSystemStatCache('total_mailboxes');
-        const created = await DB.prepare('SELECT id FROM mailboxes WHERE address = ?').bind((mailbox || '').toLowerCase()).all();
-        mailboxId = created?.results?.[0]?.id;
-      }
-    }
-    if (!mailboxId) throw new Error('无法解析或创建 mailbox 记录');
-
-    let toAddrs = '';
     try {
-      const toValue = message.to;
-      if (Array.isArray(toValue)) {
-        toAddrs = toValue.map(v => (typeof v === 'string' ? v : (v?.address || ''))).filter(Boolean).join(',');
-      } else if (typeof toValue === 'string') {
-        toAddrs = toValue;
-      } else {
-        toAddrs = resolvedRecipient || toHeader || '';
-      }
-    } catch (_) { toAddrs = resolvedRecipient || toHeader || ''; }
+      const mailboxId = await getOrCreateMailboxId(DB, mailbox);
+      if (!mailboxId) throw new Error('无法解析或创建 mailbox 记录');
 
-    await DB.prepare(`
-      INSERT INTO messages (mailbox_id, sender, to_addrs, subject, verification_code, preview, r2_bucket, r2_object_key)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(mailboxId, sender, String(toAddrs || ''), subject || '(无主题)', verificationCode || null, preview || null, 'mail-eml', objectKey || '').run();
+      let toAddrs = '';
+      try {
+        const toValue = message.to;
+        if (Array.isArray(toValue)) {
+          toAddrs = toValue.map(v => (typeof v === 'string' ? v : (v?.address || ''))).filter(Boolean).join(',');
+        } else if (typeof toValue === 'string') {
+          toAddrs = toValue;
+        } else {
+          toAddrs = resolvedRecipient || toHeader || '';
+        }
+      } catch (_) { toAddrs = resolvedRecipient || toHeader || ''; }
+
+      await DB.prepare(`
+        INSERT INTO messages (mailbox_id, sender, to_addrs, subject, verification_code, preview, r2_bucket, r2_object_key)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(mailboxId, sender, String(toAddrs || ''), subject || '(无主题)', verificationCode || null, preview || null, storageType, objectKey).run();
+    } catch (error) {
+      if (objectKey && storage.available) {
+        const rolledBack = await storage.delete(objectKey, storageType);
+        if (!rolledBack) console.error('D1 写入失败后回滚邮件对象失败:', objectKey);
+      }
+      throw error;
+    }
   } catch (err) {
     console.error('Email event handling error:', err);
   }

@@ -4,7 +4,7 @@
 
 🇨🇳 中文 | 🌐 [English](README_en.md)
 
-一个基于 Cloudflare Workers + D1 + R2 构建的前后端分离的**开源临时邮箱服务**，支持 RESTful API 调用，适配多渠道发件，支持邮件接收、发送、转发、用户管理等功能。
+一个基于 Cloudflare Workers + D1 构建的前后端分离的**开源临时邮箱服务**，可选用 Workers KV 或 R2 保存完整邮件，支持 RESTful API 调用，适配多渠道发件，并提供邮件接收、发送、转发、用户管理等功能。
 
 **当前版本：V5.3.1** - 新增 Cyberpersons 发件渠道，按发件人域名自动路由 Resend / SendFlare / Cyberpersons
 
@@ -33,10 +33,10 @@
 
 | 类别 | 特性 |
 |------|------|
-| 📧 **邮箱管理** | 随机生成临时邮箱 · 多域名支持 · 置顶/收藏 · 历史记录 · 邮箱搜索 |
+| 📧 **邮箱管理** | 单个/批量生成临时邮箱 · 批量删除 · 多域名支持 · 置顶/收藏 · 历史记录 · 邮箱搜索 |
 | 💌 **邮件功能** | 实时接收 · 自动刷新 · 验证码智能提取 · HTML/纯文本 · 邮件转发 |
 | ✉️ **发件支持** | 多渠道发件（Resend / SendFlare / Cyberpersons）· 按域名自动路由|
-| ⚡ **技术架构** | Cloudflare Workers · D1 数据库 · R2 存储 · Email Routing |
+| ⚡ **技术架构** | Cloudflare Workers · D1 数据库 · KV/R2 可选存储 · Email Routing |
 
 
 ## 版本历史
@@ -71,7 +71,7 @@ npm install
 
 2. **配置本地变量**
 
-按需修改 `wrangler.toml` 中的 `[vars]`、D1 和 R2 绑定。至少建议设置：
+按需修改 `wrangler.toml` 中的 `[vars]`、D1 以及可选的 KV/R2 绑定。至少建议设置：
 
 ```toml
 ADMIN_NAME = "admin"
@@ -83,10 +83,10 @@ MAIL_DOMAIN = "example.com"
 3. **初始化本地 D1 数据库**
 
 ```bash
-npx wrangler d1 execute maill_free_db --local --file=./d1-init.sql
+npx wrangler d1 execute mail_free_db --local --file=./d1-init.sql
 ```
 
-如果你修改了 `wrangler.toml` 中的 `database_name`，请把上面的 `maill_free_db` 替换为你的数据库名称。
+如果你修改了 `wrangler.toml` 中的 `database_name`，请把上面的 `mail_free_db` 替换为你的数据库名称。
 
 4. **启动本地开发服务**
 
@@ -101,7 +101,8 @@ npx wrangler dev
 | 变量名 | 说明 | 必需 |
 |--------|------|------|
 | TEMP_MAIL_DB | D1 数据库绑定 | 是 |
-| MAIL_EML | R2 存储桶绑定 | 是 |
+| MAIL_EML_KV | Workers KV 绑定，用于保存完整 EML | 否 |
+| MAIL_EML | R2 存储桶绑定，用于保存完整 EML | 否 |
 | MAIL_DOMAIN | 邮箱域名，多个用逗号分隔 | 是 |
 | ADMIN_PASSWORD | 严格管理员密码 | 是 |
 | ADMIN_NAME | 严格管理员用户名（默认 `admin`） | 否 |
@@ -110,6 +111,8 @@ npx wrangler dev
 | SENDFLARE_API_KEY | SendFlare 发件密钥，格式同 Resend | 否 |
 | CYBERPERSONS_API_KEY | Cyberpersons 发件密钥，格式同 Resend | 否 |
 | FORWARD_RULES | 邮件转发规则 | 否 |
+
+> `MAIL_EML_KV` 和 `MAIL_EML` 均为可选。两者同时绑定时，新邮件优先写入 KV；读取旧邮件时会按记录的存储类型读取，并在缺失时回退另一存储。两者都未绑定时仍可收信并保存 D1 元数据，但无法查看正文或下载原始 EML。
 
 <details>
 <summary><strong>RESEND_API_KEY / SENDFLARE_API_KEY / CYBERPERSONS_API_KEY 配置格式</strong></summary>
@@ -206,7 +209,7 @@ wrangler d1 execute TEMP_MAIL_DB --command "SELECT * FROM mailboxes LIMIT 10"
 ## 注意事项
 
 - **静态资源缓存**：更新后在 Cloudflare 控制台 Purge Everything，浏览器强制刷新
-- **R2/D1 费用**：有免费额度限制，建议定期清理过期邮件
+- **KV/R2/D1 费用**：有免费额度限制，建议定期清理过期邮件
 - **安全**：生产环境务必修改默认的 `ADMIN_PASSWORD` 和 `JWT_TOKEN`
 
 ## 自动部署

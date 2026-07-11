@@ -4,7 +4,7 @@
 
 🇬🇧 English | 🌐 [中文](README.md)
 
-An open-source **temporary email service** built on Cloudflare Workers + D1 + R2, featuring a decoupled frontend and backend, RESTful API support, and full functionality including email receiving, sending, forwarding, and user management.
+An open-source **temporary email service** built on Cloudflare Workers + D1, with optional Workers KV or R2 storage for complete messages. It features a decoupled frontend and backend, RESTful APIs, email receiving, sending, forwarding, and user management.
 
 **Current version: V5.3.1** - New Cyberpersons sending channel with automatic Resend / SendFlare / Cyberpersons routing based on sender domain.
 
@@ -35,10 +35,10 @@ An open-source **temporary email service** built on Cloudflare Workers + D1 + R2
 
 | Category | Features |
 |----------|----------|
-| 📧 **Mailbox Management** | Random temporary email generation · Multi-domain support · Pin/favorite · History · Mailbox search |
+| 📧 **Mailbox Management** | Single/batch mailbox generation · Batch deletion · Multi-domain support · Pin/favorite · History · Mailbox search |
 | 💌 **Email Features** | Real-time receiving · Auto-refresh · Smart verification code extraction · HTML/plain text · Email forwarding |
 | ✉️ **Sending Support** | Multi-channel sending (Resend / SendFlare / Cyberpersons) · Automatic domain-based routing · Multi-domain keys · Batch sending · Sending history |
-| ⚡ **Tech Stack** | Cloudflare Workers · D1 Database · R2 Storage · Email Routing |
+| ⚡ **Tech Stack** | Cloudflare Workers · D1 Database · Optional KV/R2 Storage · Email Routing |
 
 ## Version History
 
@@ -72,7 +72,7 @@ npm install
 
 2. **Configure Local Variables**
 
-Modify `[vars]`, D1, and R2 bindings in `wrangler.toml` as needed. At minimum, set:
+Modify `[vars]`, D1, and the optional KV/R2 bindings in `wrangler.toml` as needed. At minimum, set:
 
 ```toml
 ADMIN_NAME = "admin"
@@ -84,10 +84,10 @@ MAIL_DOMAIN = "example.com"
 3. **Initialize Local D1 Database**
 
 ```bash
-npx wrangler d1 execute maill_free_db --local --file=./d1-init.sql
+npx wrangler d1 execute mail_free_db --local --file=./d1-init.sql
 ```
 
-If you changed `database_name` in `wrangler.toml`, replace `maill_free_db` with your database name.
+If you changed `database_name` in `wrangler.toml`, replace `mail_free_db` with your database name.
 
 4. **Start Local Development Server**
 
@@ -102,7 +102,8 @@ After starting, access the local URL output by Wrangler. Default admin account i
 | Variable | Description | Required |
 |----------|-------------|----------|
 | TEMP_MAIL_DB | D1 database binding | Yes |
-| MAIL_EML | R2 storage bucket binding | Yes |
+| MAIL_EML_KV | Workers KV binding for complete EML content | No |
+| MAIL_EML | R2 bucket binding for complete EML content | No |
 | MAIL_DOMAIN | Email domain(s), comma-separated for multiple | Yes |
 | ADMIN_PASSWORD | Admin password | Yes |
 | ADMIN_NAME | Admin username (default `admin`) | No |
@@ -111,6 +112,8 @@ After starting, access the local URL output by Wrangler. Default admin account i
 | SENDFLARE_API_KEY | SendFlare sending key, same format as Resend | No |
 | CYBERPERSONS_API_KEY | Cyberpersons sending key, same format as Resend | No |
 | FORWARD_RULES | Email forwarding rules | No |
+
+> `MAIL_EML_KV` and `MAIL_EML` are optional. When both are bound, new messages use KV first. Existing messages are read according to their recorded backend, with fallback to the other binding. With neither binding, incoming metadata is still stored in D1, but message bodies and original EML downloads are unavailable.
 
 <details>
 <summary><strong>RESEND_API_KEY / SENDFLARE_API_KEY / CYBERPERSONS_API_KEY Configuration Format</strong></summary>
@@ -202,7 +205,7 @@ wrangler d1 execute TEMP_MAIL_DB --command "SELECT * FROM mailboxes LIMIT 10"
 ## Notes
 
 - **Static Asset Cache**: After updates, Purge Everything in the Cloudflare console and force-refresh the browser
-- **R2/D1 Costs**: Free quota limits apply; regularly clean up expired emails
+- **KV/R2/D1 Costs**: Free quota limits apply; regularly clean up expired emails
 - **Security**: Always change the default `ADMIN_PASSWORD` and `JWT_TOKEN` in production
 
 ## Automatic Deployment

@@ -2,6 +2,10 @@
   "name": "freemail",
   "private": true,
   "type": "module",
+  "scripts": {
+    "test": "node --test src/test/*.test.js",
+    "test:eml": "node src/test/test_eml_extraction.js"
+  },
   "dependencies": {
     "hono": "^4.12.18",
     "postal-mime": "^2.7.4",

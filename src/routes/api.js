@@ -38,6 +38,7 @@ router.all('/api/*', async (c) => {
     sendflareApiKey: c.env.SENDFLARE_API_KEY || c.env.SENDFLARE_TOKEN || '',
     cyberpersonsApiKey: c.env.CYBERPERSONS_API_KEY || c.env.CYBERPERSONS_API_TOKEN || c.env.CYBERPERSONS || '',
     adminName: String(c.env.ADMIN_NAME || 'admin').trim().toLowerCase(),
+    kv: c.env.MAIL_EML_KV || c.env.MAIL_KV,
     r2: c.env.MAIL_EML,
     authPayload
   };

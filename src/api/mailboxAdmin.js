@@ -3,9 +3,12 @@
  * @module api/mailboxAdmin
  */
 
-import { getJwtPayload, isStrictAdmin, hashPassword, errorResponse } from './helpers.js';
-import { invalidateMailboxCache, invalidateSystemStatCache } from '../utils/cache.js';
+import { getJwtPayload, isStrictAdmin, hashPassword, errorResponse, normalizeEmailAddress } from './helpers.js';
+import { invalidateMailboxCache, invalidateSystemStatCache, invalidateUserQuotaCache } from '../utils/cache.js';
 import { getMailboxIdByAddress } from '../db/index.js';
+import { purgeMailboxData, purgeMailboxesData } from '../db/mailboxCleanup.js';
+import { createEmailStorage } from '../email/storage.js';
+import { isValidEmail } from '../utils/common.js';
 import {
   handleSetForward,
   handleToggleFavorite,
@@ -14,6 +17,24 @@ import {
   handleBatchFavoriteByAddress,
   handleBatchForwardByAddress
 } from './mailboxSettings.js';
+
+function chunks(items, size = 90) {
+  const result = [];
+  for (let index = 0; index < items.length; index += size) result.push(items.slice(index, index + size));
+  return result;
+}
+
+async function findMailboxesByAddress(db, addresses) {
+  const rows = [];
+  for (const addressChunk of chunks(addresses)) {
+    const placeholders = addressChunk.map(() => '?').join(',');
+    const { results } = await db.prepare(
+      `SELECT id, address FROM mailboxes WHERE address IN (${placeholders})`
+    ).bind(...addressChunk).all();
+    rows.push(...(results || []));
+  }
+  return rows;
+}
 
 /**
  * 处理邮箱管理员相关 API
@@ -26,6 +47,54 @@ import {
  */
 export async function handleMailboxAdminApi(request, db, url, path, options) {
   const isMock = !!options.mockOnly;
+
+  // 批量删除邮箱及其全部收发件记录
+  if (path === '/api/mailboxes/batch-delete' && request.method === 'POST') {
+    if (isMock) return errorResponse('演示模式不可删除', 403);
+    if (!isStrictAdmin(request, options)) return errorResponse('Forbidden', 403);
+
+    try {
+      const body = await request.json();
+      if (!Array.isArray(body?.addresses) || body.addresses.length === 0) {
+        return errorResponse('缺少 addresses 参数或地址列表为空', 400);
+      }
+      if (body.addresses.length > 100) return errorResponse('单次最多删除100个邮箱', 400);
+
+      const addresses = [...new Set(body.addresses.map(normalizeEmailAddress).filter(Boolean))];
+      const storage = options.storage || createEmailStorage({ kv: options.kv, r2: options.r2 });
+      const validAddresses = addresses.filter(isValidEmail);
+      const mailboxes = await findMailboxesByAddress(db, validAddresses);
+      const mailboxMap = new Map(mailboxes.map(mailbox => [String(mailbox.address || '').toLowerCase(), mailbox]));
+      const cleanup = await purgeMailboxesData({ db, mailboxes, storage });
+
+      const results = addresses.map(address => {
+        if (!isValidEmail(address)) return { address, success: false, error: '邮箱地址无效' };
+        if (!mailboxMap.has(address)) return { address, success: false, error: '邮箱不存在' };
+        const counts = cleanup.byMailbox.get(address) || {};
+        return {
+          address,
+          success: true,
+          inbox_deleted_count: Number(counts.inboxDeletedCount || 0),
+          sent_deleted_count: Number(counts.sentDeletedCount || 0)
+        };
+      });
+      const successCount = results.filter(result => result.success).length;
+
+      for (const mailbox of mailboxes) invalidateMailboxCache(mailbox.address);
+      for (const userId of cleanup.ownerUserIds) invalidateUserQuotaCache(userId);
+
+      if (successCount) invalidateSystemStatCache('total_mailboxes');
+      return Response.json({
+        success: successCount > 0,
+        success_count: successCount,
+        fail_count: results.length - successCount,
+        total: results.length,
+        results
+      });
+    } catch (error) {
+      return errorResponse('批量删除失败: ' + String(error?.message || 'Bad Request'), 500);
+    }
+  }
 
   // 删除邮箱
   if (path === '/api/mailboxes' && request.method === 'DELETE') {
@@ -45,21 +114,29 @@ export async function handleMailboxAdminApi(request, db, url, path, options) {
         if (!own?.results?.length) return errorResponse('Forbidden', 403);
       }
 
-      try { await db.exec('BEGIN'); } catch (_) { }
-      await db.prepare('DELETE FROM messages WHERE mailbox_id = ?').bind(mailboxId).run();
-      const deleteResult = await db.prepare('DELETE FROM mailboxes WHERE id = ?').bind(mailboxId).run();
-      try { await db.exec('COMMIT'); } catch (_) { }
-
-      const deleted = (deleteResult?.meta?.changes || 0) > 0;
+      const storage = options.storage || createEmailStorage({ kv: options.kv, r2: options.r2 });
+      const cleanup = await purgeMailboxData({
+        db,
+        mailboxId,
+        address: normalized,
+        storage,
+        deleteMailbox: true
+      });
+      const deleted = cleanup.mailboxDeleted;
 
       if (deleted) {
         invalidateMailboxCache(normalized);
         invalidateSystemStatCache('total_mailboxes');
+        for (const userId of cleanup.ownerUserIds) invalidateUserQuotaCache(userId);
       }
 
-      return Response.json({ success: deleted, deleted });
+      return Response.json({
+        success: deleted,
+        deleted,
+        inboxDeletedCount: cleanup.inboxDeletedCount,
+        sentDeletedCount: cleanup.sentDeletedCount
+      });
     } catch (e) {
-      try { await db.exec('ROLLBACK'); } catch (_) { }
       return errorResponse('删除失败', 500);
     }
   }

@@ -6,14 +6,99 @@
 import { getJwtPayload, isStrictAdmin, getMailboxAccess, errorResponse } from './helpers.js';
 import { buildMockMailboxes, MOCK_DOMAINS } from './mock.js';
 import { extractEmail, generateRandomId } from '../utils/common.js';
-import { getCachedUserQuota, getCachedSystemStat, invalidateSystemStatCache } from '../utils/cache.js';
+import { getCachedUserQuota, getCachedSystemStat, invalidateSystemStatCache, invalidateUserQuotaCache } from '../utils/cache.js';
 import {
   getOrCreateMailboxId,
+  checkMailboxOwnership,
   toggleMailboxPin,
   getTotalMailboxCount,
   assignMailboxToUser
 } from '../db/index.js';
 import { handleMailboxAdminApi } from './mailboxAdmin.js';
+
+function chunks(items, size = 90) {
+  const result = [];
+  for (let index = 0; index < items.length; index += size) result.push(items.slice(index, index + size));
+  return result;
+}
+
+async function findExistingAddresses(db, addresses) {
+  const existing = new Set();
+  for (const addressChunk of chunks(addresses)) {
+    const placeholders = addressChunk.map(() => '?').join(',');
+    const { results } = await db.prepare(
+      `SELECT address FROM mailboxes WHERE address IN (${placeholders})`
+    ).bind(...addressChunk).all();
+    for (const row of results || []) existing.add(String(row.address || '').toLowerCase());
+  }
+  return existing;
+}
+
+async function insertMailboxesBulk(db, addresses) {
+  for (const addressChunk of chunks(addresses, 30)) {
+    const values = addressChunk.map(() => '(?, ?, ?, NULL, CURRENT_TIMESTAMP)').join(',');
+    const params = [];
+    for (const address of addressChunk) {
+      const at = address.lastIndexOf('@');
+      params.push(address, address.slice(0, at), address.slice(at + 1));
+    }
+    await db.prepare(`
+      INSERT OR IGNORE INTO mailboxes (address, local_part, domain, password_hash, last_accessed_at)
+      VALUES ${values}
+    `).bind(...params).run();
+  }
+}
+
+async function assignMailboxesBulk(db, userId, addresses, { enforceQuota = true } = {}) {
+  for (const addressChunk of chunks(addresses, 85)) {
+    const placeholders = addressChunk.map(() => '?').join(',');
+    const quotaLimit = enforceQuota ? `
+      LIMIT (
+        SELECT MAX(0, u.mailbox_limit - (
+          SELECT COUNT(*) FROM user_mailboxes owned WHERE owned.user_id = u.id
+        ))
+        FROM users u WHERE u.id = ?
+      )
+    ` : '';
+    await db.prepare(`
+      INSERT OR IGNORE INTO user_mailboxes (user_id, mailbox_id)
+      SELECT ?, m.id
+      FROM mailboxes m
+      WHERE m.address IN (${placeholders})
+        AND NOT EXISTS (
+          SELECT 1 FROM user_mailboxes current
+          WHERE current.user_id = ? AND current.mailbox_id = m.id
+        )
+      ${quotaLimit}
+    `).bind(userId, ...addressChunk, userId, ...(enforceQuota ? [userId] : [])).run();
+  }
+
+  const assigned = new Set();
+  for (const addressChunk of chunks(addresses, 85)) {
+    const placeholders = addressChunk.map(() => '?').join(',');
+    const { results } = await db.prepare(`
+      SELECT m.address
+      FROM mailboxes m
+      JOIN user_mailboxes um ON um.mailbox_id = m.id
+      WHERE um.user_id = ? AND m.address IN (${placeholders})
+    `).bind(userId, ...addressChunk).all();
+    for (const row of results || []) assigned.add(String(row.address || '').toLowerCase());
+  }
+
+  const unassigned = addresses.filter(address => !assigned.has(address));
+  for (const addressChunk of chunks(unassigned)) {
+    const placeholders = addressChunk.map(() => '?').join(',');
+    await db.prepare(`
+      DELETE FROM mailboxes
+      WHERE address IN (${placeholders})
+        AND NOT EXISTS (SELECT 1 FROM user_mailboxes um WHERE um.mailbox_id = mailboxes.id)
+        AND NOT EXISTS (SELECT 1 FROM messages msg WHERE msg.mailbox_id = mailboxes.id)
+    `).bind(...addressChunk).run();
+  }
+
+  invalidateUserQuotaCache(userId);
+  return assigned;
+}
 
 /**
  * 处理邮箱管理相关 API
@@ -33,6 +118,75 @@ export async function handleMailboxesApi(request, db, mailDomains, url, path, op
     if (isMock) return Response.json(MOCK_DOMAINS);
     const domains = Array.isArray(mailDomains) ? mailDomains : [(mailDomains || 'temp.example.com')];
     return Response.json(domains);
+  }
+
+  // 批量生成随机邮箱
+  if (path === '/api/generate/batch' && request.method === 'POST') {
+    try {
+      const body = await request.json();
+      const count = Number(body?.count);
+      if (!Number.isInteger(count) || count < 1 || count > 100) {
+        return errorResponse('生成数量必须是 1 到 100 之间的整数', 400);
+      }
+
+      const length = Math.floor(Math.max(4, Math.min(64, Number(body?.length) || 8)));
+      const domains = isMock ? MOCK_DOMAINS : (Array.isArray(mailDomains) ? mailDomains : [mailDomains || 'temp.example.com']);
+      const domainIndex = Math.max(0, Math.min(domains.length - 1, Number(body?.domainIndex) || 0));
+      const domain = domains[domainIndex] || domains[0];
+      if (!domain) return errorResponse('没有可用邮箱域名', 400);
+
+      const payload = getJwtPayload(request, options);
+      if (!isMock && payload?.userId && !isStrictAdmin(request, options)) {
+        const quota = await getCachedUserQuota(db, Number(payload.userId));
+        const remaining = Math.max(0, Number(quota.limit || 0) - Number(quota.used || 0));
+        if (count > remaining) {
+          return errorResponse(`邮箱配额不足，最多还能生成 ${remaining} 个`, 400);
+        }
+      }
+
+      const candidates = [];
+      const generated = new Set();
+      for (let round = 0; candidates.length < count && round < 5; round++) {
+        const roundCandidates = [];
+        while (roundCandidates.length < count - candidates.length) {
+          const candidate = `${generateRandomId(length)}@${domain}`.toLowerCase();
+          if (generated.has(candidate)) continue;
+          generated.add(candidate);
+          roundCandidates.push(candidate);
+        }
+        const existing = isMock ? new Set() : await findExistingAddresses(db, roundCandidates);
+        candidates.push(...roundCandidates.filter(address => !existing.has(address)));
+      }
+
+      if (!isMock && candidates.length) {
+        await insertMailboxesBulk(db, candidates);
+        invalidateSystemStatCache('total_mailboxes');
+      }
+
+      let successful = new Set(candidates);
+      if (!isMock && payload?.userId && candidates.length) {
+        successful = await assignMailboxesBulk(db, Number(payload.userId), candidates, {
+          enforceQuota: !isStrictAdmin(request, options)
+        });
+      }
+
+      const emails = candidates.filter(email => successful.has(email));
+      const results = candidates.map(email => successful.has(email)
+        ? { email, success: true }
+        : { email, success: false, error: '邮箱配额不足或邮箱已被占用' });
+      while (results.length < count) results.push({ success: false, error: '无法生成唯一邮箱地址' });
+      const successCount = emails.length;
+      return Response.json({
+        success: successCount > 0,
+        emails,
+        success_count: successCount,
+        fail_count: count - successCount,
+        total: count,
+        results
+      });
+    } catch (_) {
+      return errorResponse('Bad Request', 400);
+    }
   }
 
   // 随机生成邮箱
@@ -90,6 +244,12 @@ export async function handleMailboxesApi(request, db, mailDomains, url, path, op
         const payload = getJwtPayload(request, options);
         const userId = payload?.userId;
         if (userId) {
+          if (!isStrictAdmin(request, options)) {
+            const ownership = await checkMailboxOwnership(db, email, Number(userId));
+            if (ownership.exists && !ownership.ownedByUser) {
+              return errorResponse('邮箱已存在，不能接管其他邮箱', 409);
+            }
+          }
           await assignMailboxToUser(db, { userId, address: email });
         } else {
           await getOrCreateMailboxId(db, email);
