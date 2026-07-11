@@ -7,6 +7,8 @@ on:
       - "src/**"
       - "public/**"
       - "wrangler.toml"
+      - "package.json"
+      - ".github/workflows/deploy-cloudflare.yml"
   workflow_dispatch:
 
 jobs:
@@ -23,8 +25,9 @@ jobs:
       # D1 数据库（可选，留空则自动创建）
       D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID || vars.D1_DATABASE_ID }}
       D1_DB_NAME: ${{ secrets.D1_DB_NAME || vars.D1_DB_NAME || 'mail_free_db' }}
-      # R2 存储桶名称（不需要 UUID）
-      R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME || vars.R2_BUCKET_NAME || 'mail-eml' }}
+      # 邮件对象存储（均可选；同时配置时 KV 优先）
+      KV_NAMESPACE_ID: ${{ secrets.KV_NAMESPACE_ID || vars.KV_NAMESPACE_ID }}
+      R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME || vars.R2_BUCKET_NAME }}
       # 应用环境变量
       ADMIN_NAME: ${{ secrets.ADMIN_NAME || vars.ADMIN_NAME || 'admin' }}
       ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD || vars.ADMIN_PASSWORD }}
@@ -88,8 +91,14 @@ jobs:
           sed -i 's/^[[:space:]]*database_id = .*/database_id = "PLACEHOLDER_D1_ID"/' "$CONFIG_FILE"
           sed -i "s/^[[:space:]]*database_name = .*/database_name = \"${D1_DB_NAME}\"/" "$CONFIG_FILE"
 
-          # 替换 R2 bucket 名称
-          sed -i "s/^[[:space:]]*bucket_name = .*/bucket_name = \"${R2_BUCKET_NAME}\"/" "$CONFIG_FILE"
+          # 仅在显式配置时追加邮件对象存储绑定
+          if [ -n "$KV_NAMESPACE_ID" ]; then
+            printf '\n[[kv_namespaces]]\nbinding = "MAIL_EML_KV"\nid = "%s"\n' "$KV_NAMESPACE_ID" >> "$CONFIG_FILE"
+          fi
+
+          if [ -n "$R2_BUCKET_NAME" ]; then
+            printf '\n[[r2_buckets]]\nbinding = "MAIL_EML"\nbucket_name = "%s"\n' "$R2_BUCKET_NAME" >> "$CONFIG_FILE"
+          fi
 
           # 注入环境变量（如果设置了的话）
           if [ -n "$ADMIN_NAME" ]; then
@@ -134,6 +143,22 @@ jobs:
             sed -i "s|^RESEND_API_KEY=.*|RESEND_API_KEY=\"${RESEND_API_KEY}\"|" "$CONFIG_FILE"
           else
             sed -i '/^RESEND_API_KEY=/d' "$CONFIG_FILE"
+          fi
+
+          # SENDFLARE_API_KEY: 如果未设置则从配置中删除
+          SENDFLARE_API_KEY="${{ secrets.SENDFLARE_API_KEY || vars.SENDFLARE_API_KEY }}"
+          if [ -n "$SENDFLARE_API_KEY" ]; then
+            sed -i "s|^SENDFLARE_API_KEY=.*|SENDFLARE_API_KEY=\"${SENDFLARE_API_KEY}\"|" "$CONFIG_FILE"
+          else
+            sed -i '/^SENDFLARE_API_KEY=/d' "$CONFIG_FILE"
+          fi
+
+          # CYBERPERSONS_API_KEY: 如果未设置则从配置中删除
+          CYBERPERSONS_API_KEY="${{ secrets.CYBERPERSONS_API_KEY || vars.CYBERPERSONS_API_KEY }}"
+          if [ -n "$CYBERPERSONS_API_KEY" ]; then
+            sed -i "s|^CYBERPERSONS_API_KEY=.*|CYBERPERSONS_API_KEY=\"${CYBERPERSONS_API_KEY}\"|" "$CONFIG_FILE"
+          else
+            sed -i '/^CYBERPERSONS_API_KEY=/d' "$CONFIG_FILE"
           fi
 
           echo "✅ Config generated."
@@ -181,6 +206,7 @@ jobs:
           echo "✅ D1 database setup completed."
 
       - name: 📦 设置 R2 存储桶 / Set up R2 bucket
+        if: env.R2_BUCKET_NAME != ''
         run: |
           echo "🔍 Checking if R2 bucket '${R2_BUCKET_NAME}' exists..."
 
