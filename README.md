@@ -221,7 +221,7 @@ wrangler d1 execute TEMP_MAIL_DB --command "SELECT * FROM mailboxes LIMIT 10"
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=idinging/freemail&type=Date)](https://www.star-history.com/#idinging/freemail&Date)
+[![Star History Chart](https://star-history.dera.page/svg?repos=idinging/freemail&type=Date)](https://star-history.dera.page/#idinging/freemail&type=Date)
 
 ## 联系方式
 

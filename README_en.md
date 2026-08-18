@@ -217,7 +217,7 @@ Thanks to [oxygen](https://github.com/daimiaopeng) for contributing the privileg
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=idinging/freemail&type=Date)](https://www.star-history.com/#idinging/freemail&Date)
+[![Star History Chart](https://star-history.dera.page/svg?repos=idinging/freemail&type=Date)](https://star-history.dera.page/#idinging/freemail&type=Date)
 
 ## Contact
 
