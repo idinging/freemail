@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "hono": "^4.12.18",
+    "hono": "^4.13.11",
     "postal-mime": "^2.7.4",
     "sendflare-sdk-ts": "^1.0.5"
   }
