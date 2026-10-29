@@ -162,13 +162,11 @@ export async function listUsersWithCounts(db, { limit = 50, offset = 0, sort = '
  * @param {string} params.username - 用户名，可选（userId和username至少提供一个）
  * @param {string} params.address - 邮箱地址
  * @returns {Promise<object>} 分配结果对象
- * @throws {Error} 当邮箱地址无效、用户不存在或达到邮箱上限时抛出异常
+ * @throws {Error} 当邮箱地址无效、用户不存在、达到邮箱上限或邮箱已被其他用户占用时抛出异常
  */
 export async function assignMailboxToUser(db, { userId = null, username = null, address }) {
   const normalized = String(address || '').trim().toLowerCase();
   if (!normalized) throw new Error('邮箱地址无效');
-  // 查询或创建邮箱
-  const mailboxId = await getOrCreateMailboxId(db, normalized);
 
   // 获取用户 ID
   let uid = userId;
@@ -180,13 +178,25 @@ export async function assignMailboxToUser(db, { userId = null, username = null, 
     uid = r.results[0].id;
   }
 
+  // 查询或创建邮箱
+  const mailboxId = await getOrCreateMailboxId(db, normalized);
+
   // 使用缓存校验上限
   const quota = await getCachedUserQuota(db, uid);
   if (quota.used >= quota.limit) throw new Error('已达到邮箱上限');
 
-  // 绑定（唯一约束避免重复）
-  await db.prepare('INSERT OR IGNORE INTO user_mailboxes (user_id, mailbox_id) VALUES (?, ?)').bind(uid, mailboxId).run();
-  
+  // 一个邮箱只归属一个用户：/api/create 允许任意 local，若不校验占用，任何用户都能认领他人邮箱后读写、转发、清空其邮件
+  const mine = await db.prepare(
+    'SELECT 1 FROM user_mailboxes WHERE user_id = ? AND mailbox_id = ? LIMIT 1'
+  ).bind(uid, mailboxId).first();
+  if (!mine) {
+    // 条件插入而非先查后插，防止两个用户并发认领同一地址时双方都通过校验
+    const bound = await db.prepare(
+      'INSERT INTO user_mailboxes (user_id, mailbox_id) SELECT ?, ? WHERE NOT EXISTS (SELECT 1 FROM user_mailboxes WHERE mailbox_id = ?)'
+    ).bind(uid, mailboxId, mailboxId).run();
+    if ((bound?.meta?.changes || 0) === 0) throw new Error('该邮箱已被其他用户占用');
+  }
+
   // 使缓存失效，下次查询时会重新获取
   invalidateUserQuotaCache(uid);
   
