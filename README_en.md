@@ -6,7 +6,7 @@
 
 An open-source **temporary email service** built on Cloudflare Workers + D1 + R2, featuring a decoupled frontend and backend, RESTful API support, and full functionality including email receiving, sending, forwarding, and user management.
 
-**Current version: V5.3.1** - New Cyberpersons sending channel with automatic Resend / SendFlare / Cyberpersons routing based on sender domain.
+**Current version: V5.3.2** - Security fix: an address already owned by another user can no longer be claimed (cross-user mailbox takeover, [issue #73](https://github.com/idinging/freemail/issues/73)).
 
 `This email service supports automatic mailbox creation upon receiving emails. Forwarding target email addresses must be verified in Cloudflare Email Addresses.`
 
@@ -44,6 +44,7 @@ An open-source **temporary email service** built on Cloudflare Workers + D1 + R2
 
 | Version | Key Updates |
 |---------|-------------|
+| **V5.3.2** | Security fix: reject claiming an address already owned by another user · Atomic conditional insert prevents cross-user mailbox takeover ([issue #73](https://github.com/idinging/freemail/issues/73)) |
 | **V5.3.1** | New Cyberpersons (CyberPanel Email Delivery) sending channel · Three-tier routing (SendFlare → Resend → Cyberpersons) · Cyberpersons API adaptation (single-string recipient, independent from_name, message_id extraction) |
 | **V5.3.0** | Sending module abstracted to `src/email/providers/` · New SendFlare channel (based on `sendflare-sdk-ts`) · Automatic Resend / SendFlare routing by sender domain · `sent_emails` table adds `provider` field |
 | **V5.2.0** | Introduced postal-mime for improved email parsing · Fixed Chinese character garbled text in some clients |
