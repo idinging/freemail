@@ -43,6 +43,7 @@
 
 | 版本 | 主要更新 |
 |------|----------|
+| **V5.3.2** | 安全修复：禁止认领他人已占用的邮箱地址，堵住跨用户邮箱接管（[issue #73](https://github.com/idinging/freemail/issues/73)） |
 | **V5.3.1** | 新增 Cyberpersons（CyberPanel Email Delivery）发件渠道|
 | **V5.3.0** | 发件模块抽象为 `src/email/providers/` · 新增 SendFlare 渠道· 按发件人域名自动路由 · `sent_emails` 表新增 `provider` 字段 |
 | **V5.2.0** | 引入 postal-mime 改进邮件解析 · 修复部分客户端中文乱码问题 |
