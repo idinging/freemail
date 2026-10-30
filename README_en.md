@@ -10,7 +10,7 @@ An open-source **temporary email service** built on Cloudflare Workers + D1 + R2
 
 `This email service supports automatic mailbox creation upon receiving emails. Forwarding target email addresses must be verified in Cloudflare Email Addresses.`
 
-📖 **[One-Click Deployment Guide](docs/yijianbushu.md)** | 🤖 **[GitHub Actions Deployment Guide](docs/action-deployment.md)** | 📬 **[Resend Sending Config](docs/resend.md)** | 🚀 **[SendFlare Sending Config](docs/sendflare.md)** | ☁️ **[Cyberpersons Sending Config](docs/cyberpersons.md)** | 🧩 **[Provider Adapter](docs/provider-adapter.md)** | 📚 **[API Docs](docs/api.md)**
+📖 **[One-Click Deployment Guide](docs/yijianbushu.md)** | 🤖 **[GitHub Actions Deployment Guide](docs/action-deployment.md)** | 📬 **[Resend Sending Config](docs/resend.md)** | 🚀 **[SendFlare Sending Config](docs/sendflare.md)** | ☁️ **[Cyberpersons Sending Config](docs/cyberpersons.md)** | 🧩 **[Provider Adapter](docs/provider-adapter.md)** | 📚 **[API Docs](docs/api.md)** | 🌐 <u>[IPWO Residential Proxies](https://www.ipwo.net/?ref=githubfreemail)</u>
 
 ## 📸 Project Showcase
 
@@ -209,6 +209,14 @@ wrangler d1 execute TEMP_MAIL_DB --command "SELECT * FROM mailboxes LIMIT 10"
 ## Automatic Deployment
 
 This project supports automatic deployment to Cloudflare Workers via GitHub Actions. See the [Automatic Deployment Guide](docs/action-deployment.md) for details.
+
+## Partners
+
+[![IPWO Residential Proxies](pic/98170abe6955c352c69944323006b457.jpg)](https://www.ipwo.net/?ref=githubfreemail)
+
+[IPWO](https://www.ipwo.net/?ref=githubfreemail) runs a residential proxy network covering 195+ regions and 90M+ active residential IPs, available as dynamic, static or unlimited plans over HTTP(S) and SOCKS5, with country / city targeting and session configuration.
+
+It is commonly used for email system testing, API request validation, web access testing and automated workflows. Free trial available with code `0200`.
 
 ## Contributors
 

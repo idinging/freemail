@@ -10,7 +10,7 @@
 
 `本邮箱服务支持接收邮件时自动创建对应的邮箱，邮箱服务的转发目标邮箱地址需要在cloudflare Email Addresses中验证`
 
-📖 **[一键部署指南](docs/yijianbushu.md)** | 🤖 **[Github Action 部署指南](docs/action-deployment.md)** | 📬 **[Resend 发件配置](docs/resend.md)** | 🚀 **[SendFlare 发件配置](docs/sendflare.md)** | ☁️ **[Cyberpersons 发件配置](docs/cyberpersons.md)** | 📚 **[API 文档](docs/api.md)**
+📖 **[一键部署指南](docs/yijianbushu.md)** | 🤖 **[Github Action 部署指南](docs/action-deployment.md)** | 📬 **[Resend 发件配置](docs/resend.md)** | 🚀 **[SendFlare 发件配置](docs/sendflare.md)** | ☁️ **[Cyberpersons 发件配置](docs/cyberpersons.md)** | 📚 **[API 文档](docs/api.md)** | 🌐 <u>[IPWO 住宅代理](https://www.ipwo.net/?ref=githubfreemail)</u>
 
 ## 📸 项目展示
 ### 体验地址： https://freemail.cq.de5.net
@@ -213,6 +213,14 @@ wrangler d1 execute TEMP_MAIL_DB --command "SELECT * FROM mailboxes LIMIT 10"
 ## 自动部署
 
 本项目支持 GitHub Actions 自动部署到 Cloudflare Workers。详细配置说明请参考 [自动部署指南](docs/action-deployment.md)。
+
+## 合作伙伴
+
+[![IPWO 住宅代理](pic/98170abe6955c352c69944323006b457.jpg)](https://www.ipwo.net/?ref=githubfreemail)
+
+[IPWO](https://www.ipwo.net/?ref=githubfreemail) 的住宅代理网络覆盖 195+ 地区、9000 万活跃住宅 IP，提供动态 / 静态 / 不限量三种形态，兼容 HTTP(S) 与 SOCKS5，可按国家、城市定位与会话配置。
+
+常用于邮件系统测试、API 请求验证、网页访问测试与自动化工作流。可免费测试，折扣码 `0200`。
 
 ## 感谢贡献者
 
