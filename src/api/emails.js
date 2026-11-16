@@ -48,7 +48,11 @@ export async function handleEmailsApi(request, db, url, path, options) {
 
       const normalized = extractEmail(mailbox).trim().toLowerCase();
       const mailboxId = await getMailboxIdByAddress(db, normalized);
-      if (!mailboxId) return Response.json([]);
+      if (!mailboxId) {
+        // 保持数组结构不变（其他页面仍按数组解析），用响应头告知前端「邮箱已不存在」，
+        // 便于前端清掉当前选中的地址——典型场景：管理员删除了访客正在查看的邮箱
+        return Response.json([], { headers: { 'X-Mailbox-Missing': '1' } });
+      }
       const access = await getMailboxAccess(db, request, options, { mailboxId });
       if (!access.allowed) return errorResponse('Forbidden', 403);
 

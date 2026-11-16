@@ -174,6 +174,23 @@ export function updateEmailDisplay(elements, address) {
 }
 
 /**
+ * 重置邮箱展示区（回到「未选中邮箱」的状态）
+ * @param {object} elements - DOM 元素
+ */
+export function resetMailboxDisplay(elements = {}) {
+  const { email, emailActions, listCard, list, pager } = elements;
+  const emailText = document.getElementById('email-text');
+  if (emailText) emailText.innerHTML = '<span class="placeholder-text">点击右侧生成按钮创建邮箱地址</span>';
+  else if (email) email.textContent = '点击生成邮箱';
+
+  email?.classList.remove('has-email');
+  if (emailActions) emailActions.style.display = 'none';
+  if (listCard) listCard.style.display = 'none';
+  if (list) list.innerHTML = '';
+  if (pager) pager.style.display = 'none';
+}
+
+/**
  * 选择邮箱
  * @param {string} address - 邮箱地址
  * @param {object} elements - DOM 元素
@@ -181,8 +198,26 @@ export function updateEmailDisplay(elements, address) {
  * @param {Function} refresh - 刷新函数
  * @param {Function} autoRefreshCallback - 自动刷新回调
  * @param {Function} updateMailboxInfoUI - 更新邮箱信息UI函数
+ * @param {Function} [showToast] - 提示函数
+ * @returns {Promise<boolean>} 是否成功选中（邮箱已不存在时返回 false）
  */
-export async function selectMailboxAddress(address, elements, api, refresh, autoRefreshCallback, updateMailboxInfoUI) {
+export async function selectMailboxAddress(address, elements, api, refresh, autoRefreshCallback, updateMailboxInfoUI, showToast) {
+  // 先确认邮箱是否仍然存在：邮箱被删除后，本地存的「上次邮箱」不应再被选中展示
+  let info = null;
+  try {
+    const r = await api(`/api/mailbox/info?address=${encodeURIComponent(address)}`);
+    if (r && r.ok) info = await r.json();
+  } catch(_) { /* 网络异常时保持乐观展示，不阻塞用户 */ }
+
+  if (info && (info.id === null || info.id === undefined)) {
+    clearCurrentMailbox();
+    setCurrentMailboxInfo(null);
+    resetMailboxDisplay(elements);
+    stopAutoRefresh();
+    if (showToast) showToast('该邮箱已被管理员删除，请重新生成', 'warn');
+    return false;
+  }
+
   setCurrentMailbox(address);
   updateEmailDisplay(elements, address);
   
@@ -191,20 +226,16 @@ export async function selectMailboxAddress(address, elements, api, refresh, auto
     el.classList.toggle('selected', el.querySelector('.address')?.textContent === address);
   });
   
-  // 加载邮箱信息
-  try {
-    const r = await api(`/api/mailbox/info?address=${encodeURIComponent(address)}`);
-    if (r.ok) {
-      const info = await r.json();
-      setCurrentMailboxInfo(info);
-      updateMailboxInfoUI(info);
-    }
-  } catch(_) {}
+  if (info) {
+    setCurrentMailboxInfo(info);
+    updateMailboxInfoUI(info);
+  }
   
   // 重置分页并刷新
   resetPager(elements);
   startAutoRefresh(autoRefreshCallback);
   await refresh();
+  return true;
 }
 
 /**
@@ -249,10 +280,8 @@ export async function deleteMailboxAddress(event, address, elements, api, showTo
       showToast('邮箱已删除', 'success');
       if (getCurrentMailbox() === address) {
         clearCurrentMailbox();
-        if (elements.email) elements.email.textContent = '点击生成邮箱';
-        elements.email?.classList.remove('has-email');
-        if (elements.emailActions) elements.emailActions.style.display = 'none';
-        if (elements.list) elements.list.innerHTML = '';
+        setCurrentMailboxInfo(null);
+        resetMailboxDisplay(elements);
         stopAutoRefresh();
       }
       await loadMailboxes({ forceFresh: true });
