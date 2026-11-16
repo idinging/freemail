@@ -6,7 +6,7 @@
 
 An open-source **temporary email service** built on Cloudflare Workers + D1 + R2, featuring a decoupled frontend and backend, RESTful API support, and full functionality including email receiving, sending, forwarding, and user management.
 
-**Current version: V5.3.2** - Security fix: an address already owned by another user can no longer be claimed (cross-user mailbox takeover, [issue #73](https://github.com/idinging/freemail/issues/73)).
+**Current version: V5.3.3** - Fixed verification-code false positives and grouped code extraction · Fixed stale UI after a mailbox is deleted.
 
 `This email service supports automatic mailbox creation upon receiving emails. Forwarding target email addresses must be verified in Cloudflare Email Addresses.`
 
@@ -44,6 +44,7 @@ An open-source **temporary email service** built on Cloudflare Workers + D1 + R2
 
 | Version | Key Updates |
 |---------|-------------|
+| **V5.3.3** | Verification codes are no longer taken from email addresses / links · Grouped formats (`458-291`, `12 34 56`) are extracted · Stale UI after an admin deletes a mailbox is fixed ([#75](https://github.com/idinging/freemail/pull/75) [#76](https://github.com/idinging/freemail/pull/76)) |
 | **V5.3.2** | Security fix: reject claiming an address already owned by another user · Atomic conditional insert prevents cross-user mailbox takeover ([issue #73](https://github.com/idinging/freemail/issues/73)) |
 | **V5.3.1** | New Cyberpersons (CyberPanel Email Delivery) sending channel · Three-tier routing (SendFlare → Resend → Cyberpersons) · Cyberpersons API adaptation (single-string recipient, independent from_name, message_id extraction) |
 | **V5.3.0** | Sending module abstracted to `src/email/providers/` · New SendFlare channel (based on `sendflare-sdk-ts`) · Automatic Resend / SendFlare routing by sender domain · `sent_emails` table adds `provider` field |
@@ -223,6 +224,8 @@ It is commonly used for email system testing, API request validation, web access
 Thanks to [sarsanta](https://github.com/sarsanta) for contributing the GitHub Actions automatic deployment feature!
 
 Thanks to [oxygen](https://github.com/daimiaopeng) for contributing the privilege escalation vulnerability fix.
+
+Thanks to [herongcan](https://github.com/herongcan) for fixing the verification-code false positive ([#75](https://github.com/idinging/freemail/pull/75)) and the stale state left behind by deleted mailboxes ([#76](https://github.com/idinging/freemail/pull/76)).
 
 ## Star History
 

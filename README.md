@@ -6,7 +6,7 @@
 
 一个基于 Cloudflare Workers + D1 + R2 构建的前后端分离的**开源临时邮箱服务**，支持 RESTful API 调用，适配多渠道发件，支持邮件接收、发送、转发、用户管理等功能。
 
-**当前版本：V5.3.2** - 安全修复：禁止认领他人已占用的邮箱地址，堵住跨用户邮箱接管（[issue #73](https://github.com/idinging/freemail/issues/73)）
+**当前版本：V5.3.3** - 修复验证码误判与分组验证码提取 · 修复邮箱被删除后访客端界面残留
 
 `本邮箱服务支持接收邮件时自动创建对应的邮箱，邮箱服务的转发目标邮箱地址需要在cloudflare Email Addresses中验证`
 
@@ -43,6 +43,7 @@
 
 | 版本 | 主要更新 |
 |------|----------|
+| **V5.3.3** | 修复验证码把邮箱地址/链接里的数字误判 · 支持分组写法验证码 · 修复邮箱被管理员删除后界面残留（[#75](https://github.com/idinging/freemail/pull/75) [#76](https://github.com/idinging/freemail/pull/76)） |
 | **V5.3.2** | 安全修复：禁止认领他人已占用的邮箱地址，堵住跨用户邮箱接管（[issue #73](https://github.com/idinging/freemail/issues/73)） |
 | **V5.3.1** | 新增 Cyberpersons（CyberPanel Email Delivery）发件渠道|
 | **V5.3.0** | 发件模块抽象为 `src/email/providers/` · 新增 SendFlare 渠道· 按发件人域名自动路由 · `sent_emails` 表新增 `provider` 字段 |
@@ -227,6 +228,8 @@ wrangler d1 execute TEMP_MAIL_DB --command "SELECT * FROM mailboxes LIMIT 10"
 感谢 [sarsanta](https://github.com/sarsanta) 贡献的 GitHub Actions 自动部署功能！
 
 感谢 [oxygen](https://github.com/daimiaopeng) 贡献的权限越权漏洞及其修复
+
+感谢 [herongcan](https://github.com/herongcan) 贡献的验证码误判修复（[#75](https://github.com/idinging/freemail/pull/75)）与已删邮箱残留状态修复（[#76](https://github.com/idinging/freemail/pull/76)）
 
 ## Star History
 
