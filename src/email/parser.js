@@ -28,9 +28,11 @@ export async function parseEmailBody(raw) {
  * @returns {string} 提取的验证码，如果未找到返回空字符串
  */
 export function extractVerificationCode({ subject = '', text = '', html = '' } = {}) {
-  const subjectText = String(subject || '');
-  const textBody = String(text || '').replace(/\s+/g, ' ').trim();
-  const htmlBody = stripHtml(html).replace(/\s+/g, ' ').trim();
+  // 先剔除邮箱地址与 URL：转发邮件正文/头部里的 xxx888888@example.com、链接里的数字串
+  // 只要落在关键词 80 字符内就会被当成验证码写库，而前端优先展示库里这个值，事后无法纠正
+  const subjectText = stripNoise(String(subject || ''));
+  const textBody = stripNoise(String(text || '')).replace(/\s+/g, ' ').trim();
+  const htmlBody = stripNoise(stripHtml(html)).replace(/\s+/g, ' ').trim();
 
   const sources = {
     subject: subjectText,
@@ -58,7 +60,7 @@ export function extractVerificationCode({ subject = '', text = '', html = '' } =
     const m = sources.subject.match(r);
     if (m && m[1]) {
       const n = normalizeDigits(m[1]);
-      if (n) return n;
+      if (n && !looksLikeDate(n)) return n;
     }
   }
 
@@ -70,7 +72,7 @@ export function extractVerificationCode({ subject = '', text = '', html = '' } =
     const m = sources.body.match(r);
     if (m && m[1]) {
       const n = normalizeDigits(m[1]);
-      if (n) return n;
+      if (n && !looksLikeDate(n)) return n;
     }
   }
 
@@ -82,13 +84,26 @@ export function extractVerificationCode({ subject = '', text = '', html = '' } =
     const m = sources.body.match(r);
     if (m && m[1]) {
       const n = normalizeDigits(m[1]);
-      if (n && !isLikelyNonVerificationCode(n, sources.body)) {
+      if (n && !looksLikeDate(n) && !isLikelyNonVerificationCode(n, sources.body)) {
         return n;
       }
     }
   }
 
   return '';
+}
+
+/**
+ * 剔除邮箱地址与 URL，避免其中的数字串被关键词规则误判成验证码
+ * 先处理 URL（自身可能含 @），再处理邮箱
+ * @param {string} s - 原始文本
+ * @returns {string}
+ */
+function stripNoise(s) {
+  return String(s || '')
+    .replace(/https?:\/\/\S+/gi, ' ')
+    .replace(/\bwww\.\S+/gi, ' ')
+    .replace(/[A-Za-z0-9._%+'-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, ' ');
 }
 
 function stripHtml(html) {
@@ -104,6 +119,20 @@ function stripHtml(html) {
     .replace(/&[a-z]+;/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+/**
+ * 判断是否为日期型数字串（如转发邮件头部的 Date: 2026-10-29 → 20261029）
+ * 这类值常与 login/security/code 等关键词同处一个窗口内，不能当验证码
+ * @param {string} digits - 纯数字串
+ * @returns {boolean}
+ */
+function looksLikeDate(digits) {
+  if (String(digits || '').length !== 8) return false;
+  const y = parseInt(digits.slice(0, 4), 10);
+  const mo = parseInt(digits.slice(4, 6), 10);
+  const d = parseInt(digits.slice(6, 8), 10);
+  return y >= 2000 && y <= 2099 && mo >= 1 && mo <= 12 && d >= 1 && d <= 31;
 }
 
 function isLikelyNonVerificationCode(digits, context = '') {
