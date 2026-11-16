@@ -112,19 +112,28 @@ export function restoreButton(button) {
  */
 export function extractCode(text) {
   if (!text) return '';
+
+  // 归一化：先剔除 HTML 标签、邮箱地址与 URL，避免把「邮箱地址里的 6 位数字」
+  // 「链接/订单号里的数字串」误判成验证码（例如 xxx888888@example.com 会被兜底规则命中）
+  const source = String(text)
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/[A-Za-z0-9._%+'-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, ' ')
+    .replace(/https?:\/\/\S+/gi, ' ')
+    .replace(/\bwww\.\S+/gi, ' ');
+
   const keywords = '(?:验证码|校验码|激活码|one[-\\s]?time\\s+code|verification\\s+code|security\\s+code|two[-\\s]?factor|2fa|otp|login\\s+code|code)';
   const notFollowAlnum = '(?![0-9A-Za-z])';
 
   // 1) 关键词附近的 4-8 位纯数字
-  let m = text.match(new RegExp(
+  let m = source.match(new RegExp(
     keywords + "[^0-9A-Za-z]{0,20}(?:is(?:\\s*[:：])?|[:：]|为|是)?[^0-9A-Za-z]{0,10}(\\d{4,8})" + notFollowAlnum,
     'i'
   ));
   if (m) return m[1];
 
-  // 2) 关键词附近的空格/横杠分隔数字
-  m = text.match(new RegExp(
-    keywords + "[^0-9A-Za-z]{0,20}(?:is(?:\\s*[:：])?|[:：]|为|是)?[^0-9A-Za-z]{0,10}((?:\\d[ \\t-]){3,7}\\d)",
+  // 2) 关键词附近的空格/横杠分隔数字（兼容 458-291、12 34 56 这类分组写法）
+  m = source.match(new RegExp(
+    keywords + "[^0-9A-Za-z]{0,20}(?:is(?:\\s*[:：])?|[:：]|为|是)?[^0-9A-Za-z]{0,10}(\\d{1,4}(?:[ \\t-]\\d{1,4}){1,3})",
     'i'
   ));
   if (m) {
@@ -133,18 +142,18 @@ export function extractCode(text) {
   }
 
   // 3) 关键词附近的 4-8 位字母数字混合
-  m = text.match(new RegExp(
+  m = source.match(new RegExp(
     keywords + "[^0-9A-Za-z]{0,40}((?=[0-9A-Za-z]*\\d)[0-9A-Za-z]{4,8})" + notFollowAlnum,
     'i'
   ));
   if (m) return m[1];
 
-  // 4) 全局 6 位数字
-  m = text.match(/(?<!\d)(\d{6})(?!\d)/);
+  // 4) 兜底：独立成词的 6 位数字（前后不能是字母/数字或 @ . : / -，避开邮箱、URL、版本号、时间戳）
+  m = source.match(/(?<![\w@.:/-])(\d{6})(?![\w@.:/-])/);
   if (m) return m[1];
 
   // 5) 空格/横杠分隔的 6-8 位数字
-  m = text.match(/(\d(?:[ \t-]\d){5,7})/);
+  m = source.match(/(?<![\w@.:/-])(\d(?:[ \t-]\d){5,7})(?![\w@.:/-])/);
   if (m) {
     const digits = m[1].replace(/\D/g, '');
     if (digits.length >= 4 && digits.length <= 8) return digits;
